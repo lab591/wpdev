@@ -85,6 +85,15 @@ final class SettingsFormTest extends TestCase {
 		$this->assertGreaterThanOrEqual( 12, count( $form->errors() ) );
 	}
 
+	public function test_ripgrep_binary_setting(): void {
+		$form = $this->form();
+		$this->assertSame( 'rg', $form->sanitize( [ 'grep_rg' => ' rg ' ], Settings::defaults() )['grep_rg'] );
+		$this->assertSame( '', $form->sanitize( [ 'grep_rg' => '' ], Settings::defaults() )['grep_rg'] );
+		$bad = $form->sanitize( [ 'grep_rg' => 'C:/Windows/System32/cmd.exe' ], Settings::defaults() );
+		$this->assertSame( '', $bad['grep_rg'] );
+		$this->assertCount( 1, $form->errors() );
+	}
+
 	public function test_mu_plugins_only_when_enabled(): void {
 		$this->fx->write( 'wp-content/mu-plugins/tools/tools.php', "<?php\n" );
 		$off = $this->form()->sanitize( [ 'writable_roots' => 'wp-content/mu-plugins/tools' ], Settings::defaults() );

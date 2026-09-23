@@ -344,6 +344,12 @@ final class AdminPage {
 		$this->textarea( 'ip_allowlist', 'Allowlist IP', (array) $s['ip_allowlist'], 'Vuota = nessuna restrizione. IPv4/IPv6 o CIDR.' );
 		$this->textarea( 'trusted_proxies', 'Proxy fidati', (array) $s['trusted_proxies'], 'X-Forwarded-For viene usato solo se la richiesta arriva da questi indirizzi.' );
 		$this->textarea( 'grep_skip_dirs', 'Cartelle escluse dal grep', (array) $s['grep_skip_dirs'], '', true );
+		printf(
+			'<tr><th><label for="devbridge-grep_rg">%1$s</label></th><td><input type="text" id="devbridge-grep_rg" name="devbridge[grep_rg]" value="%2$s" class="regular-text code"><p class="description">%3$s</p></td></tr>',
+			esc_html( 'Accelerazione ripgrep' ),
+			esc_attr( (string) ( $s['grep_rg'] ?? '' ) ),
+			esc_html( 'Facoltativa, disattivata se vuota. "rg" (dal PATH) o percorso assoluto di rg/rg.exe. I risultati passano comunque da PathGuard e dalla deny list; se rg non è eseguibile si usa la ricerca PHP.' )
+		);
 		$this->textarea( 'health_urls', 'URL di health check', (array) $s['health_urls'], 'Vuoto = home page. Solo URL dello stesso host.' );
 
 		$this->number( 'retention_releases', 'Release conservate', (int) $s['retention_releases'] );

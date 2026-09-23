@@ -35,7 +35,7 @@ describe('ApiClient', () => {
 
   it('posts JSON bodies', async () => {
     const res = await client.read('wp-content/plugins/x/a.php', 2, 2);
-    expect(res.content).toBe('echo 1;');
+    expect(res.content).toBe('echo 1;\n');
     expect(mock.site.requests.at(-1)?.body).toEqual({ path: 'wp-content/plugins/x/a.php', from: 2, to: 2 });
   });
 

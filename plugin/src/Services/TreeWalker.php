@@ -61,7 +61,8 @@ final class TreeWalker {
 			if ( [] !== $this->exclude && Glob::matchesAny( $this->exclude, $rel ) ) {
 				continue;
 			}
-			if ( is_dir( $abs ) && ! is_link( $abs ) ) {
+			// Linked folders (symlinks, junctions) are never entered: no loops, no escapes.
+			if ( is_dir( $abs ) && ! $this->guard->isLinkLike( $absDir, $name ) ) {
 				if ( in_array( strtolower( $name ), $this->skipDirNames, true ) || $this->guard->isDenied( $rel ) ) {
 					continue;
 				}

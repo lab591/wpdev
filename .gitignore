@@ -6,3 +6,4 @@
 /companion/coverage/
 .env.local
 *.log
+/dist/

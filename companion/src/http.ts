@@ -58,8 +58,15 @@ export interface ListResponse {
   truncated: boolean;
 }
 
+/** Conditional read answer: the client copy (`known`) is still current; s/m present when only they changed. */
+export interface ReadUnchanged {
+  status: 'unchanged';
+  s?: number;
+  m?: number;
+}
+
 export interface ReadResponse {
-  status: 'ok' | 'unchanged';
+  status: 'ok';
   s: number;
   m: number;
   h: string;
@@ -82,6 +89,8 @@ export interface GrepResponse {
   files_scanned: number;
   truncated: boolean;
   reason?: 'max_results' | 'time_budget';
+  /** Search engine used by the server (M3): "rg" counts only files with matches. */
+  engine?: 'php' | 'rg';
 }
 
 export interface ManifestFile {
@@ -219,6 +228,11 @@ export class ApiClient {
     if (from !== undefined) body.from = from;
     if (to !== undefined) body.to = to;
     return this.json<ReadResponse>('POST', 'read', body);
+  }
+
+  /** Conditional read of the whole file (M3 cache validation). */
+  readKnown(path: string, known: { s: number; m: number; h: string }): Promise<ReadResponse | ReadUnchanged> {
+    return this.json<ReadResponse | ReadUnchanged>('POST', 'read', { path, known });
   }
 
   grep(req: GrepRequest): Promise<GrepResponse> {

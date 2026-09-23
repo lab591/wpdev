@@ -23,6 +23,10 @@ export interface MockSite {
   rescueFiles: { p: string; h: string | null }[];
   rescueStatus?: string;
   rollbackFiles: { p: string; h: string | null }[];
+  /** mtime reported by /read per path (default 1700000000). */
+  mtimes: Map<string, number>;
+  /** Simulates the server read limit: at most N lines per /read, then truncated:true. */
+  readLimitLines?: number;
 }
 
 export interface MockServer {
@@ -74,6 +78,7 @@ export async function startMockServer(init: Partial<MockSite> = {}): Promise<Moc
     logLines: [],
     rescueFiles: [],
     rollbackFiles: [],
+    mtimes: new Map(),
     ...init,
   };
 
@@ -227,13 +232,32 @@ export async function startMockServer(init: Partial<MockSite> = {}): Promise<Moc
             error(res, 404, 'not_found');
             return;
           }
-          const content = Buffer.from(data).toString('utf8');
-          const lines = content.split('\n');
+          const s = data.length;
+          const m = site.mtimes.get(String(b.path)) ?? 1700000000;
+          const h = await xxh128(data);
+          const known = b.known as { s: number; m: number; h: string } | undefined;
+          if (known) {
+            if (known.s === s && known.m === m) {
+              send(res, 200, { status: 'unchanged' });
+              return;
+            }
+            if (known.h === h) {
+              send(res, 200, { status: 'unchanged', s, m });
+              return;
+            }
+          }
+          // Same line semantics as the plugin (PHP fgets): each line keeps its "\n".
+          const lines = Buffer.from(data).toString('utf8').match(/[^\n]*\n|[^\n]+$/g) ?? [];
           const from = typeof b.from === 'number' ? b.from : 1;
-          const to = typeof b.to === 'number' ? Math.min(b.to, lines.length) : lines.length;
+          let to = typeof b.to === 'number' ? Math.min(b.to, lines.length) : lines.length;
+          let truncated = false;
+          if (site.readLimitLines !== undefined && to - from + 1 > site.readLimitLines) {
+            to = from + site.readLimitLines - 1;
+            truncated = true;
+          }
           send(res, 200, {
-            status: 'ok', s: data.length, m: 1700000000, h: await xxh128(data), total_lines: lines.length,
-            from, to, content: lines.slice(from - 1, to).join('\n'), truncated: false,
+            status: 'ok', s, m, h, total_lines: lines.length,
+            from, to, content: lines.slice(from - 1, to).join(''), truncated,
           });
           return;
         }

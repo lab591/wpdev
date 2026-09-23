@@ -19,6 +19,7 @@ final class ManifestService {
 	public function __construct(
 		private readonly PathGuard $guard,
 		private readonly int $maxFiles,
+		private readonly ?HashCache $hashes = null,
 	) {
 	}
 
@@ -42,11 +43,13 @@ final class ManifestService {
 				);
 			}
 			clearstatcache( true, $file->absolute );
+			$size    = (int) filesize( $file->absolute );
+			$mtime   = (int) filemtime( $file->absolute );
 			$files[] = [
 				'p' => $file->relative,
-				's' => (int) filesize( $file->absolute ),
-				'm' => (int) filemtime( $file->absolute ),
-				'h' => (string) hash_file( 'xxh128', $file->absolute ),
+				's' => $size,
+				'm' => $mtime,
+				'h' => null === $this->hashes ? (string) hash_file( 'xxh128', $file->absolute ) : $this->hashes->hash( $file->absolute, $file->relative, $size, $mtime ),
 			];
 		}
 		return [

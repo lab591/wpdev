@@ -20,7 +20,10 @@ use Lab591\DevBridge\Security\PathException;
 use Lab591\DevBridge\Security\PathGuard;
 use Lab591\DevBridge\Security\PathPolicy;
 use Lab591\DevBridge\Security\WritableRootValidator;
+use Lab591\DevBridge\Services\GrepService;
+use Lab591\DevBridge\Services\HashCache;
 use Lab591\DevBridge\Services\HealthService;
+use Lab591\DevBridge\Services\RipgrepSearcher;
 use Lab591\DevBridge\Services\StatusService;
 use Lab591\DevBridge\Storage\Storage;
 
@@ -33,8 +36,9 @@ final class Plugin {
 	private Settings $settings;
 	private Mode $mode;
 	private AuditLog $audit;
-	private ?PathGuard $guard = null;
-	private ?Storage $storage = null;
+	private ?PathGuard $guard     = null;
+	private ?Storage $storage     = null;
+	private ?HashCache $hashCache = null;
 
 	private function __construct() {
 		$this->settings = new Settings();
@@ -168,6 +172,47 @@ final class Plugin {
 				'allow_http'      => 'local' === wp_get_environment_type(),
 			]
 		);
+	}
+
+	/**
+	 * Hash cache shared by the read services of the current request (M3).
+	 */
+	public function hashCache(): HashCache {
+		if ( null === $this->hashCache ) {
+			$storage = $this->storage();
+			$file    = null;
+			try {
+				$storage->ensure();
+				$file = $storage->dir() . DIRECTORY_SEPARATOR . 'hash-cache.json';
+			} catch ( \Throwable ) {
+				$file = null; // No storage: hashes are computed every time.
+			}
+			$this->hashCache = new HashCache( $file );
+		}
+		return $this->hashCache;
+	}
+
+	public function grepService(): GrepService {
+		$settings = $this->settings;
+		$skip     = (array) $settings->get( 'grep_skip_dirs' );
+		$rg       = null;
+		$binary   = trim( (string) $settings->get( 'grep_rg' ) );
+		if ( '' !== $binary && RipgrepSearcher::isValidBinary( $binary ) && function_exists( 'proc_open' ) ) {
+			try {
+				$this->storage()->ensure();
+				$tmp   = $this->storage()->tmpDir();
+				$key   = 'devbridge_rg_pcre2_' . md5( $binary );
+				$pcre2 = get_transient( $key );
+				if ( false === $pcre2 ) {
+					$pcre2 = RipgrepSearcher::detectPcre2( $binary, $tmp ) ? 'yes' : 'no';
+					set_transient( $key, $pcre2, DAY_IN_SECONDS );
+				}
+				$rg = new RipgrepSearcher( $this->guard(), $binary, $settings->limit( 'grep_file_bytes' ), array_map( 'strtolower', $skip ), 'yes' === $pcre2, $tmp );
+			} catch ( \Throwable ) {
+				$rg = null;
+			}
+		}
+		return new GrepService( $this->guard(), $settings->limit( 'grep_results' ), $settings->limit( 'grep_ms' ), $settings->limit( 'grep_file_bytes' ), $skip, $rg );
 	}
 
 	public function rollbackService(): RollbackService {

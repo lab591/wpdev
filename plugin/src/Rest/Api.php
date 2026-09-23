@@ -103,9 +103,28 @@ final class Api {
 			[ $this, 'read' ],
 			$read,
 			[
-				'path' => $path,
-				'from' => self::int( 1, PHP_INT_MAX ),
-				'to'   => self::int( 1, PHP_INT_MAX ),
+				'path'  => $path,
+				'from'  => self::int( 1, PHP_INT_MAX ),
+				'to'    => self::int( 1, PHP_INT_MAX ),
+				'known' => [
+					'type'                 => 'object',
+					'additionalProperties' => false,
+					'required'             => [ 's', 'm', 'h' ],
+					'properties'           => [
+						's' => [
+							'type'    => 'integer',
+							'minimum' => 0,
+						],
+						'm' => [
+							'type'    => 'integer',
+							'minimum' => 0,
+						],
+						'h' => [
+							'type'    => 'string',
+							'pattern' => '^[0-9a-f]{32}$',
+						],
+					],
+				],
 			]
 		);
 		$this->route(
@@ -258,11 +277,18 @@ final class Api {
 	public function read( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		return $this->run(
 			function () use ( $request ): array {
-				$out              = ( new ReadService( $this->plugin->guard(), $this->plugin->settings()->limit( 'read_bytes' ) ) )->read(
+				$known = $request['known'];
+				$out   = ( new ReadService( $this->plugin->guard(), $this->plugin->settings()->limit( 'read_bytes' ), $this->plugin->hashCache() ) )->read(
 					(string) $request['path'],
 					null === $request['from'] ? null : (int) $request['from'],
-					null === $request['to'] ? null : (int) $request['to']
+					null === $request['to'] ? null : (int) $request['to'],
+					is_array( $known ) ? [
+						's' => (int) $known['s'],
+						'm' => (int) $known['m'],
+						'h' => (string) $known['h'],
+					] : null
 				);
+				$this->plugin->hashCache()->save();
 				$this->auditBytes = strlen( (string) ( $out['content'] ?? '' ) );
 				return $out;
 			}
@@ -270,24 +296,19 @@ final class Api {
 	}
 
 	public function grep( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
-		$settings = $this->plugin->settings();
-		return $this->run(
-			fn () => ( new GrepService(
-				$this->plugin->guard(),
-				$settings->limit( 'grep_results' ),
-				$settings->limit( 'grep_ms' ),
-				$settings->limit( 'grep_file_bytes' ),
-				(array) $settings->get( 'grep_skip_dirs' )
-			) )->grep( $request->get_params() )
-		);
+		return $this->run( fn () => $this->plugin->grepService()->grep( $request->get_params() ) );
 	}
 
 	public function manifest( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		return $this->run(
-			fn () => ( new ManifestService( $this->plugin->guard(), $this->plugin->settings()->limit( 'manifest_files' ) ) )->manifest(
-				(string) $request['root'],
-				array_map( 'strval', (array) ( $request['exclude'] ?? [] ) )
-			)
+			function () use ( $request ): array {
+				$out = ( new ManifestService( $this->plugin->guard(), $this->plugin->settings()->limit( 'manifest_files' ), $this->plugin->hashCache() ) )->manifest(
+					(string) $request['root'],
+					array_map( 'strval', (array) ( $request['exclude'] ?? [] ) )
+				);
+				$this->plugin->hashCache()->save();
+				return $out;
+			}
 		);
 	}
 

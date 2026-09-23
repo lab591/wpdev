@@ -14,6 +14,7 @@ use Lab591\DevBridge\Security\PathGuard;
 use Lab591\DevBridge\Security\PathPolicy;
 use Lab591\DevBridge\Services\ArchiveService;
 use Lab591\DevBridge\Services\GrepService;
+use Lab591\DevBridge\Services\HashCache;
 use Lab591\DevBridge\Services\ListService;
 use Lab591\DevBridge\Services\LogService;
 use Lab591\DevBridge\Services\ManifestService;
@@ -147,6 +148,104 @@ final class ReadServicesTest extends TestCase {
 				$this->assertSame( $code, $e->errorCode(), $path );
 			}
 		}
+	}
+
+	public function test_read_with_known_metadata(): void {
+		$rel  = 'wp-content/themes/parent/lines.txt';
+		$abs  = $this->fx->abs( $rel );
+		$svc  = new ReadService( $this->guard, 524288 );
+		$full = $svc->read( $rel );
+
+		$same = $svc->read(
+			$rel,
+			null,
+			null,
+			[
+				's' => $full['s'],
+				'm' => $full['m'],
+				'h' => $full['h'],
+			]
+		);
+		$this->assertSame( [ 'status' => 'unchanged' ], $same );
+
+		touch( $abs, $full['m'] + 100 );
+		clearstatcache();
+		$touched = $svc->read(
+			$rel,
+			null,
+			null,
+			[
+				's' => $full['s'],
+				'm' => $full['m'],
+				'h' => $full['h'],
+			]
+		);
+		$this->assertSame(
+			[
+				'status' => 'unchanged',
+				's'      => $full['s'],
+				'm'      => $full['m'] + 100,
+			],
+			$touched
+		);
+
+		file_put_contents( $abs, "changed\n" );
+		touch( $abs, $full['m'] + 200 );
+		clearstatcache();
+		$changed = $svc->read(
+			$rel,
+			1,
+			1,
+			[
+				's' => $full['s'],
+				'm' => $full['m'] + 100,
+				'h' => $full['h'],
+			]
+		);
+		$this->assertSame( 'ok', $changed['status'] );
+		$this->assertSame( "changed\n", $changed['content'] );
+	}
+
+	public function test_known_never_bypasses_the_guard(): void {
+		$this->expectException( PathException::class );
+		( new ReadService( $this->guard, 524288 ) )->read(
+			'wp-config.php',
+			null,
+			null,
+			[
+				's' => 0,
+				'm' => 0,
+				'h' => str_repeat( '0', 32 ),
+			]
+		);
+	}
+
+	public function test_hash_cache_persists_and_skips_fresh_files(): void {
+		$file  = $this->fx->base . DIRECTORY_SEPARATOR . 'hash-cache.json';
+		$rel   = 'wp-content/themes/parent/lines.txt';
+		$abs   = $this->fx->abs( $rel );
+		$mtime = time() - 100;
+		touch( $abs, $mtime );
+		clearstatcache();
+		$size = (int) filesize( $abs );
+
+		$cache = new HashCache( $file );
+		$this->assertSame( hash_file( 'xxh128', $abs ), $cache->hash( $abs, $rel, $size, $mtime ) );
+		$cache->save();
+		$this->assertFileExists( $file );
+
+		// A stale cached hash is returned as long as path|size|mtime match: proves the cache is used.
+		file_put_contents( $file, (string) json_encode( [ "$rel|$size|$mtime" => str_repeat( 'a', 32 ) ] ) );
+		$this->assertSame( str_repeat( 'a', 32 ), ( new HashCache( $file ) )->hash( $abs, $rel, $size, $mtime ) );
+
+		// Files modified just now are never cached.
+		$fresh = new HashCache( $file . '.2' );
+		$fresh->hash( $abs, $rel, $size, time() );
+		$fresh->save();
+		$this->assertFileDoesNotExist( $file . '.2' );
+
+		$manifest = ( new ManifestService( $this->guard, 1000, new HashCache( $file ) ) )->manifest( 'wp-content/themes/parent' );
+		$this->assertSame( str_repeat( 'a', 32 ), array_column( $manifest['files'], 'h', 'p' )[ $rel ] );
 	}
 
 	// ------------------------------------------------------------------ grep

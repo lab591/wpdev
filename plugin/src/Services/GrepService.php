@@ -52,6 +52,7 @@ final class GrepService {
 		private readonly int $timeBudgetLimitMs,
 		private readonly int $maxFileBytes,
 		private readonly array $skipDirNames,
+		private readonly ?RipgrepSearcher $rg = null,
 	) {
 	}
 
@@ -120,11 +121,19 @@ final class GrepService {
 		[ $regexUtf8, $regexRaw ] = self::compile( (string) $args['pattern'], $isRegex, $caseSensitive );
 
 		$root     = $this->guard->resolve( (string) $args['path'], Access::Read );
-		$walker   = new TreeWalker( $this->guard, array_map( 'strtolower', $this->skipDirNames ) );
 		$deadline = microtime( true ) + $budgetMs / 1000;
-		$matches  = [];
-		$scanned  = 0;
-		$reason   = null;
+
+		if ( null !== $this->rg && $this->rg->supports( $isRegex ) ) {
+			$fast = $this->rg->search( $root, (string) $args['pattern'], $isRegex, $caseSensitive, $glob, $maxResults, $context, $deadline );
+			if ( null !== $fast ) {
+				return $fast;
+			}
+		}
+
+		$walker  = new TreeWalker( $this->guard, array_map( 'strtolower', $this->skipDirNames ) );
+		$matches = [];
+		$scanned = 0;
+		$reason  = null;
 
 		$previousLimit = ini_get( 'pcre.backtrack_limit' );
 		// Bounds catastrophic backtracking (ReDoS); restored in finally.
@@ -159,6 +168,9 @@ final class GrepService {
 				if ( false === $lines ) {
 					continue;
 				}
+				if ( '' === end( $lines ) ) {
+					array_pop( $lines ); // The final newline does not start another line.
+				}
 				foreach ( $lines as $index => $line ) {
 					if ( 1 !== preg_match( $regex, $line ) ) {
 						continue;
@@ -188,6 +200,7 @@ final class GrepService {
 			'matches'       => $matches,
 			'files_scanned' => $scanned,
 			'truncated'     => null !== $reason,
+			'engine'        => 'php',
 		];
 		if ( null !== $reason ) {
 			$result['reason'] = $reason;

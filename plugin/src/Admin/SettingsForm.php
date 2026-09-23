@@ -16,6 +16,7 @@ use Lab591\DevBridge\Security\PathException;
 use Lab591\DevBridge\Security\PathGuard;
 use Lab591\DevBridge\Security\PathPolicy;
 use Lab591\DevBridge\Security\WritableRootValidator;
+use Lab591\DevBridge\Services\RipgrepSearcher;
 use Lab591\DevBridge\Settings;
 
 final class SettingsForm {
@@ -119,6 +120,14 @@ final class SettingsForm {
 			if ( 1 === preg_match( '#^[^/\\\\:*?"<>|]{1,100}$#', $dir ) ) {
 				$out['grep_skip_dirs'][] = strtolower( $dir );
 			}
+		}
+
+		$rg = trim( (string) ( $input['grep_rg'] ?? '' ) );
+		if ( '' === $rg || RipgrepSearcher::isValidBinary( $rg ) ) {
+			$out['grep_rg'] = $rg;
+		} else {
+			$out['grep_rg'] = '';
+			$this->errors[] = sprintf( 'ripgrep "%s" rifiutato: indica "rg" oppure il percorso assoluto di rg/rg.exe', $rg );
 		}
 
 		$out['health_urls'] = [];

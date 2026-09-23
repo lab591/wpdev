@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { applyRestored } from '../commands/rollback.js';
+import { ReadCache } from '../cache.js';
 import type { Context } from '../context.js';
 import { runDeploy, type DeployDeps } from '../deploy.js';
 import { ApiError, type CacheTarget } from '../http.js';
@@ -85,7 +86,8 @@ export function buildTools(getContext: () => Context, deps: DeployDeps = {}): To
           if (refusal) throw new Error(refusal);
           const from = typeof args.from === 'number' ? args.from : undefined;
           const to = typeof args.to === 'number' ? args.to : undefined;
-          return formatRead(await ctx.client.read(path, from, to), path);
+          const cache = new ReadCache(ctx.config.projectRoot, ctx.client, { ...ctx.config.cache, writable: ctx.config.writable });
+          return formatRead(await cache.read(path, from, to), path);
         }),
     },
     {

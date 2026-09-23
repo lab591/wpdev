@@ -23,7 +23,8 @@
         "lint": [
             "@php tools/lint.php",
             "phpcs"
-        ]
+        ],
+        "package": "@php tools/build-zip.php"
     },
     "config": {
         "allow-plugins": {

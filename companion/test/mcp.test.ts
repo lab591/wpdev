@@ -5,7 +5,7 @@ import type { ApiClient, GrepResponse, ReadResponse } from '../src/http.js';
 import { formatGrep, formatList, formatLog, formatRead, formatStatus, MAX_READ_LINES } from '../src/mcp/format.js';
 import { buildTools } from '../src/mcp/tools.js';
 
-const config = parseConfig({ site: 'https://example.com', user: 'u', writable: ['wp-content/themes/child'] }, '/p');
+const config = parseConfig({ site: 'https://example.com', user: 'u', writable: ['wp-content/themes/child'], cache: { enabled: false, trustWindowSec: 60 } }, '/p');
 
 function read(partial: Partial<ReadResponse>): ReadResponse {
   return { status: 'ok', s: 100, m: 1, h: 'x', total_lines: 3, from: 1, to: 3, content: 'a\nb\nc\n', truncated: false, ...partial };

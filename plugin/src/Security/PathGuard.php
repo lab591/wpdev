@@ -101,6 +101,32 @@ final class PathGuard {
 	}
 
 	/**
+	 * True when $name inside the (already resolved) $parentAbsolute is a symlink, a Windows junction
+	 * or anything else whose real path is not literally parent/name. is_link() alone misses junctions.
+	 */
+	public function isLinkLike( string $parentAbsolute, string $name ): bool {
+		$path = rtrim( $parentAbsolute, '/\\' ) . DIRECTORY_SEPARATOR . $name;
+		if ( is_link( $path ) ) {
+			return true;
+		}
+		$real = realpath( $path );
+		return false === $real || ! $this->samePath( $real, $path );
+	}
+
+	/**
+	 * Relative form (with `/`) of an absolute path reported by an external tool, or null when it is
+	 * outside ABSPATH. The result is NOT validated: callers must pass it to resolve().
+	 */
+	public function relativize( string $absolute ): ?string {
+		try {
+			$relative = $this->relativeToBase( rtrim( $absolute, '/\\' ) );
+		} catch ( PathException ) {
+			return null;
+		}
+		return '' === $relative ? null : $relative;
+	}
+
+	/**
 	 * The writable root containing an absolute path already resolved by this guard, or null.
 	 */
 	public function writableRootFor( string $absolute ): ?string {

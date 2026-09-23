@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command, InvalidArgumentError } from 'commander';
+import { cacheClearCommand } from './commands/cache.js';
 import { deployCommand, hookDeploy, readHookInput } from './commands/deploy.js';
 import { diffCommand } from './commands/diff.js';
 import { initCommand, terminalAsk } from './commands/init.js';
@@ -7,6 +8,7 @@ import { logCommand } from './commands/log.js';
 import { pullCommand } from './commands/pull.js';
 import { healthCommand, rollbackCommand, type Confirm } from './commands/rollback.js';
 import { statusCommand } from './commands/status.js';
+import { loadConfig } from './config.js';
 import { createContext, type GlobalOptions } from './context.js';
 import { startMcpServer } from './mcp/server.js';
 import { describeError } from './messages.js';
@@ -122,6 +124,20 @@ program
   .command('health')
   .description('health check del sito su richiesta')
   .action(() => runWithContext((ctx) => healthCommand(ctx, consoleOutput)));
+
+program
+  .command('cache')
+  .description('gestione della cache di lettura locale')
+  .command('clear')
+  .description('svuota .wpdev/cache/')
+  .action(async () => {
+    try {
+      process.exitCode = await cacheClearCommand(loadConfig(globals()).projectRoot, consoleOutput);
+    } catch (e) {
+      consoleOutput.warn(describeError(e));
+      process.exitCode = EXIT_ERROR;
+    }
+  });
 
 program
   .command('mcp')

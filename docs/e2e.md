@@ -75,3 +75,41 @@ Preparazione: `wp devbridge enable --mode=write --hours=4`; progetto locale crea
 
 Criterio di uscita M2: un errore fatale introdotto volutamente viene annullato in automatico (passo 6);
 un fatale che sfugge all'health check si recupera con `wpdev rollback --rescue` (passi 11–13).
+
+## M3 — Ottimizzazioni
+
+| # | Passo | Esito atteso | Esito |
+|---|---|---|---|
+| 1 | `POST /read` con `known` uguale al file | `{"status":"unchanged"}` | ok |
+| 2 | `POST /read` con `known.h` malformato | `400 invalid_param` | ok |
+| 3 | `/grep` letterale su `wp-content/themes` con motore PHP (Xdebug attivo) | `engine: php`, ~4,4 s | ok |
+| 4 | Impostazione "Accelerazione ripgrep" = percorso di `rg.exe` (14.1.1, PCRE2) | stesse ricerche con `engine: rg` in 0,2–0,4 s | ok |
+| 5 | `/grep` `DB_PASSWORD` su tutto il sito con rg | risultati da `wp-admin`/`wp-includes`, **mai** `wp-config.php` né `wp-config-sample.php` | ok |
+| 6 | `/grep` regex con rg (`add_action\(\s*'init'`, `max_results` 5) | 5 risultati, `reason: max_results` | ok |
+| 7 | MCP `site_read` due volte sullo stesso file (range diversi) | 2 richieste `/read` totali (versione del tema + file intero), la seconda lettura dalla cache | ok |
+| 8 | `wpdev cache clear` | "Cache svuotata: 2 file rimossi" | ok |
+
+Note: al primo avvio ripgrep può impiegare molto più tempo (cache del filesystem fredda e scansione
+antivirus dell'eseguibile appena scaricato); le esecuzioni successive sono nell'ordine dei decimi di
+secondo. Hash in cache lato server: `storage/hash-cache.json`, chiave `percorso|dimensione|mtime`,
+non usata per i controlli di conflitto del deploy (che calcolano sempre l'hash reale).
+
+## Verifica manuale: link e junction su Windows
+
+I test PHPUnit sui symlink vengono saltati su Windows senza modalità sviluppatore. Verifica manuale
+con **junction** NTFS (creabili senza privilegi, `New-Item -ItemType Junction`) dentro la cartella
+scrivibile `child`: `ext` → cartella fuori dal sito, `parentlink` → tema padre, `cfg` → radice del sito.
+
+| Operazione | Esito |
+|---|---|
+| read `child/ext/secret.txt`, write-new `child/ext/new.php` | `path_denied` |
+| write `child/parentlink/style.css` | `path_denied` (il file reale è fuori dalle cartelle scrivibili) |
+| read `child/parentlink/style.css` | consentito, percorso canonico `themes/parent/style.css` |
+| read `child/cfg/wp-config.php` | `path_denied` |
+| `/list` di `child` (depth 2) | `cfg` e `parentlink` elencati con il loro nome ma non attraversati; `ext` omesso |
+| `/manifest` di `child`, `/grep` e `/archive` sulla radice (PHP e ripgrep) | nessuna junction attraversata, nessun file esterno o in deny list |
+
+Problema trovato e corretto durante la verifica: `is_link()` di PHP restituisce `false` per le
+junction, quindi il walker le attraversava (ciclo fino al limite di file/tempo con una junction verso
+la radice). Ora una cartella è considerata un link quando il suo `realpath` non coincide con
+`genitore/nome` (`PathGuard::isLinkLike`).

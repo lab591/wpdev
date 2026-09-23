@@ -67,13 +67,26 @@ Le voci nella deny list o che si risolvono fuori dalle root vengono omesse.
 
 ### `POST /read`
 
-`{path, from?, to?}` (righe 1-based, inclusive) →
+`{path, from?, to?, known?: {s, m, h}}` (righe 1-based, inclusive) →
 `{status:"ok", s, m, h, total_lines, from, to, content, truncated}`.
+
+Con `known` (M3, validazione condizionale per la cache del companion):
+
+- `s` e `m` coincidono con il file sul server → `{"status":"unchanged"}` (nessun hash calcolato);
+- `s` o `m` diversi ma hash uguale a `known.h` → `{"status":"unchanged","s":…,"m":…}` (il client aggiorna `s`/`m`);
+- altrimenti la risposta completa con il contenuto, come senza `known`.
+
+`known.h` deve essere un hash xxh128 esadecimale minuscolo; `s` e `m` interi ≥ 0.
 
 ### `POST /grep`
 
 Come da specifica 2.6.2. `glob` si applica al percorso relativo del file
 (pattern senza `/` → confronto sul solo nome file).
+
+La risposta include `engine`: `php` (implementazione PHP) oppure `rg` (accelerazione ripgrep
+facoltativa, M3, attivabile dalle impostazioni). Con `rg` i file segnalati passano comunque da
+PathGuard e dalla deny list; `files_scanned` conta solo i file con risultati (ripgrep non fornisce
+il totale in modalità JSON). Le regex con `rg` richiedono il supporto PCRE2, altrimenti si usa PHP.
 
 ### `POST /manifest`
 

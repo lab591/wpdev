@@ -45,6 +45,7 @@ final class Settings {
 			'deny_patterns'        => PathPolicy::DEFAULT_DENY_PATTERNS,
 			'write_extensions'     => PathPolicy::DEFAULT_WRITE_EXTENSIONS,
 			'grep_skip_dirs'       => [ 'node_modules', 'vendor', '.git' ],
+			'grep_rg'              => '',
 			'limits'               => self::DEFAULT_LIMITS,
 			'health_urls'          => [],
 			'retention_releases'   => 10,

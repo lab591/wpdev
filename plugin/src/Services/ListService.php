@@ -68,16 +68,18 @@ final class ListService {
 				$this->truncated = true;
 				return;
 			}
+			$linked    = $this->guard->isLinkLike( $dir->absolute, $name );
 			$stat      = stat( $child->absolute );
 			$entries[] = [
-				'p' => $child->relative,
+				// Links (symlinks, junctions) keep their own name; their target was validated above.
+				'p' => $linked ? ( '' === $dir->relative ? $name : $dir->relative . '/' . $name ) : $child->relative,
 				't' => $child->isDir ? 'd' : 'f',
 				's' => $child->isDir || false === $stat ? 0 : (int) $stat['size'],
 				'm' => false === $stat ? 0 : (int) $stat['mtime'],
 			];
 			++$this->count;
-			// Symlinked folders are listed but never entered.
-			if ( $child->isDir && $depth > 1 && ! is_link( $dir->absolute . DIRECTORY_SEPARATOR . $name ) ) {
+			// Linked folders are listed but never entered.
+			if ( $child->isDir && $depth > 1 && ! $linked ) {
 				$this->collect( $child, $depth - 1, $max, $entries );
 				if ( $this->truncated ) {
 					return;

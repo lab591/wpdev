@@ -90,7 +90,11 @@ export function formatGrep(res: GrepResponse, config: Pick<Config, 'writable'>, 
     m.after.forEach((t, i) => out.push(`  ${m.l + 1 + i}- ${clip(t)}`));
   }
   const files = new Set(kept.map((m) => m.p)).size;
-  out.push(`${kept.length} matches in ${files} files (${res.files_scanned} files scanned)`);
+  out.push(
+    res.engine === 'rg'
+      ? `${kept.length} matches in ${files} files (ripgrep)`
+      : `${kept.length} matches in ${files} files (${res.files_scanned} files scanned)`,
+  );
   if (omitted > 0) {
     out.push(`[${omitted} matches in writable folders omitted: search the local files for those]`);
   }
