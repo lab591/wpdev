@@ -283,8 +283,19 @@ impostazioni.
 Traduzioni: stringhe in inglese nel codice, italiano in `plugin/tools/translations/it_IT.json`.
 `npm run i18n` (richiede WP-CLI) rigenera `languages/` (`.pot`, `.po`, `.mo` e il JSON per il JavaScript).
 
+**Test end-to-end** (`e2e/`): un WordPress vero in Docker (`@wordpress/env`) e il companion vero ripetono gli
+scenari principali: init, pull, introspezione, deploy, lint, rollback automatico per errori fatali nel front end,
+solo in admin e solo nella REST API, avvisi, rescue, restore, modalità spenta.
+
+```bash
+cd companion && npm run build
+cd ../e2e && npm install && npm run env:start   # prima volta: qualche minuto
+npm test
+npm run env:stop
+```
+
 **CI** (GitHub Actions, `.github/workflows/ci.yml`): a ogni push e pull request girano i test PHP su 8.1–8.4 con
-PHPCS, lint e build dell'interfaccia admin, e i test del companion su Linux e Windows con Node 20 e 22.
+PHPCS, lint e build dell'interfaccia admin, e i test del companion su Linux e Windows con Node 20 e 22; infine gli scenari end-to-end.
 
 **Rilasciare una versione:** aggiorna la versione in `plugin/lab591-dev-bridge.php` (intestazione e costante
 `VERSION`), `plugin/package.json`, `companion/package.json` e `companion/src/version.ts`, poi crea e pubblica il tag

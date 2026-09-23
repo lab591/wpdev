@@ -1,0 +1,17 @@
+{
+  "name": "lab591-dev-bridge-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "End-to-end tests of Dev Bridge: a real WordPress in Docker (wp-env) and the real companion CLI.",
+  "license": "GPL-2.0-or-later",
+  "type": "module",
+  "scripts": {
+    "env:start": "wp-env start",
+    "env:stop": "wp-env stop",
+    "env:destroy": "wp-env destroy",
+    "test": "node run.mjs"
+  },
+  "devDependencies": {
+    "@wordpress/env": "^10.0.0"
+  }
+}

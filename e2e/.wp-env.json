@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/wp-env.json",
+  "phpVersion": "8.2",
+  "plugins": [],
+  "themes": [],
+  "mappings": {
+    "wp-content/plugins/lab591-dev-bridge": "../plugin",
+    "wp-content/e2e-fixtures": "./fixtures",
+    "wp-content/plugins/e2e-loopback": "./fixtures/e2e-loopback"
+  },
+  "config": {
+    "WP_ENVIRONMENT_TYPE": "local",
+    "WP_DEBUG": true,
+    "WP_DEBUG_LOG": true,
+    "WP_DEBUG_DISPLAY": false,
+    "SCRIPT_DEBUG": false
+  },
+  "env": {
+    "tests": {
+      "port": 8890
+    }
+  }
+}

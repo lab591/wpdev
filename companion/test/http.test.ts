@@ -25,6 +25,36 @@ async function catchApi(p: Promise<unknown>): Promise<ApiError> {
   throw new Error('expected an ApiError');
 }
 
+describe('ApiClient on sites with plain permalinks', () => {
+  it('falls back to ?rest_route= when /wp-json/ is an ordinary 404 page, then keeps using it', async () => {
+    const urls: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      urls.push(url);
+      if (url.includes('/wp-json/')) return new Response('<html>Not found</html>', { status: 404, headers: { 'content-type': 'text/html' } });
+      return new Response(JSON.stringify({ lines: [], truncated: false }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+    const c = new ApiClient({ siteUrl: 'https://plain.example/', user: 'u', password: 'p', fetchImpl });
+    await c.log(5);
+    await c.log(7);
+    expect(urls).toEqual([
+      'https://plain.example/wp-json/devbridge/v1/log?lines=5',
+      'https://plain.example/?rest_route=%2Fdevbridge%2Fv1%2Flog&lines=5',
+      'https://plain.example/?rest_route=%2Fdevbridge%2Fv1%2Flog&lines=7',
+    ]);
+  });
+
+  it('a JSON 404 (e.g. rest_no_route) is a real API answer: no fallback', async () => {
+    const urls: string[] = [];
+    const fetchImpl = (async (url: string) => {
+      urls.push(url);
+      return new Response(JSON.stringify({ code: 'rest_no_route', message: 'No route' }), { status: 404, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+    const c = new ApiClient({ siteUrl: 'https://x.example', user: 'u', password: 'p', fetchImpl });
+    await expect(c.status()).rejects.toBeInstanceOf(ApiError);
+    expect(urls).toHaveLength(1);
+  });
+});
+
 describe('ApiClient', () => {
   it('sends Basic auth and parses JSON', async () => {
     const st = await client.status();

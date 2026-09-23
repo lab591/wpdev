@@ -225,6 +225,11 @@ type Json = Record<string, unknown>;
 export class ApiClient {
   private readonly site: string;
   private readonly base: string;
+  /**
+   * `pretty`: /wp-json/devbridge/v1/…; `query`: /?rest_route=/devbridge/v1/… for sites with plain
+   * permalinks, where /wp-json/ does not exist. Detected on the first 404 that is not a REST answer.
+   */
+  private routing: 'pretty' | 'query' = 'pretty';
   private readonly auth: string;
   private readonly timeoutMs: number;
   private readonly fetchImpl: typeof fetch;
@@ -382,7 +387,12 @@ export class ApiClient {
     }
     let res: Response;
     try {
-      res = await this.fetchImpl(this.base + endpoint, init);
+      res = await this.fetchImpl(this.url(endpoint), init);
+      if (res.status === 404 && this.routing === 'pretty' && !isJson(res)) {
+        // Plain permalinks: /wp-json/ is an ordinary 404 page. Switch to ?rest_route= once.
+        this.routing = 'query';
+        res = await this.fetchImpl(this.url(endpoint), { ...init, signal: AbortSignal.timeout(timeoutMs) });
+      }
     } catch (e) {
       throw networkError(e, endpoint, timeoutMs);
     }
@@ -391,9 +401,20 @@ export class ApiClient {
     }
     return res;
   }
+
+  /** Full URL of an endpoint ("read", "log?lines=5") in the current routing form. */
+  private url(endpoint: string): string {
+    if (this.routing === 'pretty') return this.base + endpoint;
+    const [route, query] = endpoint.split('?', 2);
+    return `${this.site}/?rest_route=${encodeURIComponent(`/devbridge/v1/${route}`)}${query ? `&${query}` : ''}`;
+  }
 }
 
 const DEPLOY_TIMEOUT_MS = 180_000;
+
+function isJson(res: Response): boolean {
+  return (res.headers.get('content-type') ?? '').toLowerCase().includes('json');
+}
 
 function networkError(e: unknown, endpoint: string, timeoutMs: number): ApiError {
   const err = e as Error & { cause?: { code?: string; message?: string } };

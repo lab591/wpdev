@@ -189,3 +189,11 @@ React + `@wordpress/components`, dati via admin-ajax. Sito singolo `lab591_wpdev
 Problema trovato e corretto: un salvataggio con dati mancanti o non validi azzerava le impostazioni (i campi
 assenti erano trattati come vuoti). Ora una richiesta senza impostazioni viene rifiutata e i campi assenti
 mantengono il valore attuale.
+
+## Suite automatica (0.5.0)
+
+Gli scenari principali sono ora automatici in `e2e/run.mjs` (WordPress in Docker con `@wordpress/env`, companion
+reale) e girano anche in CI. La prima esecuzione ha trovato un problema reale: con i permalink "semplici" (default
+di WordPress) `/wp-json/` non esiste e il companion non riusciva a collegarsi; ora passa automaticamente a
+`?rest_route=`. Eseguendo i test PHP su Linux (Docker) è emerso un secondo problema: un binario ripgrep non
+eseguibile restituiva zero risultati invece di ripiegare sulla ricerca PHP.
