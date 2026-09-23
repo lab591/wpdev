@@ -126,6 +126,9 @@ Apri Claude Code nella cartella del progetto. Claude:
 - modifica i file delle cartelle scrivibili **in locale** con i propri strumenti;
 - legge tutto il resto con gli strumenti MCP `site_status`, `site_list`, `site_read`, `site_grep`,
   `site_log` (le letture passano da una cache validata con la finestra `cache.trustWindowSec`);
+- capisce il sito con `site_info`: versioni, tema e plugin attivi, tipi di contenuto, tassonomie,
+  shortcode, callback di un hook con file e riga, rotte REST, cron, blocchi (anche da terminale:
+  `wpdev info overview`, `wpdev info hook init`);
 - a fine turno l'hook esegue `wpdev deploy --hook`: lint PHP, controllo conflitti, upload, health
   check. Se il deploy fallisce o viene annullato, Claude riceve gli errori e li corregge; per evitare
   cicli, un secondo fallimento consecutivo non blocca più il turno.
@@ -142,6 +145,7 @@ Comandi utili:
 | `wpdev rollback --rescue` | rollback fuori banda quando WordPress non risponde (token dell'ultimo deploy, monouso, 24 h) |
 | `wpdev health` | health check su richiesta |
 | `wpdev log [-n 200]` | ultime righe di `debug.log` |
+| `wpdev info <argomento> [nome]` | informazioni sul sito: `overview`, `post_types`, `taxonomies`, `shortcodes`, `hook <nome>`, `rest_routes [prefisso]`, `cron`, `blocks [prefisso]` |
 | `wpdev cache clear` | svuota la cache di lettura |
 
 Exit code: `0` ok, `1` errore, `2` deploy fallito o annullato con rollback.

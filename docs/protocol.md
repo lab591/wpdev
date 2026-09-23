@@ -108,6 +108,25 @@ omessi in modalità `root` e causano `403 path_denied` in modalità `paths`.
 `?lines=200 (1..1000)&since=<unix ts>` →
 `{"lines":["[23-Sep-2026 10:00:00 UTC] PHP Warning: ..."],"truncated":false}`.
 
+### `GET /introspect` (0.5.0)
+
+`?topic=<argomento>&name=<nome>` → `{topic, items: [...], truncated, note?}` (max 300 voci).
+
+| topic | voci | `name` |
+|---|---|---|
+| `overview` | `{key, value, name?, version?, parent?, network?}`: versioni, ambiente, multisite, lingua, permalink, object cache, costanti di debug, tema, plugin attivi, mu-plugin | — |
+| `post_types` | `{name, label, public, hierarchical, show_in_rest, has_archive, rewrite, supports}` | — |
+| `taxonomies` | `{name, label, object_type, public, hierarchical, show_in_rest}` | — |
+| `shortcodes` | `{tag, callback, file?, line?}` | — |
+| `hook` | `{priority, args, callback, file?, line?}` in ordine di priorità | nome dell'hook (obbligatorio) |
+| `rest_routes` | `{route, methods}` | prefisso (es. `wc/v3`) |
+| `cron` | `{hook, next, schedule}` | — |
+| `blocks` | `{name, title, callback?, file?, line?}`; i blocchi `core/` sono riassunti in una voce | prefisso (es. `core/`) |
+
+`callback`: `funzione`, `Classe::metodo`, `Classe->metodo`, `{closure}`. `file` è relativo ad `ABSPATH`; per il
+codice fuori dalla root del sito (o interno a PHP) la posizione non viene indicata. `name`:
+`[A-Za-z0-9_\-./:{}\[\]]`, max 200 caratteri, altrimenti `invalid_param`.
+
 ## Endpoint (M2)
 
 Modalità richiesta: `write` per `/deploy`, `/rollback`, `/releases`, `/cache-flush`; `read` per `/health`.

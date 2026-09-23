@@ -128,6 +128,16 @@ export interface DeployManifest {
   health_paths?: string[];
 }
 
+export const INTROSPECT_TOPICS = ['overview', 'post_types', 'taxonomies', 'shortcodes', 'hook', 'rest_routes', 'cron', 'blocks'] as const;
+export type IntrospectTopic = (typeof INTROSPECT_TOPICS)[number];
+
+export interface IntrospectResponse {
+  topic: IntrospectTopic;
+  items: Record<string, unknown>[];
+  truncated: boolean;
+  note?: string;
+}
+
 export interface HealthCheck {
   url: string;
   /** "admin": configured on the server; "agent": declared in wpdev.json health.paths. */
@@ -280,6 +290,13 @@ export class ApiClient {
 
   releases(): Promise<{ releases: Release[] }> {
     return this.json<{ releases: Release[] }>('GET', 'releases');
+  }
+
+  /** Read-only introspection of the running site (0.5.0). */
+  async introspect(topic: IntrospectTopic, name = ''): Promise<IntrospectResponse> {
+    const q = new URLSearchParams({ topic });
+    if (name) q.set('name', name);
+    return this.json<IntrospectResponse>('GET', `introspect?${q.toString()}`);
   }
 
   health(paths: readonly string[] = []): Promise<HealthResult> {

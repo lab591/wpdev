@@ -101,6 +101,9 @@ export function renderClaudeMd(input: ClaudeMdInput): string {
 ## Come lavori su questo sito
 - Puoi modificare SOLO i file in: ${list} ${source}. Le modifiche vengono
   pubblicate automaticamente alla fine di ogni turno (hook), con health check e rollback.
+- Per capire il sito parti da \`site_info\`: \`overview\` (versioni, tema, plugin attivi),
+  \`hook\` con il nome dell'hook (chi è agganciato, con file e riga), \`shortcodes\`, \`post_types\`,
+  \`taxonomies\`, \`rest_routes\`, \`cron\`, \`blocks\`. Una chiamata sostituisce molti grep.
 - Per leggere qualsiasi altro file del sito (core, plugin, tema padre) usa gli strumenti
   MCP \`site_list\`, \`site_read\`, \`site_grep\`. Preferisci \`site_grep\` per trovare hook,
   filtri e classi; poi leggi solo le righe che servono con \`site_read\`.

@@ -96,12 +96,39 @@ describe('tools', () => {
       return { path: p, entries: [], truncated: false };
     },
     grep: async () => ({ matches: [], files_scanned: 0, truncated: false }),
+    introspect: async (topic: string, name: string) => {
+      calls.push(`introspect:${topic}:${name}`);
+      return {
+        topic,
+        items: [
+          { priority: 10, args: 1, callback: 'wp_enqueue_scripts_x', file: 'wp-content/themes/child/functions.php', line: 12 },
+          { priority: 20, args: 2, callback: '{closure}' },
+        ],
+        truncated: false,
+        note: 'Callbacks registered while serving an API request.',
+      };
+    },
   } as unknown as ApiClient;
   const ctx: Context = { config, client };
   const tools = Object.fromEntries(buildTools(() => ctx).map((t) => [t.name, t]));
 
   it('exposes the tools with stable names', () => {
-    expect(Object.keys(tools).sort()).toEqual(['cache_flush', 'deploy', 'health', 'rollback', 'site_grep', 'site_list', 'site_log', 'site_read', 'site_status']);
+    expect(Object.keys(tools).sort()).toEqual(['cache_flush', 'deploy', 'health', 'rollback', 'site_grep', 'site_info', 'site_list', 'site_log', 'site_read', 'site_status']);
+  });
+
+  it('site_info returns compact lines with file:line', async () => {
+    const r = await tools.site_info!.handler({ topic: 'hook', name: 'wp_enqueue_scripts' });
+    expect(r.isError).toBeUndefined();
+    expect(calls).toContain('introspect:hook:wp_enqueue_scripts');
+    expect(r.text).toBe(
+      [
+        'hook: 2 item(s)',
+        '10 wp_enqueue_scripts_x (args 1)  wp-content/themes/child/functions.php:12',
+        '20 {closure} (args 2)',
+        'note: Callbacks registered while serving an API request.',
+      ].join('\n'),
+    );
+    calls.length = 0;
   });
 
   it('refuses reads inside writable folders (case-insensitive, Windows separators)', async () => {

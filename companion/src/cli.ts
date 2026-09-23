@@ -12,7 +12,9 @@ import { loadConfig } from './config.js';
 import { createReadyContext, type Context, type GlobalOptions } from './context.js';
 import { startMcpServer } from './mcp/server.js';
 import { describeError } from './messages.js';
-import { consoleOutput, EXIT_DEPLOY_FAILED, EXIT_ERROR } from './output.js';
+import { INTROSPECT_TOPICS } from './http.js';
+import { formatIntrospect } from './mcp/format.js';
+import { consoleOutput, EXIT_DEPLOY_FAILED, EXIT_ERROR, EXIT_OK } from './output.js';
 import { VERSION } from './version.js';
 
 const program = new Command();
@@ -83,6 +85,20 @@ program
   .command('diff')
   .description('file modificati in locale, sul server e in conflitto')
   .action(() => runWithContext((ctx) => diffCommand(ctx, consoleOutput)));
+
+program
+  .command('info <topic> [name]')
+  .description(`informazioni sul sito: ${INTROSPECT_TOPICS.join(', ')} (name: hook o prefisso)`)
+  .action((topic: string, name: string | undefined) =>
+    runWithContext(async (ctx) => {
+      if (!(INTROSPECT_TOPICS as readonly string[]).includes(topic)) {
+        consoleOutput.warn(`Argomento non valido: usa ${INTROSPECT_TOPICS.join(', ')}`);
+        return EXIT_ERROR;
+      }
+      consoleOutput.info(formatIntrospect(await ctx.client.introspect(topic as (typeof INTROSPECT_TOPICS)[number], name ?? '')));
+      return EXIT_OK;
+    }, true),
+  );
 
 program
   .command('log')

@@ -123,6 +123,7 @@ Tutte le risposte sono JSON compatto. Errori: `{ "error": { "code": "path_denied
 | POST | `/grep` | read | vedi 2.6.2 |
 | POST | `/manifest` | read | `{root}` → `[{p, s, m, h}]` per tutti i file di una root (scrivibile o in `read_roots`) |
 | POST | `/archive` | read | `{paths:[...]}` → zip in streaming dei file indicati (max 500) o di una root; applica deny list |
+| GET | `/introspect` | read | `?topic=overview\|post_types\|taxonomies\|shortcodes\|hook\|rest_routes\|cron\|blocks&name=` (0.5.0) → introspezione in sola lettura: nomi, versioni e posizione del codice (file relativo ad `ABSPATH` e riga), mai valori di opzioni o contenuti. `name` obbligatorio per `hook`, prefisso per `rest_routes`/`blocks`. Max 300 voci |
 | GET | `/log` | read | `?lines=200&since=<ts>` → ultime righe di `debug.log` (max 1000), solo se `WP_DEBUG_LOG` è attivo |
 | POST | `/deploy` | write | vedi 2.7 |
 | POST | `/rollback` | write | `{release_id?}` (default: ultima) |
@@ -307,6 +308,7 @@ Cartella `.wpdev/` (in `.gitignore`):
 | `wpdev deploy [--dry-run] [--force] [--hook]` | Vedi 3.5 |
 | `wpdev rollback [<id>] [--rescue]` | Rollback normale; con `--rescue` usa il token e il mu-plugin. Senza argomenti, se il rollback normale riceve 5xx, propone il rescue |
 | `wpdev log [-n 200]` | Ultime righe di `debug.log` |
+| `wpdev info <topic> [name]` | Introspezione del sito (`/introspect`), 0.5.0 |
 | `wpdev health` | Health check su richiesta |
 | `wpdev mcp` | Avvia il server MCP (stdio) |
 | `wpdev cache clear` | (M3) |
@@ -333,6 +335,7 @@ Strumenti (nomi e schemi stabili, descrizioni brevi e precise):
 | `site_read` | `path, from?, to?` | output con numeri di riga; usa la cache (M3) |
 | `site_grep` | `pattern, path, glob?, regex?, case_sensitive?, max_results?, context?` | |
 | `site_log` | `lines?` | |
+| `site_info` | `topic`, `name?` | Introspezione (0.5.0): una riga per voce, callback con `file:riga` |
 | `deploy` | `dry_run?` | **nessun contenuto negli argomenti**: legge dal disco |
 | `rollback` | `release_id?` | |
 | `health` | — | |

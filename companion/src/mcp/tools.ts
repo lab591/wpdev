@@ -4,7 +4,7 @@ import { ReadCache } from '../cache.js';
 import { isValidHealthPath } from '../config.js';
 import type { Context } from '../context.js';
 import { runDeploy, type DeployDeps } from '../deploy.js';
-import { ApiError, type CacheTarget } from '../http.js';
+import { ApiError, INTROSPECT_TOPICS, type CacheTarget } from '../http.js';
 import { describeError } from '../messages.js';
 import { normalizeRel, normalizeRelOrRoot } from '../paths.js';
 import { deleteRescue } from '../rescue.js';
@@ -14,6 +14,7 @@ import {
   formatDeployOutcome,
   formatGrep,
   formatHealth,
+  formatIntrospect,
   formatList,
   formatLog,
   formatRead,
@@ -126,6 +127,19 @@ export function buildTools(getContext: () => Context | Promise<Context>, deps: D
           });
           return formatGrep(res, ctx.config, maxResults);
         }),
+    },
+    {
+      name: 'site_info',
+      description:
+        'Understand the site without grepping: overview (versions, active theme and plugins, debug constants), post_types, taxonomies, shortcodes (with callback file:line), hook (callbacks of a hook with priority and file:line; name required, e.g. "init" or "woocommerce_before_cart"), rest_routes (name = route prefix, e.g. "wc/v3"), cron, blocks (name = prefix, e.g. "acf/").',
+      inputSchema: {
+        topic: z.enum(INTROSPECT_TOPICS),
+        name: z.string().max(200).optional().describe('Hook name (topic "hook") or prefix filter (rest_routes, blocks)'),
+      },
+      handler: (args) =>
+        run(async (ctx) =>
+          formatIntrospect(await ctx.client.introspect(args.topic as (typeof INTROSPECT_TOPICS)[number], typeof args.name === 'string' ? args.name : '')),
+        ),
     },
     {
       name: 'site_log',

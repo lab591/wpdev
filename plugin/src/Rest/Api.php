@@ -17,6 +17,7 @@ use Lab591\DevBridge\Plugin;
 use Lab591\DevBridge\Services\ArchiveService;
 use Lab591\DevBridge\Services\CacheFlushService;
 use Lab591\DevBridge\Services\GrepService;
+use Lab591\DevBridge\Services\IntrospectionService;
 use Lab591\DevBridge\Services\ListService;
 use Lab591\DevBridge\Services\LogService;
 use Lab591\DevBridge\Services\ManifestService;
@@ -52,6 +53,7 @@ final class Api {
 		'/archive'     => [ Mode::READ, 'read' ],
 		'/log'         => [ Mode::READ, 'read' ],
 		'/health'      => [ Mode::READ, 'read' ],
+		'/introspect'  => [ Mode::READ, 'read' ],
 		'/deploy'      => [ Mode::WRITE, 'write' ],
 		'/rollback'    => [ Mode::WRITE, 'write' ],
 		'/releases'    => [ Mode::WRITE, 'read' ],
@@ -181,6 +183,25 @@ final class Api {
 			[
 				'lines' => self::int( 1, LogService::MAX_LINES, 200 ),
 				'since' => self::int( 0, PHP_INT_MAX ),
+			]
+		);
+
+		$this->route(
+			'/introspect',
+			'GET',
+			[ $this, 'introspect' ],
+			$read,
+			[
+				'topic' => [
+					'type'     => 'string',
+					'required' => true,
+					'enum'     => IntrospectionService::TOPICS,
+				],
+				'name'  => [
+					'type'      => 'string',
+					'maxLength' => 200,
+					'default'   => '',
+				],
 			]
 		);
 
@@ -363,6 +384,17 @@ final class Api {
 				(int) $request['lines'],
 				null === $request['since'] ? null : (int) $request['since']
 			)
+		);
+	}
+
+	public function introspect( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		return $this->run(
+			function () use ( $request ): array {
+				$topic            = (string) $request['topic'];
+				$name             = (string) $request['name'];
+				$this->auditPaths = [ '' === $name ? $topic : $topic . ':' . $name ];
+				return ( new IntrospectionService( ABSPATH ) )->get( $topic, $name );
+			}
 		);
 	}
 

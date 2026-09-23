@@ -1,6 +1,6 @@
 import type { Config } from '../config.js';
 import { countChanges, type DeployOutcome } from '../deploy.js';
-import { ApiError, type CacheFlushResponse, type GrepResponse, type HealthResult, type ListResponse, type LogResponse, type ReadResponse, type RollbackResponse, type StatusResponse } from '../http.js';
+import { ApiError, type CacheFlushResponse, type GrepResponse, type HealthResult, type IntrospectResponse, type ListResponse, type LogResponse, type ReadResponse, type RollbackResponse, type StatusResponse } from '../http.js';
 import { describeError, formatSize } from '../messages.js';
 import { isInside, relativeTo } from '../paths.js';
 import { compareRoots } from '../roots.js';
@@ -211,4 +211,37 @@ export function formatHealth(h: HealthResult): string {
 
 export function formatCacheFlush(r: CacheFlushResponse): string {
   return `cache flush: ${Object.entries(r.results).map(([k, v]) => `${k} ${v}`).join(', ') || '(nothing)'}`;
+}
+
+/** Compact text of an introspection result: one line per item. */
+export function formatIntrospect(res: IntrospectResponse): string {
+  const loc = (i: Record<string, unknown>): string => (typeof i.file === 'string' ? `  ${i.file}:${String(i.line ?? '')}` : '');
+  const str = (v: unknown): string => (Array.isArray(v) ? v.join(',') : typeof v === 'boolean' ? (v ? 'yes' : 'no') : String(v ?? ''));
+  const line = (i: Record<string, unknown>): string => {
+    switch (res.topic) {
+      case 'overview':
+        return `${str(i.key)}: ${str(i.value)}${i.name ? ` (${str(i.name)}${i.version ? ` ${str(i.version)}` : ''})` : ''}${i.parent ? ` parent ${str(i.parent)}` : ''}${i.network ? ' [network]' : ''}`;
+      case 'post_types':
+        return `${str(i.name)} "${str(i.label)}" public=${str(i.public)} hierarchical=${str(i.hierarchical)} rest=${str(i.show_in_rest)}${i.rewrite ? ` slug=${str(i.rewrite)}` : ''} supports=${str(i.supports)}`;
+      case 'taxonomies':
+        return `${str(i.name)} "${str(i.label)}" for=${str(i.object_type)} hierarchical=${str(i.hierarchical)} public=${str(i.public)}`;
+      case 'shortcodes':
+        return `[${str(i.tag)}] ${str(i.callback)}${loc(i)}`;
+      case 'hook':
+        return `${str(i.priority)} ${str(i.callback)} (args ${str(i.args)})${loc(i)}`;
+      case 'rest_routes':
+        return `${str(i.methods)} ${str(i.route)}`;
+      case 'cron':
+        return `${str(i.next)} ${str(i.hook)} (${str(i.schedule)})`;
+      case 'blocks':
+        return `${str(i.name)}${i.title ? ` "${str(i.title)}"` : ''}${i.callback ? ` render ${str(i.callback)}` : ''}${loc(i)}`;
+      default:
+        return JSON.stringify(i);
+    }
+  };
+  const out = [`${res.topic}: ${res.items.length} item(s)`, ...res.items.map((i) => clip(line(i)))];
+  if (res.items.length === 0) out.push('(none)');
+  if (res.truncated) out.push('[truncated: pass a more specific name/prefix]');
+  if (res.note) out.push(`note: ${res.note}`);
+  return out.join('\n');
 }
