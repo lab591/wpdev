@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Lab591 Dev Bridge
  * Description:       Secure bridge between a local Claude Code workspace and this site: read-only exploration, controlled deploys with health check and rollback.
- * Version:           0.4.0
+ * Version:           0.5.0
  * Requires at least: 6.6
  * Requires PHP:      8.1
  * Network:           true
@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-const VERSION     = '0.4.0';
+const VERSION     = '0.5.0';
 const PLUGIN_FILE = __FILE__;
 
 require_once __DIR__ . '/src/Autoloader.php';
