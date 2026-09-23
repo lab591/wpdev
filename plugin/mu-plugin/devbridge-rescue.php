@@ -1,12 +1,13 @@
 <?php
 /**
- * Plugin Name: Dev Bridge Rescue
- * Description: Out-of-band rollback for Lab591 Dev Bridge. Inert unless a request carries a valid X-DevBridge-Rescue header.
+ * Description: Dev Bridge Rescue — out-of-band rollback for Lab591 Dev Bridge. Inert unless a request carries a valid X-DevBridge-Rescue header.
  * Version:     0.1.0
  * Author:      Lab591
  * Dev-Bridge-Rescue: lab591
  *
  * Installed (copied) by the Lab591 Dev Bridge plugin; removed when the plugin is deactivated.
+ * No "Plugin Name" header on purpose: inside the plugin package it would be detected as a second
+ * plugin, and after a zip upload WordPress would point the "Activate" link at this file.
  * Pure PHP: no WordPress function is used, so it works even when plugins or themes are broken.
  *
  * @package Lab591\DevBridge
