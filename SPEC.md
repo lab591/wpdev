@@ -183,6 +183,11 @@ Le cancellazioni sono ammesse solo dentro `writable_roots`; le cartelle rimaste 
   `pong` senza autenticazione (nessun dato esposto). Un fatale che rompe solo `wp-admin` provoca il rollback.
   Solo i 5xx contano come errore: una pagina di login rinominata da un plugin di sicurezza (404/403/redirect) non
   fa fallire il deploy.
+- **Avvisi** (0.5.0): le nuove righe `PHP Warning/Notice/Deprecated` scritte in `debug.log` dopo l'inizio del
+  deploy (una copia per messaggio, senza timestamp) non fanno mai fallire il deploy. La risposta di `/deploy`
+  riporta in `health.warnings` solo quelle che citano i file appena pubblicati (max 20) e in
+  `health.other_warnings` il numero delle altre (rumore di terze parti). L'hook Stop, se ci sono avvisi nei file
+  pubblicati, esce con 2 una sola volta (come per gli errori) perché Claude li corregga; il deploy resta online.
 
 ### 2.9 Rete di sicurezza fuori banda (mu-plugin rescue)
 

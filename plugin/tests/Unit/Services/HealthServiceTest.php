@@ -45,4 +45,33 @@ final class HealthServiceTest extends TestCase {
 		$fx->cleanup();
 		$this->assertSame( [ '[23-Sep-2026 10:00:01 UTC] PHP Parse error: new' ], $result['errors'] );
 	}
+
+	public function test_new_warnings_are_collected_once_without_timestamp(): void {
+		$fx  = FsFixture::wordpress();
+		$log = $fx->write( 'wp-content/debug.log', "[23-Sep-2026 09:00:00 UTC] PHP Warning:  old one
+" );
+		$svc = new HealthService( [], $log, $fx->abspath );
+
+		$offset = $svc->logOffset();
+		$file   = $fx->abs( 'wp-content/themes/child/functions.php' );
+		file_put_contents(
+			$log,
+			"[23-Sep-2026 10:00:00 UTC] PHP Warning:  Undefined variable \$a in {$file} on line 3
+" .
+			"[23-Sep-2026 10:00:01 UTC] PHP Warning:  Undefined variable \$a in {$file} on line 3
+" .
+			"[23-Sep-2026 10:00:02 UTC] PHP Deprecated:  Old API in {$file} on line 9
+" .
+			"[23-Sep-2026 10:00:03 UTC] Some unrelated line
+",
+			FILE_APPEND
+		);
+		$result = $svc->check( $offset );
+		$fx->cleanup();
+		$this->assertSame( 'ok', $result['status'], 'Warnings are not failures' );
+		$this->assertCount( 2, $result['warnings'] );
+		$this->assertStringStartsWith( 'PHP Warning:  Undefined variable $a in wp-content', $result['warnings'][0] );
+		$this->assertStringNotContainsString( $fx->abspath, implode( "
+", $result['warnings'] ) );
+	}
 }

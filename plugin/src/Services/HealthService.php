@@ -17,6 +17,11 @@ final class HealthService implements HealthChecker {
 	public const MAX_LOG_BYTES = 1048576;
 	public const FATAL_PATTERN = '/PHP (Fatal|Parse) error/';
 
+	public const WARNING_PATTERN = '/PHP (User )?(Warning|Notice|Deprecated|Strict Standards)/';
+
+	/** Distinct new warnings collected per check (the deployer keeps those in the deployed files). */
+	public const MAX_WARNINGS = 200;
+
 	/**
 	 * @param string[] $urls        Same-host URLs to request.
 	 * @param string[] $backendUrls Back-end URLs (login page, admin-ajax ping): a fatal error that only
@@ -84,15 +89,16 @@ final class HealthService implements HealthChecker {
 			$checks[] = $check;
 		}
 
-		$errors = $this->fatalLinesSince( $logOffset );
+		[ 'fatal' => $errors, 'warnings' => $warnings ] = $this->linesSince( $logOffset );
 		if ( [] !== $errors ) {
 			$failed = true;
 		}
 
 		$result = [
-			'status' => $failed ? self::FAIL : ( $unknown ? self::UNKNOWN : self::OK ),
-			'checks' => $checks,
-			'errors' => $errors,
+			'status'   => $failed ? self::FAIL : ( $unknown ? self::UNKNOWN : self::OK ),
+			'checks'   => $checks,
+			'errors'   => $errors,
+			'warnings' => $warnings,
 		];
 		if ( ! $failed && $unknown ) {
 			$result['message'] = 'Loopback request failed (network error or blocked by the host): changes were kept, check the site manually.';
@@ -126,13 +132,17 @@ final class HealthService implements HealthChecker {
 	}
 
 	/**
-	 * Fatal/parse error lines appended to debug.log after $offset.
+	 * Fatal/parse error lines and distinct warning lines appended to debug.log after $offset.
 	 *
-	 * @return list<string>
+	 * @return array{fatal: list<string>, warnings: list<string>}
 	 */
-	private function fatalLinesSince( int $offset ): array {
+	private function linesSince( int $offset ): array {
+		$none = [
+			'fatal'    => [],
+			'warnings' => [],
+		];
 		if ( null === $this->logFile || ! is_file( $this->logFile ) ) {
-			return [];
+			return $none;
 		}
 		clearstatcache( true, $this->logFile );
 		$size = (int) filesize( $this->logFile );
@@ -140,25 +150,32 @@ final class HealthService implements HealthChecker {
 			$offset = 0; // Rotated or truncated.
 		}
 		if ( $size === $offset ) {
-			return [];
+			return $none;
 		}
 		$fh = fopen( $this->logFile, 'rb' );
 		if ( false === $fh ) {
-			return [];
+			return $none;
 		}
 		fseek( $fh, max( $offset, $size - self::MAX_LOG_BYTES ) );
 		$chunk = (string) stream_get_contents( $fh );
 		fclose( $fh );
-		$errors = [];
-		$lines  = preg_split( '/\r\n|\n|\r/', $chunk );
+		$errors   = [];
+		$warnings = [];
+		$lines    = preg_split( '/\r\n|\n|\r/', $chunk );
 		foreach ( false === $lines ? [] : $lines as $line ) {
 			if ( 1 === preg_match( self::FATAL_PATTERN, $line ) ) {
-				$errors[] = LogService::clip( LogService::relativize( $line, $this->stripPrefix ) );
-				if ( count( $errors ) >= self::MAX_ERRORS ) {
-					break;
+				if ( count( $errors ) < self::MAX_ERRORS ) {
+					$errors[] = LogService::clip( LogService::relativize( $line, $this->stripPrefix ) );
 				}
+			} elseif ( count( $warnings ) < self::MAX_WARNINGS && 1 === preg_match( self::WARNING_PATTERN, $line ) ) {
+				// Same warning on every request: keep one copy, without the timestamp.
+				$text              = LogService::clip( LogService::relativize( (string) preg_replace( '/^\[[^\]]*\]\s*/', '', $line ), $this->stripPrefix ) );
+				$warnings[ $text ] = true;
 			}
 		}
-		return $errors;
+		return [
+			'fatal'    => $errors,
+			'warnings' => array_keys( $warnings ),
+		];
 	}
 }

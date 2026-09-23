@@ -14,6 +14,8 @@ export interface MockSite {
   /** Force an error response for an endpoint. */
   failWith?: { endpoint: string; status: number; body: unknown };
   logLines: string[];
+  /** New PHP warnings reported by the next /deploy health check. */
+  deployWarnings?: string[];
   /** Overrides the /deploy response body (status 200). */
   deployResult?: Record<string, unknown>;
   /** Last deploy received: parsed manifest and zip bytes. */
@@ -167,7 +169,7 @@ export async function startMockServer(init: Partial<MockSite> = {}): Promise<Moc
           }
           send(res, 200, {
             release_id: '20260923-101500-abc123', status: 'ok', written, deleted,
-            health: { status: 'ok', checks: [{ url: 'http://localhost/', code: 200, ms: 12 }] },
+            health: { status: 'ok', checks: [{ url: 'http://localhost/', code: 200, ms: 12 }], ...(site.deployWarnings ? { warnings: site.deployWarnings } : {}) },
             rescue_token: 'a'.repeat(64),
           });
           return;

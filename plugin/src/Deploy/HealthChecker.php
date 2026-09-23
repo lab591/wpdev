@@ -22,7 +22,8 @@ interface HealthChecker {
 
 	/**
 	 * @param list<string> $extraPaths Same-site paths declared by the agent, checked in addition to the configured URLs.
-	 * @return array{status: string, checks: list<array<string, mixed>>, errors: list<string>, message?: string}
+	 * @return array{status: string, checks: list<array<string, mixed>>, errors: list<string>, warnings?: list<string>, message?: string}
+	 *         `warnings`: new PHP warnings/notices/deprecations after the offset (never a failure).
 	 */
 	public function check( int $logOffset, array $extraPaths = [] ): array;
 }

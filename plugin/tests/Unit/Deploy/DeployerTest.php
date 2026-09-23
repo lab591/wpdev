@@ -266,6 +266,29 @@ final class DeployerTest extends TestCase {
 		$this->assertSame( $original, $this->read( 'wp-content/themes/child/functions.php' ) );
 	}
 
+	public function test_only_warnings_from_the_deployed_files_are_reported(): void {
+		$this->health->result = [
+			'status'   => HealthChecker::OK,
+			'checks'   => [],
+			'errors'   => [],
+			'warnings' => [
+				'PHP Warning:  Undefined variable $x in wp-content\themes\child\inc\new\n.php on line 2',
+				'PHP Deprecated:  Old call in wp-content/plugins/other/other.php on line 9',
+				'PHP Notice:  Something in wp-content/themes/child/style.css on line 1',
+			],
+		];
+		$out = $this->standardDeploy();
+		$this->assertSame( 'ok', $out['status'], 'Warnings never cause a rollback' );
+		$this->assertSame(
+			[
+				'PHP Warning:  Undefined variable $x in wp-content\themes\child\inc\new\n.php on line 2',
+				'PHP Notice:  Something in wp-content/themes/child/style.css on line 1',
+			],
+			$out['health']['warnings']
+		);
+		$this->assertSame( 1, $out['health']['other_warnings'] );
+	}
+
 	public function test_release_rotation(): void {
 		for ( $i = 0; $i < 3; $i++ ) {
 			$content  = "a$i";

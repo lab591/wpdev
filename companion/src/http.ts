@@ -152,6 +152,10 @@ export interface HealthResult {
   checks: HealthCheck[];
   message?: string;
   errors?: string[];
+  /** New PHP warnings/notices/deprecations raised by the deployed files (never a failure). */
+  warnings?: string[];
+  /** New warnings raised by other code (third-party noise), counted only. */
+  other_warnings?: number;
 }
 
 export interface DeployResponse {

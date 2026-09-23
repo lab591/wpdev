@@ -165,6 +165,8 @@ Risposta `200`:
   (loopback non raggiungibile: nessun rollback, `health.message` spiega il motivo).
 - `health.status`: `ok` | `fail` | `unknown`; `checks[].error` presente per errori di rete;
   `checks[].source`: `admin` (impostazioni), `agent` (`health_paths`) o `backend` (login e admin-ajax, 0.5.0).
+  `health.warnings` (0.5.0): nuovi warning/notice/deprecated nei file pubblicati, senza timestamp;
+  `health.other_warnings`: quanti altri nuovi avvisi (codice non toccato dal deploy). Non causano rollback.
 - `errors`: righe `PHP Fatal error` / `PHP Parse error` comparse in `debug.log` durante il deploy (max 20).
 - `rescue_token`: presente solo con `ok` e `health_unknown`; monouso, valido 24 h per questa release.
 - Se tutti i file del manifest hanno già sul server il contenuto indicato (`h` uguale all'hash attuale)

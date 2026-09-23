@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace Lab591\DevBridge\Deploy;
 
+use Lab591\DevBridge\Services\HealthService;
 use Lab591\DevBridge\Rescue\RescueTokens;
 use Lab591\DevBridge\Security\PathGuard;
 use Lab591\DevBridge\Storage\Storage;
@@ -81,6 +82,7 @@ final class Deployer {
 			$token  = $rescue->issue( $id, $this->rescueContext['ip_allowlist'], $this->rescueContext['trusted_proxies'], $this->rescueContext['allow_http'] );
 			$health = $this->health->check( $offset, $manifest->healthPaths );
 
+			$health   = self::ownWarnings( $health, $plan );
 			$response = [
 				'release_id' => $id,
 				'status'     => ReleaseStore::STATUS_OK,
@@ -112,6 +114,42 @@ final class Deployer {
 			}
 			$lock->release();
 		}
+	}
+
+	/**
+	 * Keeps only the new warnings raised by the files of this deploy (third-party noise is counted,
+	 * not listed), so the agent sees what its own code causes.
+	 *
+	 * @param array<string, mixed> $health
+	 * @return array<string, mixed>
+	 */
+	public static function ownWarnings( array $health, DeployPlan $plan ): array {
+		$all   = array_map( 'strval', (array) ( $health['warnings'] ?? [] ) );
+		$paths = [];
+		foreach ( $plan->ops as $op ) {
+			if ( 'write' === $op->action ) {
+				$paths[] = strtolower( $op->target->relative );
+			}
+		}
+		$own = array_values(
+			array_filter(
+				$all,
+				static function ( string $line ) use ( $paths ): bool {
+					$normalized = strtolower( str_replace( '\\', '/', $line ) );
+					foreach ( $paths as $path ) {
+						if ( str_contains( $normalized, $path ) ) {
+							return true;
+						}
+					}
+					return false;
+				}
+			)
+		);
+		$health['warnings'] = array_slice( $own, 0, HealthService::MAX_ERRORS );
+		if ( count( $all ) > count( $own ) ) {
+			$health['other_warnings'] = count( $all ) - count( $own );
+		}
+		return $health;
 	}
 
 	/**

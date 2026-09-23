@@ -338,6 +338,26 @@ describe('deploy --hook', () => {
     expect(st.err.join('\n')).toContain('evitare un ciclo');
   });
 
+  it('deploy online but new warnings in the published files: tells Claude once (exit 2), no rollback', async () => {
+    mock.site.deployWarnings = [`PHP Warning:  Undefined variable $x in ${ROOT}/functions.php on line 4`];
+    await writeLocal(`${ROOT}/functions.php`, '<?php echo $x;\n');
+    const st = streams();
+    expect(await hookDeploy(() => ctx, { stop_hook_active: false }, st.s, { runner: fakePhp })).toBe(2);
+    const text = st.err.join('\n');
+    expect(text).toContain('Release 20260923-101500-abc123');
+    expect(text).toContain('Undefined variable $x');
+    expect(text).toContain('il deploy resta online');
+    expect(mock.site.files.get(`${ROOT}/functions.php`)).toBeDefined();
+  });
+
+  it('warnings after a correction attempt do not block again (no loops)', async () => {
+    mock.site.deployWarnings = ['PHP Notice:  still here'];
+    await writeLocal(`${ROOT}/functions.php`, '<?php // v2\n');
+    const st = streams();
+    expect(await hookDeploy(() => ctx, { stop_hook_active: true }, st.s, { runner: fakePhp })).toBe(0);
+    expect(st.err.join('\n')).toContain('still here');
+  });
+
   it('exits 2 on configuration errors too', async () => {
     const st = streams();
     const code = await hookDeploy(() => {

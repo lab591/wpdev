@@ -24,6 +24,15 @@ function lintLines(errors: readonly LintError[]): string[] {
   return errors.map((e) => `  ${e.p}${e.line ? `:${e.line}` : ''}  ${e.message}`);
 }
 
+/** New PHP warnings of the deployed files (the deploy stays online: they are to be fixed, not rolled back). */
+export function warningLines(h: HealthResult): string[] {
+  if (!h.warnings?.length) return [];
+  return [
+    `Avvisi PHP nuovi nei file appena pubblicati (${h.warnings.length}): il deploy resta online, ma conviene correggerli:`,
+    ...h.warnings.slice(0, MAX_LISTED).map((w) => `  ${w}`),
+  ];
+}
+
 export function healthLine(h: HealthResult): string {
   const checks = h.checks
     .map((c) => `${c.url}${c.source === 'agent' ? ' [wpdev.json]' : c.source === 'backend' ? ' [backend]' : ''} ${c.code ?? c.error ?? '?'}${c.ms !== undefined ? ` (${c.ms} ms)` : ''}`)
@@ -118,6 +127,7 @@ export function reportDeploy(outcome: DeployOutcome): Report {
       if (res.errors?.length) {
         r.stderr.push('Righe fatali nel debug.log:', ...res.errors.slice(0, MAX_LISTED).map((e) => `  ${e}`));
       }
+      r.stderr.push(...warningLines(res.health));
       return r;
     }
   }
@@ -199,6 +209,12 @@ export async function hookDeploy(
   }
   if (outcome?.kind === 'no_changes') {
     return EXIT_OK;
+  }
+  const warnings = outcome?.kind === 'done' ? warningLines(outcome.response.health) : [];
+  if (report.code === EXIT_OK && warnings.length && !input.stop_hook_active) {
+    // Deploy online but the new code raises warnings: tell Claude once (exit 2), no rollback.
+    [`wpdev: ${report.stdout[0] ?? 'deploy completato'}`, ...warnings, 'Correggi gli avvisi nei file locali: verranno ripubblicati a fine turno.'].forEach((l) => streams.stderr(l));
+    return EXIT_DEPLOY_FAILED;
   }
   if (report.code === EXIT_OK) {
     streams.stdout(`wpdev: ${report.stdout[0] ?? 'deploy completato'} ${report.stdout[1] ?? ''}`.trim());
