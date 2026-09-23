@@ -1,0 +1,52 @@
+name: Release
+
+# Push a tag like v0.5.0: the plugin zip (with the compiled admin app) and the companion
+# package are built, tested and attached to a GitHub release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: zip
+          coverage: none
+          tools: composer:v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check that the tag matches the plugin and companion versions
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          plugin=$(grep -m1 -oP '^\s*\*\s*Version:\s*\K\S+' plugin/lab591-dev-bridge.php)
+          companion=$(node -p "require('./companion/package.json').version")
+          echo "tag=$tag plugin=$plugin companion=$companion"
+          test "$tag" = "$plugin" && test "$tag" = "$companion"
+
+      - name: Plugin tests
+        working-directory: plugin
+        run: composer install --no-interaction --no-progress && composer test
+
+      - name: Plugin zip (admin app built, translations included)
+        working-directory: plugin
+        run: npm ci && npm run build && composer package
+
+      - name: Companion package
+        working-directory: companion
+        run: npm ci && npm test && npm run build && npm pack --pack-destination ../dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/lab591-dev-bridge-*.zip
+            dist/wpdev-*.tgz
+          generate_release_notes: true

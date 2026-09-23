@@ -209,8 +209,10 @@ final class RipgrepSearcher {
 		}
 		proc_close( $process );
 		self::unlinkQuietly( $outFile );
-		if ( ! $sawEvent && null === $reason && 2 === $exitCode ) {
-			return null; // rg failed (bad binary, regex rejected by rg...): let the PHP implementation run.
+		// rg exits with 0 (matches) or 1 (no match). Anything else without output means it failed: 2 (bad
+		// regex...), 126/127 on Linux when the file is not an executable. Let the PHP implementation run.
+		if ( ! $sawEvent && null === $reason && ! in_array( $exitCode, [ 0, 1 ], true ) ) {
+			return null;
 		}
 
 		$result = [

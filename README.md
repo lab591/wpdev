@@ -1,5 +1,7 @@
 # Dev Bridge
 
+[![CI](https://github.com/lab591/wpdev/actions/workflows/ci.yml/badge.svg)](https://github.com/lab591/wpdev/actions/workflows/ci.yml)
+
 Permette a **Claude Code in locale** di lavorare su un sito WordPress remoto in modo sicuro:
 
 - legge il codice del sito (core, plugin, temi) tramite strumenti MCP, senza scaricarlo tutto;
@@ -280,6 +282,15 @@ impostazioni.
 
 Traduzioni: stringhe in inglese nel codice, italiano in `plugin/tools/translations/it_IT.json`.
 `npm run i18n` (richiede WP-CLI) rigenera `languages/` (`.pot`, `.po`, `.mo` e il JSON per il JavaScript).
+
+**CI** (GitHub Actions, `.github/workflows/ci.yml`): a ogni push e pull request girano i test PHP su 8.1–8.4 con
+PHPCS, lint e build dell'interfaccia admin, e i test del companion su Linux e Windows con Node 20 e 22.
+
+**Rilasciare una versione:** aggiorna la versione in `plugin/lab591-dev-bridge.php` (intestazione e costante
+`VERSION`), `plugin/package.json`, `companion/package.json` e `companion/src/version.ts`, poi crea e pubblica il tag
+(`git tag v0.5.0 && git push origin v0.5.0`). `.github/workflows/release.yml` controlla che le versioni coincidano
+con il tag, rifà i test e allega alla release lo zip del plugin (con l'interfaccia compilata) e il pacchetto del
+companion.
 
 I test PHPUnit del plugin girano senza WordPress. I test sui symlink vengono saltati dove il sistema
 non permette di crearli (Windows senza modalità sviluppatore); quelli di ripgrep girano se
