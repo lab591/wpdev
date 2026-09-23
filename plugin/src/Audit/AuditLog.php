@@ -9,9 +9,11 @@ declare(strict_types=1);
 
 namespace Lab591\DevBridge\Audit;
 
+use Lab591\DevBridge\Support\Options;
+
 final class AuditLog {
 
-	public const DB_VERSION        = '1';
+	public const DB_VERSION        = '2';
 	public const DB_VERSION_OPTION = 'devbridge_audit_db';
 	public const MAX_PATHS         = 20;
 	public const MAX_PATH_CHARS    = 200;
@@ -19,7 +21,8 @@ final class AuditLog {
 
 	public function table(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'devbridge_audit';
+		// One network-wide table on multisite (base_prefix equals prefix on single sites).
+		return $wpdb->base_prefix . 'devbridge_audit';
 	}
 
 	public function install(): void {
@@ -32,6 +35,7 @@ final class AuditLog {
 				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 				ts datetime NOT NULL,
 				user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+				blog_id bigint(20) unsigned NOT NULL DEFAULT 1,
 				ip varchar(45) NOT NULL DEFAULT '',
 				endpoint varchar(32) NOT NULL DEFAULT '',
 				mode varchar(8) NOT NULL DEFAULT '',
@@ -46,11 +50,11 @@ final class AuditLog {
 				KEY endpoint (endpoint)
 			) {$charset};"
 		);
-		update_option( self::DB_VERSION_OPTION, self::DB_VERSION, false );
+		Options::update( self::DB_VERSION_OPTION, self::DB_VERSION );
 	}
 
 	public function maybeUpgrade(): void {
-		if ( get_option( self::DB_VERSION_OPTION ) !== self::DB_VERSION ) {
+		if ( Options::get( self::DB_VERSION_OPTION ) !== self::DB_VERSION ) {
 			$this->install();
 		}
 	}
@@ -66,6 +70,7 @@ final class AuditLog {
 			[
 				'ts'          => gmdate( 'Y-m-d H:i:s' ),
 				'user_id'     => max( 0, $entry['user_id'] ),
+				'blog_id'     => function_exists( 'get_current_blog_id' ) ? get_current_blog_id() : 1,
 				'ip'          => substr( $entry['ip'], 0, 45 ),
 				'endpoint'    => substr( $entry['endpoint'], 0, 32 ),
 				'mode'        => substr( $entry['mode'], 0, 8 ),
@@ -75,7 +80,7 @@ final class AuditLog {
 				'duration_ms' => max( 0, $entry['duration_ms'] ),
 				'release_id'  => substr( $entry['release_id'] ?? '', 0, 40 ),
 			],
-			[ '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s' ]
+			[ '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s' ]
 		);
 	}
 
@@ -112,7 +117,7 @@ final class AuditLog {
 	}
 
 	/**
-	 * @param array{endpoint?: string, user_id?: int, status?: string, from?: string, to?: string} $filters
+	 * @param array{endpoint?: string, user_id?: int, blog_id?: int, status?: string, from?: string, to?: string} $filters
 	 * @return array{rows: list<object>, total: int}
 	 */
 	public function query( array $filters, int $page = 1, int $perPage = 50 ): array {
@@ -123,6 +128,10 @@ final class AuditLog {
 		if ( ! empty( $filters['endpoint'] ) ) {
 			$where[]  = 'endpoint = %s';
 			$params[] = $filters['endpoint'];
+		}
+		if ( ! empty( $filters['blog_id'] ) ) {
+			$where[]  = 'blog_id = %d';
+			$params[] = (int) $filters['blog_id'];
 		}
 		if ( ! empty( $filters['user_id'] ) ) {
 			$where[]  = 'user_id = %d';
@@ -163,6 +172,6 @@ final class AuditLog {
 		$table = $this->table();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange -- uninstall.
 		$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
-		delete_option( self::DB_VERSION_OPTION );
+		Options::delete( self::DB_VERSION_OPTION );
 	}
 }

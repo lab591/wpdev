@@ -21,10 +21,12 @@ final class HealthPaths {
 	public const MAX_LENGTH = 200;
 
 	/**
+	 * @param list<array{host: string, path: string}> $networkSites Sites of a multisite network: full
+	 *        http(s) URLs are accepted only when host and leading path match one of them.
 	 * @return list<string>
 	 * @throws ApiException `invalid_param` when the value is not an acceptable list of paths.
 	 */
-	public static function parse( mixed $value, string $code = 'invalid_param' ): array {
+	public static function parse( mixed $value, string $code = 'invalid_param', array $networkSites = [] ): array {
 		if ( null === $value ) {
 			return [];
 		}
@@ -36,8 +38,13 @@ final class HealthPaths {
 		}
 		$out = [];
 		foreach ( $value as $path ) {
-			if ( ! is_string( $path ) || ! self::isValid( $path ) ) {
-				throw self::invalid( $code, 'health paths must be site-relative, e.g. "/shop/" (no full URLs, "..", "#", "@" or backslashes)' );
+			if ( ! is_string( $path ) || ! ( self::isValid( $path ) || self::isNetworkUrl( $path, $networkSites ) ) ) {
+				throw self::invalid(
+					$code,
+					[] === $networkSites
+						? 'health paths must be site-relative, e.g. "/shop/" (no full URLs, "..", "#", "@" or backslashes)'
+						: 'health paths must be site-relative ("/shop/") or URLs of a site of this network'
+				);
 			}
 			$out[ $path ] = true;
 		}
@@ -58,6 +65,32 @@ final class HealthPaths {
 			}
 		}
 		return ! str_contains( $route, '://' );
+	}
+
+	/**
+	 * Full http(s) URL of a site of the network: same host, path below the site path, and the
+	 * remaining path valid as a site-relative path. No credentials, ports or fragments.
+	 *
+	 * @param list<array{host: string, path: string}> $networkSites
+	 */
+	public static function isNetworkUrl( string $url, array $networkSites ): bool {
+		if ( [] === $networkSites || strlen( $url ) > self::MAX_LENGTH + 100 || 1 !== preg_match( '#^https?://#i', $url ) ) {
+			return false;
+		}
+		$parts = parse_url( $url ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- also used without WordPress.
+		if ( ! is_array( $parts ) || empty( $parts['host'] ) || isset( $parts['user'] ) || isset( $parts['pass'] ) || isset( $parts['port'] ) || isset( $parts['fragment'] ) ) {
+			return false;
+		}
+		$host = strtolower( (string) $parts['host'] );
+		$rest = ( $parts['path'] ?? '/' ) . ( isset( $parts['query'] ) ? '?' . $parts['query'] : '' );
+		foreach ( $networkSites as $site ) {
+			$sitePath = '/' . trim( $site['path'], '/' ) . '/';
+			$sitePath = '//' === $sitePath ? '/' : $sitePath;
+			if ( strtolower( $site['host'] ) === $host && str_starts_with( $rest . ( str_ends_with( $rest, '/' ) ? '' : '/' ), $sitePath ) ) {
+				return self::isValid( '/' . ltrim( substr( $rest, strlen( $sitePath ) - 1 ), '/' ) );
+			}
+		}
+		return false;
 	}
 
 	private static function invalid( string $code, string $message ): ApiException {

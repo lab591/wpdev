@@ -24,10 +24,19 @@ const relPath = z.string().transform((value, ctx) => {
 });
 
 /**
- * Site-relative page path for the health check (e.g. "/shop/"): same rules as the plugin
- * (no full URLs, "//", "..", "#", "@", backslashes or whitespace; max 200 chars).
+ * Health check entry: a site-relative path (e.g. "/shop/", same rules as the plugin: no "//", "..",
+ * "#", "@", backslashes or whitespace; max 200 chars) or, for multisite networks, a full http(s) URL
+ * of a site of the network. The server accepts full URLs only for its own network's sites.
  */
 export function isValidHealthPath(path: string): boolean {
+  const full = /^https?:\/\/([^/?#]*)(.*)$/i.exec(path);
+  if (full) {
+    // Validate the raw text: URL parsing would silently normalize "..".
+    const host = full[1] ?? '';
+    if (host === '' || host.includes('@') || host.includes(':') || path.length > 300) return false;
+    const rest = full[2] ?? '';
+    return isValidHealthPath(rest.startsWith('/') ? rest : `/${rest}`);
+  }
   if (path.length === 0 || path.length > 200 || !path.startsWith('/') || path.startsWith('//')) return false;
   // eslint-disable-next-line no-control-regex -- rejecting control characters is the point.
   if (/[\u0000-\u0020\u007f\\#@]/.test(path)) return false;

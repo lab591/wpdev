@@ -44,6 +44,10 @@ export type StatusResponse =
       limits: Limits;
       debug_log: boolean;
       rescue?: string;
+      /** URL of the site that answered (multisite: any site of the network). */
+      site_url?: string;
+      /** Present on multisite networks. */
+      network?: { main_site: string; sites: number };
     };
 
 export interface ListEntry {

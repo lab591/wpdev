@@ -26,6 +26,7 @@ use Lab591\DevBridge\Services\HealthService;
 use Lab591\DevBridge\Services\RipgrepSearcher;
 use Lab591\DevBridge\Services\StatusService;
 use Lab591\DevBridge\Storage\Storage;
+use Lab591\DevBridge\Support\Options;
 
 final class Plugin {
 
@@ -54,6 +55,12 @@ final class Plugin {
 	}
 
 	public function boot(): void {
+		if ( Options::network() && ! self::isNetworkActive() ) {
+			// Active on a single site of a network (e.g. activated before the multisite conversion):
+			// never expose the API or the settings there (SPEC 2.14).
+			add_action( 'admin_notices', [ self::class, 'singleSiteNotice' ] );
+			return;
+		}
 		add_action( 'rest_api_init', [ new Api( $this ), 'register' ] );
 		add_action( self::CRON_AUDIT, [ $this, 'cleanupAudit' ] );
 		add_action( 'plugins_loaded', [ $this->audit, 'maybeUpgrade' ] );
@@ -66,13 +73,69 @@ final class Plugin {
 		}
 	}
 
-	public static function activate(): void {
+	/**
+	 * @param bool $networkWide True for a network activation (multisite).
+	 */
+	public static function activate( $networkWide = false ): void {
+		if ( Options::network() && ! $networkWide ) {
+			wp_die(
+				esc_html__( 'Dev Bridge in una rete multisite si attiva solo a livello di rete (Amministrazione rete → Plugin → Attiva sulla rete), perché temi e plugin sono condivisi da tutti i siti.', 'lab591-dev-bridge' ),
+				esc_html__( 'Attivazione non consentita', 'lab591-dev-bridge' ),
+				[ 'back_link' => true ]
+			);
+		}
 		$plugin = self::instance();
 		$plugin->audit->install();
 		$plugin->rescueInstaller()->install();
+		// On a network the cleanup runs once, on the main site.
+		$switched = Options::network() && ! is_main_site() && switch_to_blog( get_main_site_id() );
 		if ( ! wp_next_scheduled( self::CRON_AUDIT ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::CRON_AUDIT );
 		}
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+
+	/**
+	 * Whether the plugin is network-activated (multisite).
+	 */
+	public static function isNetworkActive(): bool {
+		$active = get_site_option( 'active_sitewide_plugins', [] );
+		return is_array( $active ) && isset( $active[ plugin_basename( PLUGIN_FILE ) ] );
+	}
+
+	public static function singleSiteNotice(): void {
+		if ( ! current_user_can( 'activate_plugins' ) ) {
+			return;
+		}
+		echo '<div class="notice notice-error"><p>' . esc_html__( 'Dev Bridge è attivo solo su questo sito ma l\'installazione è una rete multisite: disattivalo e attivalo dall\'Amministrazione rete. Finché non lo fai è inattivo.', 'lab591-dev-bridge' ) . '</p></div>';
+	}
+
+	/**
+	 * Sites of the network as host + path (empty on single sites), for health URLs.
+	 *
+	 * @return list<array{host: string, path: string}>
+	 */
+	public function networkSites(): array {
+		if ( ! Options::network() ) {
+			return [];
+		}
+		$sites = [];
+		foreach ( get_sites(
+			[
+				'number'   => 1000,
+				'archived' => 0,
+				'deleted'  => 0,
+				'spam'     => 0,
+			]
+		) as $site ) {
+			$sites[] = [
+				'host' => (string) $site->domain,
+				'path' => (string) $site->path,
+			];
+		}
+		return $sites;
 	}
 
 	public static function deactivate(): void {
@@ -127,7 +190,7 @@ final class Plugin {
 	}
 
 	public function health(): HealthService {
-		return new HealthService( $this->settings->healthUrls(), StatusService::debugLogFile(), ABSPATH );
+		return new HealthService( $this->settings->healthUrls(), StatusService::debugLogPath(), ABSPATH );
 	}
 
 	/**
@@ -183,7 +246,7 @@ final class Plugin {
 			$file    = null;
 			try {
 				$storage->ensure();
-				$file = $storage->dir() . DIRECTORY_SEPARATOR . 'hash-cache.json';
+				$file = $storage->hashCacheFile();
 			} catch ( \Throwable ) {
 				$file = null; // No storage: hashes are computed every time.
 			}
@@ -202,10 +265,10 @@ final class Plugin {
 				$this->storage()->ensure();
 				$tmp   = $this->storage()->tmpDir();
 				$key   = 'devbridge_rg_pcre2_' . md5( $binary );
-				$pcre2 = get_transient( $key );
+				$pcre2 = Options::getTransient( $key );
 				if ( false === $pcre2 ) {
 					$pcre2 = RipgrepSearcher::detectPcre2( $binary, $tmp ) ? 'yes' : 'no';
-					set_transient( $key, $pcre2, DAY_IN_SECONDS );
+					Options::setTransient( $key, $pcre2, DAY_IN_SECONDS );
 				}
 				$rg = new RipgrepSearcher( $this->guard(), $binary, $settings->limit( 'grep_file_bytes' ), array_map( 'strtolower', $skip ), 'yes' === $pcre2, $tmp );
 			} catch ( \Throwable ) {

@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Lab591\DevBridge;
 
 use Lab591\DevBridge\Security\PathPolicy;
+use Lab591\DevBridge\Support\Options;
 
 final class Settings {
 
@@ -60,7 +61,7 @@ final class Settings {
 	 */
 	public function all(): array {
 		if ( null === $this->cache ) {
-			$stored           = get_option( self::OPTION, [] );
+			$stored           = Options::get( self::OPTION, [] );
 			$merged           = array_merge( self::defaults(), is_array( $stored ) ? $stored : [] );
 			$merged['limits'] = array_merge( self::DEFAULT_LIMITS, is_array( $merged['limits'] ) ? $merged['limits'] : [] );
 			$this->cache      = $merged;
@@ -97,7 +98,11 @@ final class Settings {
 	 */
 	public function healthUrls(): array {
 		$urls = array_values( array_filter( array_map( 'strval', (array) $this->get( 'health_urls' ) ) ) );
-		return [] === $urls ? [ home_url( '/' ) ] : $urls;
+		if ( [] !== $urls ) {
+			return $urls;
+		}
+		// Default: home of the (main) site.
+		return [ Options::network() ? get_home_url( get_main_site_id(), '/' ) : home_url( '/' ) ];
 	}
 
 	/**
@@ -106,7 +111,7 @@ final class Settings {
 	 * @param array<string, mixed> $settings
 	 */
 	public function save( array $settings ): void {
-		update_option( self::OPTION, $settings, false );
+		Options::update( self::OPTION, $settings );
 		$this->cache = null;
 	}
 

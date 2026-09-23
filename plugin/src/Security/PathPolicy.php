@@ -22,6 +22,7 @@ final class PathPolicy {
 		'**/*.key',
 		'**/*.pem',
 		'wp-content/uploads/**',
+		'wp-content/blogs.dir/**',
 		'wp-content/devbridge-*/**',
 		'**/.htpasswd',
 	];

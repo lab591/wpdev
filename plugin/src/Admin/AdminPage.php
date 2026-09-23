@@ -14,6 +14,7 @@ use Lab591\DevBridge\Mode;
 use Lab591\DevBridge\Plugin;
 use Lab591\DevBridge\Rescue\RescueInstaller;
 use Lab591\DevBridge\Settings;
+use Lab591\DevBridge\Support\Options;
 use const Lab591\DevBridge\PLUGIN_FILE;
 
 final class AdminPage {
@@ -26,11 +27,11 @@ final class AdminPage {
 	}
 
 	public function register(): void {
-		add_action( 'admin_menu', [ $this, 'menu' ] );
+		add_action( Options::network() ? 'network_admin_menu' : 'admin_menu', [ $this, 'menu' ] );
 		add_action( 'admin_post_devbridge_mode', [ $this, 'handleMode' ] );
 		add_action( 'admin_post_devbridge_settings', [ $this, 'handleSettings' ] );
-		add_action( 'admin_notices', [ $this, 'pluginsScreenNotices' ] );
-		add_filter( 'plugin_action_links_' . plugin_basename( PLUGIN_FILE ), [ $this, 'confirmDeactivation' ] );
+		add_action( Options::network() ? 'network_admin_notices' : 'admin_notices', [ $this, 'pluginsScreenNotices' ] );
+		add_filter( ( Options::network() ? 'network_admin_plugin_action_links_' : 'plugin_action_links_' ) . plugin_basename( PLUGIN_FILE ), [ $this, 'confirmDeactivation' ] );
 	}
 
 	/**
@@ -53,27 +54,46 @@ final class AdminPage {
 	 */
 	public function pluginsScreenNotices(): void {
 		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( null === $screen || 'plugins' !== $screen->id || ! current_user_can( 'manage_options' ) ) {
+		if ( null === $screen || ! in_array( $screen->id, [ 'plugins', 'plugins-network' ], true ) || ! current_user_can( Options::capability() ) ) {
 			return;
 		}
 		if ( RescueInstaller::INSTALLED !== $this->plugin->rescueInstaller()->state() ) {
 			printf(
 				'<div class="notice notice-warning"><p>%s <a href="%s">%s</a></p></div>',
 				esc_html( 'Dev Bridge: il mu-plugin di rescue non è installato, il rollback fuori banda non è disponibile.' ),
-				esc_url( add_query_arg( [ 'page' => self::SLUG ], admin_url( 'options-general.php' ) ) ),
+				esc_url( self::pageUrl() ),
 				esc_html( 'Dettagli' )
 			);
 		}
 	}
 
+	/**
+	 * Settings page base URL: Network Admin → Settings on multisite.
+	 */
+	public static function baseUrl(): string {
+		return Options::network() ? network_admin_url( 'settings.php' ) : admin_url( 'options-general.php' );
+	}
+
+	public static function pageUrl( string $tab = '' ): string {
+		$args = [ 'page' => self::SLUG ];
+		if ( '' !== $tab ) {
+			$args['tab'] = $tab;
+		}
+		return add_query_arg( $args, self::baseUrl() );
+	}
+
 	public function menu(): void {
-		add_options_page( 'Dev Bridge', 'Dev Bridge', 'manage_options', self::SLUG, [ $this, 'render' ] );
+		if ( Options::network() ) {
+			add_submenu_page( 'settings.php', 'Dev Bridge', 'Dev Bridge', Options::capability(), self::SLUG, [ $this, 'render' ] );
+			return;
+		}
+		add_options_page( 'Dev Bridge', 'Dev Bridge', Options::capability(), self::SLUG, [ $this, 'render' ] );
 	}
 
 	// ------------------------------------------------------------------ actions
 
 	public function handleMode(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( Options::capability() ) ) {
 			wp_die( esc_html__( 'Permessi insufficienti.', 'lab591-dev-bridge' ), 403 );
 		}
 		check_admin_referer( 'devbridge_mode' );
@@ -96,14 +116,15 @@ final class AdminPage {
 	}
 
 	public function handleSettings(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( Options::capability() ) ) {
 			wp_die( esc_html__( 'Permessi insufficienti.', 'lab591-dev-bridge' ), 403 );
 		}
 		check_admin_referer( 'devbridge_settings' );
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated field by field in SettingsForm.
-		$input = isset( $_POST['devbridge'] ) && is_array( $_POST['devbridge'] ) ? wp_unslash( $_POST['devbridge'] ) : [];
-		$form  = $this->form();
-		$clean = $form->sanitize( $input, $this->plugin->settings()->all() );
+		$input                     = isset( $_POST['devbridge'] ) && is_array( $_POST['devbridge'] ) ? wp_unslash( $_POST['devbridge'] ) : [];
+		$form                      = $this->form();
+		$clean                     = $form->sanitize( $input, $this->plugin->settings()->all() );
+		$clean['allowed_user_ids'] = array_values( array_filter( $clean['allowed_user_ids'], static fn ( int $id ): bool => user_can( $id, Options::capability() ) ) );
 		$this->plugin->settings()->save( $clean );
 		$this->plugin->reset();
 		if ( [] !== $form->errors() ) {
@@ -119,12 +140,25 @@ final class AdminPage {
 		return new SettingsForm(
 			static fn ( bool $mu ) => new \Lab591\DevBridge\Security\WritableRootValidator( ABSPATH, $plugin->protectedPaths(), $mu, $plugin->denyPatterns() ),
 			ABSPATH,
-			(string) wp_parse_url( home_url(), PHP_URL_HOST )
+			$this->allowedHosts()
 		);
 	}
 
+	/**
+	 * Hosts accepted in health URLs: this site, or every site of the network.
+	 *
+	 * @return string[]
+	 */
+	private function allowedHosts(): array {
+		$hosts = [ (string) wp_parse_url( home_url(), PHP_URL_HOST ) ];
+		foreach ( $this->plugin->networkSites() as $site ) {
+			$hosts[] = $site['host'];
+		}
+		return array_values( array_unique( $hosts ) );
+	}
+
 	private function notice( string $type, string $message ): void {
-		set_transient( self::NOTICE_KEY . get_current_user_id(), [ $type, $message ], 60 );
+		Options::setTransient( self::NOTICE_KEY . get_current_user_id(), [ $type, $message ], 60 );
 	}
 
 	private function redirect( string $tab ): void {
@@ -134,7 +168,7 @@ final class AdminPage {
 					'page' => self::SLUG,
 					'tab'  => $tab,
 				],
-				admin_url( 'options-general.php' )
+				self::baseUrl()
 			)
 		);
 		exit;
@@ -143,7 +177,7 @@ final class AdminPage {
 	// ------------------------------------------------------------------ rendering
 
 	public function render(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( Options::capability() ) ) {
 			return;
 		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only navigation.
@@ -168,7 +202,7 @@ final class AdminPage {
 							'page' => self::SLUG,
 							'tab'  => $key,
 						],
-						admin_url( 'options-general.php' )
+						self::baseUrl()
 					)
 				),
 				$key === $tab ? ' nav-tab-active' : '',
@@ -186,11 +220,11 @@ final class AdminPage {
 
 	private function renderNotice(): void {
 		$key    = self::NOTICE_KEY . get_current_user_id();
-		$notice = get_transient( $key );
+		$notice = Options::getTransient( $key );
 		if ( ! is_array( $notice ) ) {
 			return;
 		}
-		delete_transient( $key );
+		Options::deleteTransient( $key );
 		printf(
 			'<div class="notice notice-%s is-dismissible"><p>%s</p></div>',
 			esc_attr( (string) $notice[0] ),
@@ -309,18 +343,42 @@ final class AdminPage {
 		echo '</tbody></table><p class="description">Rollback: <code>wp devbridge rollback [&lt;id&gt;]</code> oppure <code>wpdev rollback</code> dal companion.</p>';
 	}
 
+	/**
+	 * Users that may be authorized: administrators, or super admins on a network.
+	 *
+	 * @return list<object>
+	 */
+	private function eligibleUsers(): array {
+		if ( ! Options::network() ) {
+			return array_values(
+				get_users(
+					[
+						'capability' => 'manage_options',
+						'fields'     => [ 'ID', 'user_login' ],
+					]
+				)
+			);
+		}
+		$users = [];
+		foreach ( get_super_admins() as $login ) {
+			$user = get_user_by( 'login', $login );
+			if ( $user ) {
+				$users[] = (object) [
+					'ID'         => $user->ID,
+					'user_login' => $user->user_login,
+				];
+			}
+		}
+		return $users;
+	}
+
 	private function renderSettings(): void {
 		$s = $this->plugin->settings()->all();
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		wp_nonce_field( 'devbridge_settings' );
 		echo '<input type="hidden" name="action" value="devbridge_settings"><table class="form-table" role="presentation"><tbody>';
 
-		$admins = get_users(
-			[
-				'capability' => 'manage_options',
-				'fields'     => [ 'ID', 'user_login' ],
-			]
-		);
+		$admins = $this->eligibleUsers();
 		echo '<tr><th>Utenti autorizzati</th><td>';
 		foreach ( $admins as $user ) {
 			printf(
@@ -331,7 +389,7 @@ final class AdminPage {
 				(int) $user->ID
 			);
 		}
-		echo '<p class="description">Solo amministratori, autenticati con Application Password.</p></td></tr>';
+		echo '<p class="description">' . esc_html( Options::network() ? 'Solo super admin della rete, autenticati con Application Password.' : 'Solo amministratori, autenticati con Application Password.' ) . '</p></td></tr>';
 
 		$this->textarea( 'writable_roots', 'Cartelle scrivibili', (array) $s['writable_roots'], 'Una per riga, relative ad ABSPATH, sotto wp-content/themes/ o wp-content/plugins/ (es. wp-content/themes/mio-child).' );
 		printf(
@@ -388,10 +446,12 @@ final class AdminPage {
 	}
 
 	private function renderAudit(): void {
+		$network = Options::network();
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only filters.
 		$filters = [
 			'endpoint' => isset( $_GET['endpoint'] ) ? sanitize_text_field( wp_unslash( $_GET['endpoint'] ) ) : '',
 			'user_id'  => isset( $_GET['user_id'] ) ? absint( $_GET['user_id'] ) : 0,
+			'blog_id'  => $network && isset( $_GET['blog_id'] ) ? absint( $_GET['blog_id'] ) : 0,
 			'status'   => isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : '',
 			'from'     => isset( $_GET['from'] ) ? sanitize_text_field( wp_unslash( $_GET['from'] ) ) : '',
 			'to'       => isset( $_GET['to'] ) ? sanitize_text_field( wp_unslash( $_GET['to'] ) ) : '',
@@ -405,12 +465,27 @@ final class AdminPage {
 		}
 		$result = $this->plugin->audit()->query( $filters, $page );
 
+		// Site labels (multisite): blog id => "domain/path".
+		$sites = [];
+		if ( $network ) {
+			foreach ( get_sites( [ 'number' => 1000 ] ) as $site ) {
+				$sites[ (int) $site->blog_id ] = $site->domain . $site->path;
+			}
+		}
+
 		echo '<form method="get" style="margin:1em 0"><input type="hidden" name="page" value="devbridge"><input type="hidden" name="tab" value="audit">';
 		echo '<select name="endpoint"><option value="">Tutti gli endpoint</option>';
 		foreach ( [ '/status', '/list', '/read', '/grep', '/manifest', '/archive', '/log', '/deploy', '/rollback', '/releases', '/health', '/cache-flush' ] as $endpoint ) {
 			printf( '<option value="%1$s"%2$s>%1$s</option>', esc_attr( $endpoint ), selected( $filters['endpoint'], $endpoint, false ) );
 		}
 		echo '</select> ';
+		if ( $network ) {
+			echo '<select name="blog_id"><option value="">Tutti i siti</option>';
+			foreach ( $sites as $id => $label ) {
+				printf( '<option value="%d"%s>%s</option>', (int) $id, selected( $filters['blog_id'], $id, false ), esc_html( $label ) );
+			}
+			echo '</select> ';
+		}
 		printf( '<input type="number" name="user_id" placeholder="ID utente" value="%s" class="small-text"> ', $filters['user_id'] ? (int) $filters['user_id'] : '' );
 		printf(
 			'<select name="status"><option value="">Tutti gli esiti</option><option value="ok"%s>OK</option><option value="errors"%s>Errori</option></select> ',
@@ -421,20 +496,27 @@ final class AdminPage {
 		submit_button( 'Filtra', 'secondary', '', false );
 		echo '</form>';
 
-		echo '<table class="widefat striped"><thead><tr><th>Data (UTC)</th><th>Utente</th><th>IP</th><th>Endpoint</th><th>Modalità</th><th>Percorsi</th><th>Byte</th><th>Esito</th><th>ms</th><th>Release</th></tr></thead><tbody>';
+		echo '<table class="widefat striped"><thead><tr><th>Data (UTC)</th>' . ( $network ? '<th>Sito</th>' : '' ) . '<th>Utente</th><th>IP</th><th>Endpoint</th><th>Modalità</th><th>Percorsi</th><th>Byte</th><th>Esito</th><th>ms</th><th>Release</th></tr></thead><tbody>';
 		if ( [] === $result['rows'] ) {
-			echo '<tr><td colspan="10">Nessuna voce.</td></tr>';
+			printf( '<tr><td colspan="%d">Nessuna voce.</td></tr>', $network ? 11 : 10 );
 		}
 		foreach ( $result['rows'] as $row ) {
 			$paths = json_decode( (string) $row->paths, true );
+			$paths = is_array( $paths ) ? implode( ', ', $paths ) : '';
+			$site  = '';
+			if ( $network ) {
+				$blog = (int) ( $row->blog_id ?? 1 );
+				$site = '<td>' . esc_html( $sites[ $blog ] ?? '#' . $blog ) . '</td>';
+			}
 			printf(
-				'<tr><td>%s</td><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td><code>%s</code></td><td>%d</td><td>%d</td><td>%d</td><td>%s</td></tr>',
+				'<tr><td>%s</td>%s<td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%s</td></tr>',
 				esc_html( (string) $row->ts ),
+				$site, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above.
 				(int) $row->user_id,
 				esc_html( (string) $row->ip ),
 				esc_html( (string) $row->endpoint ),
 				esc_html( (string) $row->mode ),
-				esc_html( is_array( $paths ) ? implode( ', ', $paths ) : '' ),
+				'' === $paths ? '' : '<code>' . esc_html( $paths ) . '</code>', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inline.
 				(int) $row->bytes,
 				(int) $row->status,
 				(int) $row->duration_ms,

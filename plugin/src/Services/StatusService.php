@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Lab591\DevBridge\Services;
 
 use Lab591\DevBridge\Plugin;
+use Lab591\DevBridge\Support\Options;
 use const Lab591\DevBridge\VERSION;
 
 final class StatusService {
@@ -30,7 +31,7 @@ final class StatusService {
 			$limits[ $key ] = $settings->limit( $key );
 		}
 		$limits += $this->plugin->deployLimits();
-		return [
+		$status  = [
 			'mode'           => $state['mode'],
 			'expires_at'     => $state['expires_at'],
 			'name'           => wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ),
@@ -46,14 +47,30 @@ final class StatusService {
 			'limits'         => $limits,
 			'debug_log'      => null !== self::debugLogFile(),
 			'rescue'         => $this->plugin->rescueInstaller()->state(),
+			'site_url'       => home_url( '/' ),
 		];
+		if ( Options::network() ) {
+			$status['network'] = [
+				'main_site' => get_home_url( get_main_site_id(), '/' ),
+				'sites'     => count( $this->plugin->networkSites() ),
+			];
+		}
+		return $status;
 	}
 
 	public static function debugLogFile(): ?string {
+		$file = self::debugLogPath();
+		return null !== $file && is_file( $file ) ? $file : null;
+	}
+
+	/**
+	 * Configured debug.log location, even if the file does not exist yet (the health check must
+	 * see the first fatal error ever written, which creates the file).
+	 */
+	public static function debugLogPath(): ?string {
 		if ( ! defined( 'WP_DEBUG_LOG' ) || ! WP_DEBUG_LOG ) {
 			return null;
 		}
-		$file = LogService::locate( WP_DEBUG_LOG, WP_CONTENT_DIR );
-		return null !== $file && is_file( $file ) ? $file : null;
+		return LogService::locate( WP_DEBUG_LOG, WP_CONTENT_DIR );
 	}
 }

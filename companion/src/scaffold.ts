@@ -79,6 +79,8 @@ export interface ClaudeMdInput {
   name: string;
   url: string;
   writable: readonly string[];
+  /** Multisite network: themes and plugins are shared by every site. */
+  network?: { mainSite: string; sites: number };
 }
 
 /** CLAUDE.md for the site project, from the template of SPEC section 6. */
@@ -108,7 +110,17 @@ export function renderClaudeMd(input: ClaudeMdInput): string {
   \`"/contatti/"\`, max 10, solo percorsi del sito): verranno controllati a ogni deploy e un
   errore 500 o un fatale nel log attiverà il rollback automatico. Rimuovi quelli non più rilevanti.
 - Per una verifica immediata senza deploy usa lo strumento MCP \`health\` con \`paths\`.
-
+${
+    input.network
+      ? `
+## Rete multisite
+- Questo sito fa parte di una rete di ${input.network.sites} siti (principale: ${input.network.mainSite}).
+  Temi e plugin sono **condivisi da tutti i siti**: una modifica qui vale per l'intera rete.
+- In \`health.paths\` puoi indicare anche URL completi di altri siti della rete che usano il codice
+  che stai modificando (es. \`"${input.network.mainSite}"\`): un errore su uno qualsiasi attiva il rollback.
+`
+      : ''
+  }
 ## Convenzioni
 - Child theme: ${themes.join(', ') || '<nome>'}. Plugin custom: ${plugins.join(', ') || '<nome>'}, prefisso funzioni \`<prefisso>_\`.
 - Page builder: Elementor.

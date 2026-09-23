@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace Lab591\DevBridge;
 
+use Lab591\DevBridge\Support\Options;
+
 final class Mode {
 
 	public const OPTION = 'devbridge_mode';
@@ -37,7 +39,7 @@ final class Mode {
 			'user_id'    => 0,
 			'since'      => 0,
 		];
-		$stored = get_option( self::OPTION, [] );
+		$stored = Options::get( self::OPTION, [] );
 		if ( ! is_array( $stored ) ) {
 			return $off;
 		}
@@ -51,7 +53,7 @@ final class Mode {
 		// Expired, or an expiry beyond what could ever have been granted: treat as off.
 		if ( $expires <= $now || $expires > $since + self::HARD_MAX_HOURS[ $mode ] * 3600 ) {
 			if ( self::OFF !== $mode ) {
-				update_option( self::OPTION, $off, true );
+				Options::update( self::OPTION, $off, true );
 			}
 			return $off;
 		}
@@ -103,12 +105,12 @@ final class Mode {
 			'user_id'    => $userId,
 			'since'      => $now,
 		];
-		update_option( self::OPTION, $state, true );
+		Options::update( self::OPTION, $state, true );
 		return $state;
 	}
 
 	public function disable(): void {
-		update_option(
+		Options::update(
 			self::OPTION,
 			[
 				'mode'       => self::OFF,

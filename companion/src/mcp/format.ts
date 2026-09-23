@@ -30,6 +30,9 @@ export function formatStatus(st: StatusResponse, config: Pick<Config, 'writable'
     `site ${config.siteUrl}`,
     `mode: ${st.mode} (expires ${expires})`,
     `WordPress ${st.wp}, PHP ${st.php}, Dev Bridge ${st.plugin}`,
+    ...(st.network
+      ? [`multisite network: ${st.network.sites} sites, main ${st.network.main_site}; themes/plugins are shared by all sites, health.paths may list full URLs of network sites`]
+      : []),
     `theme: ${st.theme.stylesheet}${st.theme.template && st.theme.template !== st.theme.stylesheet ? ` (parent ${st.theme.template})` : ''}`,
     `writable (edit locally): ${st.writable_roots.join(', ') || '(none)'}`,
     `debug.log: ${st.debug_log ? 'enabled' : 'disabled'}`,

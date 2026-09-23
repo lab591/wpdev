@@ -195,7 +195,7 @@ final class Api {
 					'maxItems' => \Lab591\DevBridge\Deploy\HealthPaths::MAX_PATHS,
 					'items'    => [
 						'type'      => 'string',
-						'maxLength' => \Lab591\DevBridge\Deploy\HealthPaths::MAX_LENGTH,
+						'maxLength' => \Lab591\DevBridge\Deploy\HealthPaths::MAX_LENGTH + 100,
 					],
 				],
 			]
@@ -369,7 +369,7 @@ final class Api {
 	public function health( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		return $this->run(
 			function () use ( $request ): array {
-				$paths            = HealthPaths::parse( $request->get_param( 'paths' ) );
+				$paths            = HealthPaths::parse( $request->get_param( 'paths' ), 'invalid_param', $this->plugin->networkSites() );
 				$this->auditPaths = $paths;
 				return $this->plugin->health()->checkRecent( 300, $paths );
 			}
@@ -388,7 +388,7 @@ final class Api {
 					throw new ApiException( 'invalid_manifest', 'Invalid manifest: missing "manifest" field', 400 );
 				}
 				$limits   = $this->plugin->deployLimits();
-				$manifest = Manifest::parse( $json, $limits['deploy_files'] );
+				$manifest = Manifest::parse( $json, $limits['deploy_files'], $this->plugin->networkSites() );
 
 				$this->auditPaths = array_map( static fn ( $e ): string => $e->action . ' ' . $e->path, $manifest->entries );
 				$bundle           = self::uploadedBundle( $request );

@@ -121,3 +121,33 @@ la radice). Ora una cartella è considerata un link quando il suo `realpath` non
 | 1 | `wpdev.json` → `"health": {"paths": ["/sample-page/", "/?p=1"]}`; `wpdev health` | home (admin) + 2 percorsi marcati `[wpdev.json]` | ok |
 | 2 | `wpdev deploy` di una modifica CSS | stessi 3 controlli nell'health check del deploy | ok |
 | 3 | Percorso `https://evil.test/` in `wpdev.json` | rifiutato già dal companion; il server lo rifiuta comunque (`invalid_manifest`) | ok (test) |
+
+## M4 — Multisite
+
+Rete locale `http://localhost/lab591_wpdev_ms/` (sottocartelle): sito principale, `/negozio/`, `/notizie/`.
+Utenti: `superadmin` (super admin) e `sitoadmin` (solo amministratore di `/negozio/`, inserito di proposito
+anche in `allowed_user_ids`). Tema `rete-child` (attivo su `/negozio/`) e plugin `rete-tools` attivato
+sulla rete, entrambi cartelle scrivibili.
+
+| # | Passo | Esito atteso | Esito |
+|---|---|---|---|
+| 1 | `wp plugin activate` sul sottosito o sul principale senza `--network` | attivato comunque sulla rete (header `Network: true`); mai per singolo sito | ok |
+| 2 | Hook di attivazione chiamato per un singolo sito | bloccato con messaggio | ok |
+| 3 | Plugin forzato attivo solo su `/notizie/` (`active_plugins` del sito) | nessun endpoint (`rest_no_route`) | ok |
+| 4 | Impostazioni, modalità, rescue | salvate in `wp_sitemeta`; tabella unica `wp_devbridge_audit` | ok |
+| 5 | `sitoadmin` con Application Password su `/negozio/wp-json/devbridge/v1/status` e `/read` | `403 forbidden_user` | ok |
+| 6 | `superadmin` su principale e `/negozio/` | `/status` con `site_url` del sito e `network: {sites: 3}` | ok |
+| 7 | `/health` da `/notizie/` con `/`, URL di `/negozio/` e `http://evil.test/` | host esterno rifiutato; senza di esso 3 controlli (admin = home del principale) | ok |
+| 8 | Pagina di amministrazione | visibile al super admin solo in Amministrazione rete; `sitoadmin` non la vede né in rete né nel suo sito | ok |
+| 9 | `wpdev init` sul sottosito `/negozio/` | `status` mostra la rete; `CLAUDE.md` con sezione "Rete multisite" | ok |
+| 10 | Deploy di una modifica a `rete-tools` con `health.paths` = `/` + URL di `/notizie/` | 3 controlli ok; modifica visibile su tutti i siti | ok |
+| 11 | Deploy di un fatale che si verifica **solo** su `/notizie/` | 500 solo sul controllo di `/notizie/` → rollback automatico, riga fatale riportata, tutti i siti a 200 | ok |
+| 12 | Fatale solo nelle richieste REST; `wpdev rollback` e poi `--rescue` dal sottosito | rollback normale impossibile (500), rescue ok | ok |
+| 13 | Audit | colonna `blog_id` = 2 per le richieste arrivate da `/negozio/` | ok |
+| 14 | Disinstallazione di rete | nessuna opzione di rete, tabella, storage o mu-plugin residuo | ok |
+| 15 | Regressione su sito singolo (`lab591_wpdev_site`) | deploy e health check invariati; audit aggiornato alla versione 2 | ok |
+
+Problemi trovati e corretti durante la prova:
+- se `debug.log` non esisteva ancora prima del deploy, l'health check non riportava la riga del primo
+  errore fatale (il rollback avveniva comunque per il 500): ora usa il percorso configurato del log;
+- la disinstallazione non rimuoveva `hash-cache.json` (introdotto in M3), quindi la cartella di storage restava.

@@ -13,6 +13,9 @@ export async function statusCommand(ctx: Context, out: Output): Promise<number> 
   out.info(`Modalità: ${st.mode}, ${formatExpiry(st.expires_at)}`);
   const theme = st.theme.template && st.theme.template !== st.theme.stylesheet ? `${st.theme.stylesheet} (padre ${st.theme.template})` : st.theme.stylesheet;
   out.info(`WordPress ${st.wp} · PHP ${st.php} · Dev Bridge ${st.plugin} · tema ${theme}`);
+  if (st.network) {
+    out.info(`Rete multisite: ${st.network.sites} siti, principale ${st.network.main_site} (impostazioni e deploy valgono per tutta la rete)`);
+  }
   const cmp = compareRoots(ctx.config.writable, st.writable_roots);
   const mismatch = describeRootsMismatch(cmp);
   if (mismatch.length === 0) {

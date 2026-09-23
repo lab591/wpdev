@@ -100,6 +100,7 @@ export async function initCommand(dir: string, out: Output, options: InitOptions
     out.warn(`Configurazione di Claude Code non aggiornata: ${(e as Error).message}`);
   }
   let siteName = new URL(config.siteUrl).host;
+  let network: { mainSite: string; sites: number } | undefined;
   const password = resolvePassword(config);
   if (!password) {
     out.info(`Imposta la Application Password in ${config.passwordEnv} (o in ${ENV_LOCAL_FILE}) e poi esegui "wpdev status".`);
@@ -113,13 +114,14 @@ export async function initCommand(dir: string, out: Output, options: InitOptions
         out.info(`Connessione riuscita: modalità ${st.mode}, ${formatExpiry(st.expires_at)}`);
         describeRootsMismatch(compareRoots(config.writable, st.writable_roots)).forEach((m) => out.warn(m));
         if (st.name) siteName = st.name;
+        if (st.network) network = { mainSite: st.network.main_site, sites: st.network.sites };
       }
     } catch (e) {
       out.warn(`Test di /status fallito: ${describeError(e)}`);
     }
   }
 
-  const claudeMd = await writeClaudeMd(dir, { name: siteName, url: config.siteUrl, writable: config.writable });
+  const claudeMd = await writeClaudeMd(dir, { name: siteName, url: config.siteUrl, writable: config.writable, ...(network ? { network } : {}) });
   out.info(claudeMd === 'CLAUDE.md' ? 'Creato CLAUDE.md per il sito' : 'CLAUDE.md esiste già: il modello per il sito è in CLAUDE.wpdev.md (integralo a mano)');
   return EXIT_OK;
 }

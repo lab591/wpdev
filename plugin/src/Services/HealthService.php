@@ -44,7 +44,8 @@ final class HealthService implements HealthChecker {
 			$targets[ $url ] = 'admin';
 		}
 		foreach ( $extraPaths as $path ) {
-			$url = home_url( $path );
+			// Full URLs were already restricted to sites of the network by HealthPaths.
+			$url = 1 === preg_match( '#^https?://#i', $path ) ? $path : home_url( $path );
 			if ( ! isset( $targets[ $url ] ) ) {
 				$targets[ $url ] = 'agent';
 			}

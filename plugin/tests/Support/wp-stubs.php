@@ -15,10 +15,15 @@ namespace Lab591\DevBridge\Tests\Support {
 		public static array $options = [];
 		/** @var array<string, mixed> */
 		public static array $transients = [];
+		/** @var array<string, mixed> Network (site) options and transients. */
+		public static array $siteOptions = [];
+		public static bool $multisite    = false;
 
 		public static function reset(): void {
-			self::$options    = [];
-			self::$transients = [];
+			self::$options     = [];
+			self::$transients  = [];
+			self::$siteOptions = [];
+			self::$multisite   = false;
 		}
 	}
 }
@@ -48,6 +53,31 @@ namespace {
 		}
 		function delete_transient( string $name ): bool {
 			unset( WpStubs::$transients[ $name ] );
+			return true;
+		}
+		function is_multisite(): bool {
+			return WpStubs::$multisite;
+		}
+		function get_site_option( string $name, mixed $default_value = false ): mixed {
+			return WpStubs::$siteOptions[ $name ] ?? $default_value;
+		}
+		function update_site_option( string $name, mixed $value ): bool {
+			WpStubs::$siteOptions[ $name ] = $value;
+			return true;
+		}
+		function delete_site_option( string $name ): bool {
+			unset( WpStubs::$siteOptions[ $name ] );
+			return true;
+		}
+		function get_site_transient( string $name ): mixed {
+			return WpStubs::$siteOptions[ '_t_' . $name ] ?? false;
+		}
+		function set_site_transient( string $name, mixed $value, int $expiration = 0 ): bool {
+			WpStubs::$siteOptions[ '_t_' . $name ] = $value;
+			return true;
+		}
+		function delete_site_transient( string $name ): bool {
+			unset( WpStubs::$siteOptions[ '_t_' . $name ] );
 			return true;
 		}
 		function home_url( string $path = '' ): string {

@@ -117,3 +117,15 @@ describe('init scaffolding for Claude Code', () => {
     expect(renderClaudeMd({ name: 'x', url: 'https://x', writable: [] })).toContain('Child theme: <nome>');
   });
 });
+
+describe('CLAUDE.md for multisite networks', () => {
+  it('adds the network section only for networks', async () => {
+    const { renderClaudeMd } = await import('../src/scaffold.js');
+    const single = renderClaudeMd({ name: 'Sito', url: 'https://example.com', writable: ['wp-content/themes/x'] });
+    expect(single).not.toContain('Rete multisite');
+    const net = renderClaudeMd({ name: 'Negozio', url: 'https://example.com/negozio', writable: ['wp-content/themes/x'], network: { mainSite: 'https://example.com/', sites: 3 } });
+    expect(net).toContain('## Rete multisite');
+    expect(net).toContain('rete di 3 siti');
+    expect(net).toContain('https://example.com/');
+  });
+});

@@ -11,6 +11,8 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+global $wpdb;
+
 require_once __DIR__ . '/src/Autoloader.php';
 Lab591\DevBridge\Autoloader::register( __DIR__ . '/src' );
 
@@ -20,7 +22,7 @@ Lab591\DevBridge\Autoloader::register( __DIR__ . '/src' );
 	''
 ) )->remove();
 
-$devbridge_has_storage = defined( 'DEVBRIDGE_STORAGE_DIR' ) || false !== get_option( Lab591\DevBridge\Storage\Storage::SUFFIX_OPTION );
+$devbridge_has_storage = defined( 'DEVBRIDGE_STORAGE_DIR' ) || false !== Lab591\DevBridge\Support\Options::get( Lab591\DevBridge\Storage\Storage::SUFFIX_OPTION );
 if ( $devbridge_has_storage ) {
 	Lab591\DevBridge\Storage\Storage::fromWordPress()->destroy();
 }
@@ -33,11 +35,24 @@ foreach ( [
 	Lab591\DevBridge\Storage\Storage::SUFFIX_OPTION,
 	Lab591\DevBridge\Rescue\RescueInstaller::CHECK_OPTION,
 ] as $devbridge_option ) {
-	delete_option( $devbridge_option );
+	Lab591\DevBridge\Support\Options::delete( $devbridge_option );
+	delete_option( $devbridge_option ); // Leftovers of a single-site install converted to multisite.
+}
+if ( is_multisite() ) {
+	switch_to_blog( get_main_site_id() );
+	wp_clear_scheduled_hook( Lab591\DevBridge\Plugin::CRON_AUDIT );
+	restore_current_blog();
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- one-off cleanup of our own network transients.
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->sitemeta} WHERE meta_key LIKE %s OR meta_key LIKE %s",
+			$wpdb->esc_like( '_site_transient_devbridge_' ) . '%',
+			$wpdb->esc_like( '_site_transient_timeout_devbridge_' ) . '%'
+		)
+	);
 }
 wp_clear_scheduled_hook( Lab591\DevBridge\Plugin::CRON_AUDIT );
 
-global $wpdb;
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- one-off cleanup of our own transients.
 $wpdb->query(
 	$wpdb->prepare(

@@ -27,12 +27,12 @@ final class SettingsForm {
 	/**
 	 * @param callable(bool): WritableRootValidator $validatorFactory Receives the allow_mu_plugins flag.
 	 * @param string                                $abspath          ABSPATH, for read roots validation.
-	 * @param string                                $homeHost         Host of home_url(), for health URLs.
+	 * @param string|string[]                       $allowedHosts     Hosts accepted in health URLs (the site, or every site of a network).
 	 */
 	public function __construct(
 		private readonly mixed $validatorFactory,
 		private readonly string $abspath,
-		private readonly string $homeHost,
+		private readonly string|array $allowedHosts,
 	) {
 	}
 
@@ -133,7 +133,7 @@ final class SettingsForm {
 		$out['health_urls'] = [];
 		foreach ( self::lines( $input['health_urls'] ?? '' ) as $url ) {
 			$parts = self::parseUrl( $url );
-			if ( null === $parts || ! in_array( $parts['scheme'], [ 'http', 'https' ], true ) || 0 !== strcasecmp( $parts['host'], $this->homeHost ) ) {
+			if ( null === $parts || ! in_array( $parts['scheme'], [ 'http', 'https' ], true ) || ! in_array( strtolower( $parts['host'] ), array_map( 'strtolower', (array) $this->allowedHosts ), true ) ) {
 				$this->errors[] = sprintf( 'URL di health check "%s" rifiutato: deve essere sullo stesso host del sito', $url );
 				continue;
 			}

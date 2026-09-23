@@ -14,6 +14,7 @@ use Lab591\DevBridge\Plugin;
 use Lab591\DevBridge\Security\ClientIp;
 use Lab591\DevBridge\Security\IpMatcher;
 use Lab591\DevBridge\Security\RateLimiter;
+use Lab591\DevBridge\Support\Options;
 
 final class Gate {
 
@@ -59,7 +60,8 @@ final class Gate {
 		if ( $userId <= 0 || null === rest_get_authenticated_app_password() ) {
 			return self::error( 'app_password_required', 'Authenticate with an Application Password', 401 );
 		}
-		if ( ! user_can( $userId, 'manage_options' ) || ! in_array( $userId, $settings->allowedUserIds(), true ) ) {
+		// Super admins only on multisite: themes and plugins are shared by the whole network.
+		if ( ! user_can( $userId, Options::capability() ) || ! in_array( $userId, $settings->allowedUserIds(), true ) ) {
 			return self::error( 'forbidden_user', 'User not allowed', 403 );
 		}
 

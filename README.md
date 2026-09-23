@@ -159,7 +159,28 @@ strumento MCP `health` li usano anche per una verifica immediata.
 
 ---
 
-## 5. Sicurezza in breve
+## 5. Reti multisite
+
+In una rete multisite Dev Bridge è **un'unica istanza per tutta la rete**, perché temi e plugin sono
+condivisi da tutti i siti:
+
+- si attiva solo da *Amministrazione rete → Plugin → Attiva sulla rete* (l'attivazione su un singolo
+  sito è rifiutata);
+- la pagina è in *Amministrazione rete → Impostazioni → Dev Bridge* e la usano solo i **super admin**:
+  gli amministratori dei singoli siti non la vedono e l'API risponde loro 403;
+- impostazioni, modalità, release, rescue e audit log sono comuni a tutta la rete (l'audit indica su
+  quale sito è arrivata ogni richiesta);
+- in `wpdev.json` `site` può essere l'URL di qualsiasi sito della rete: i percorsi di `health.paths` sono
+  relativi a quel sito, e si possono aggiungere URL completi di altri siti della rete, così un deploy fatto
+  dal "negozio" controlla anche il "blog" che usa lo stesso plugin:
+
+  ```json
+  "health": { "paths": ["/", "/carrello/", "https://www.esempio.it/blog/"] }
+  ```
+
+- `wpdev status` mostra la rete e `wpdev init` aggiunge a `CLAUDE.md` una sezione dedicata.
+
+## 6. Sicurezza in breve
 
 - Modalità off di default e sempre a scadenza; utenti e IP in allowlist; rate limit; audit log di
   ogni richiesta (senza contenuti dei file).
@@ -172,14 +193,14 @@ strumento MCP `health` li usano anche per una verifica immediata.
   (unica eccezione: ripgrep facoltativo, avviato senza shell).
 - Il companion non manda mai contenuti di file negli argomenti MCP: il deploy legge dal disco.
 
-## 6. Accelerazione ripgrep (facoltativa)
+## 7. Accelerazione ripgrep (facoltativa)
 
 Con molti file la ricerca PHP può essere lenta. Se sul server è disponibile
 [ripgrep](https://github.com/BurntSushi/ripgrep), indica `rg` (o il percorso assoluto di `rg`/`rg.exe`)
 in *Impostazioni → Accelerazione ripgrep*. I risultati passano comunque da PathGuard e dalla deny list;
 le regex richiedono ripgrep con PCRE2, altrimenti si usa la ricerca PHP. `site_grep` mostra il motore usato.
 
-## 7. Risoluzione dei problemi
+## 8. Risoluzione dei problemi
 
 | Sintomo | Soluzione |
 |---|---|
@@ -192,7 +213,7 @@ le regex richiedono ripgrep con PCRE2, altrimenti si usa la ricerca PHP. `site_g
 | Rescue "non disponibile" | Nessun deploy recente da questo progetto, token scaduto (24 h) o già usato: ripristina via FTP/SSH da `storage/releases/<id>/files/` |
 | Ricerche lente in locale con WAMP/XAMPP | Xdebug attivo nel PHP del web server rallenta molto `/grep` e `/manifest` |
 
-## 8. Sviluppo
+## 9. Sviluppo
 
 ```bash
 cd plugin    && composer install && composer test && composer lint

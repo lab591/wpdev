@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace Lab591\DevBridge\Rescue;
 
+use Lab591\DevBridge\Support\Options;
+
 final class RescueInstaller {
 
 	public const FILE_NAME    = 'devbridge-rescue.php';
@@ -97,7 +99,7 @@ final class RescueInstaller {
 			'size'    => is_file( $target ) ? (int) filesize( $target ) : -1,
 			'mtime'   => is_file( $target ) ? (int) filemtime( $target ) : -1,
 		];
-		if ( get_option( self::CHECK_OPTION ) === $fingerprint ) {
+		if ( Options::get( self::CHECK_OPTION ) === $fingerprint ) {
 			return;
 		}
 		$this->install();
@@ -105,9 +107,9 @@ final class RescueInstaller {
 		$fingerprint['size']  = is_file( $target ) ? (int) filesize( $target ) : -1;
 		$fingerprint['mtime'] = is_file( $target ) ? (int) filemtime( $target ) : -1;
 		if ( self::INSTALLED === $this->state() ) {
-			update_option( self::CHECK_OPTION, $fingerprint, true );
+			Options::update( self::CHECK_OPTION, $fingerprint, true );
 		} else {
-			delete_option( self::CHECK_OPTION );
+			Options::delete( self::CHECK_OPTION );
 		}
 	}
 
@@ -119,7 +121,7 @@ final class RescueInstaller {
 		if ( is_file( $target ) && $this->isOurs( $target ) ) {
 			unlink( $target );
 		}
-		delete_option( self::CHECK_OPTION );
+		Options::delete( self::CHECK_OPTION );
 	}
 
 	private function isOurs( string $file ): bool {

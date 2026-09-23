@@ -10,10 +10,12 @@ declare(strict_types=1);
 namespace Lab591\DevBridge\Storage;
 
 use Lab591\DevBridge\Support\ApiException;
+use Lab591\DevBridge\Support\Options;
 
 final class Storage {
 
 	public const SUFFIX_OPTION = 'devbridge_storage_suffix';
+	public const HASH_CACHE    = 'hash-cache.json';
 
 	public function __construct(
 		private readonly string $dir,
@@ -28,10 +30,10 @@ final class Storage {
 		if ( defined( 'DEVBRIDGE_STORAGE_DIR' ) && is_string( DEVBRIDGE_STORAGE_DIR ) && '' !== DEVBRIDGE_STORAGE_DIR ) {
 			return new self( rtrim( DEVBRIDGE_STORAGE_DIR, '/\\' ) );
 		}
-		$suffix = get_option( self::SUFFIX_OPTION );
+		$suffix = Options::get( self::SUFFIX_OPTION );
 		if ( ! is_string( $suffix ) || 1 !== preg_match( '/^[0-9a-f]{16}$/', $suffix ) ) {
 			$suffix = bin2hex( random_bytes( 8 ) );
-			update_option( self::SUFFIX_OPTION, $suffix, false );
+			Options::update( self::SUFFIX_OPTION, $suffix );
 		}
 		return new self( rtrim( WP_CONTENT_DIR, '/\\' ) . DIRECTORY_SEPARATOR . 'devbridge-' . $suffix, true );
 	}
@@ -50,6 +52,10 @@ final class Storage {
 
 	public function tmpDir(): string {
 		return $this->dir . DIRECTORY_SEPARATOR . 'tmp';
+	}
+
+	public function hashCacheFile(): string {
+		return $this->dir . DIRECTORY_SEPARATOR . self::HASH_CACHE;
 	}
 
 	public function lockFile(): string {
@@ -101,10 +107,18 @@ final class Storage {
 				self::removeTree( $dir );
 			}
 		}
-		foreach ( [ 'rescue.json', 'rescue.json.tmp', 'deploy.lock', '.htaccess', 'index.php', 'web.config' ] as $name ) {
+		foreach ( [ 'rescue.json', 'deploy.lock', '.htaccess', 'index.php', 'web.config', self::HASH_CACHE ] as $name ) {
 			$file = $this->dir . DIRECTORY_SEPARATOR . $name;
 			if ( is_file( $file ) ) {
 				unlink( $file );
+			}
+		}
+		// Temporary files left by interrupted atomic writes (rescue.json.tmp, hash-cache.json.<rand>.tmp).
+		foreach ( [ 'rescue.json', self::HASH_CACHE ] as $prefix ) {
+			foreach ( (array) glob( $this->dir . DIRECTORY_SEPARATOR . $prefix . '*.tmp' ) as $tmp ) {
+				if ( is_file( (string) $tmp ) ) {
+					unlink( (string) $tmp );
+				}
 			}
 		}
 		$left = scandir( $this->dir );

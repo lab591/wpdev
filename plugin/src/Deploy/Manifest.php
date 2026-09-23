@@ -27,9 +27,10 @@ final class Manifest {
 	}
 
 	/**
+	 * @param list<array{host: string, path: string}> $networkSites Multisite sites allowed as full health URLs.
 	 * @throws ApiException `invalid_manifest` (400) or `too_many_files` (413).
 	 */
-	public static function parse( string $json, int $maxFiles ): self {
+	public static function parse( string $json, int $maxFiles, array $networkSites = [] ): self {
 		try {
 			$data = json_decode( $json, true, 8, JSON_THROW_ON_ERROR );
 		} catch ( \JsonException ) {
@@ -75,7 +76,7 @@ final class Manifest {
 			$seen[ $key ] = true;
 			$entries[]    = new ManifestEntry( $path, $action, 'write' === $action ? $h : null, $baseH );
 		}
-		return new self( $entries, $force, HealthPaths::parse( $data['health_paths'] ?? null, 'invalid_manifest' ) );
+		return new self( $entries, $force, HealthPaths::parse( $data['health_paths'] ?? null, 'invalid_manifest', $networkSites ) );
 	}
 
 	private static function invalid( string $message, ?string $path = null ): ApiException {

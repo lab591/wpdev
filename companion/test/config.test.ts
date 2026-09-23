@@ -91,7 +91,14 @@ describe('loadConfig', () => {
 describe('health paths', () => {
   it('accepts site-relative paths only', () => {
     for (const ok of ['/', '/shop/', '/contatti/?utm=1', '/città/']) expect(isValidHealthPath(ok)).toBe(true);
-    for (const bad of ['shop/', '//evil.test/', 'https://evil.test/', '/a/../b', '/a/%2e%2e/b', '/a#b', '/@evil', '/a b', '/a\\b', '']) {
+    for (const bad of ['shop/', '//evil.test/', '/a/../b', '/a/%2e%2e/b', '/a#b', '/@evil', '/a b', '/a\\b', '']) {
+      expect(isValidHealthPath(bad)).toBe(false);
+    }
+  });
+
+  it('accepts full http(s) URLs (network sites, validated by the server) with safe paths', () => {
+    for (const ok of ['https://example.com/negozio/', 'http://example.com/?p=1']) expect(isValidHealthPath(ok)).toBe(true);
+    for (const bad of ['https://u:p@example.com/', 'https://example.com:8080/', 'https://example.com/a#b', 'https://example.com/a/../b', 'ftp://example.com/']) {
       expect(isValidHealthPath(bad)).toBe(false);
     }
   });
@@ -100,7 +107,7 @@ describe('health paths', () => {
     const base = { site: 'https://example.com', user: 'u' };
     expect(parseConfig(base, '/p').health.paths).toEqual([]);
     expect(parseConfig({ ...base, health: { paths: ['/shop/'] } }, '/p').health.paths).toEqual(['/shop/']);
-    expect(() => parseConfig({ ...base, health: { paths: ['https://evil.test/'] } }, '/p')).toThrow(ConfigError);
+    expect(() => parseConfig({ ...base, health: { paths: ['https://u:p@evil.test/'] } }, '/p')).toThrow(ConfigError);
     expect(() => parseConfig({ ...base, health: { paths: Array.from({ length: 11 }, (_, i) => `/p${i}/`) } }, '/p')).toThrow(ConfigError);
   });
 });

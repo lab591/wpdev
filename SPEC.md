@@ -201,6 +201,36 @@ Pagina admin con filtri. Pulizia via cron oltre `audit_retention_days`. I conten
 
 `uninstall.php`: rimuove opzioni, tabella audit, mu-plugin rescue (se ancora presente), storage (chiedendo conferma nella pagina admin prima della disattivazione se ci sono release).
 
+### 2.14 Multisite (M4)
+
+In una rete multisite temi, plugin e file sono condivisi da tutti i siti: Dev Bridge è quindi
+**un'unica istanza a livello di rete**, mai per singolo sito.
+
+- **Attivazione solo di rete.** L'attivazione su un singolo sito della rete viene rifiutata con un
+  messaggio chiaro (anche da WP-CLI senza `--network`). Se il plugin risulta attivo solo su un sito
+  (es. attivato prima della conversione a multisite) non registra endpoint né pagine e mostra un avviso.
+- **Chi può usarlo.** Solo i **super admin**: capability `manage_network_options` al posto di
+  `manage_options`, sia per la pagina di amministrazione sia per l'API (oltre alla lista
+  `allowed_user_ids`, che in rete propone solo i super admin). Gli amministratori dei singoli siti
+  non hanno accesso, perché una modifica a temi o plugin vale per tutta la rete.
+- **Pagina di amministrazione** in *Amministrazione rete → Impostazioni → Dev Bridge* (stesse schede
+  Stato, Impostazioni, Audit log). Nessuna pagina nei singoli siti.
+- **Dati condivisi dalla rete:** impostazioni, modalità sviluppo, token di rescue, release, lock,
+  cache degli hash e rate limit stanno in opzioni/transient di rete (`*_site_option`,
+  `*_site_transient`) e nello storage unico; la tabella di audit usa il prefisso base
+  (`{base_prefix}devbridge_audit`) con la colonna `blog_id` del sito su cui è arrivata la richiesta.
+  Il cron di pulizia gira solo sul sito principale.
+- **API su qualsiasi sito della rete.** Gli endpoint rispondono sull'URL REST di ogni sito (il
+  companion usa l'URL indicato in `wpdev.json`); stato e controlli sono gli stessi. `/status`
+  riporta `network: {main_site, sites}` e l'URL del sito che ha risposto.
+- **Health check sulla rete.** Gli URL configurati dall'amministratore possono puntare a qualsiasi
+  sito della rete (host tra i domini dei siti); default: home del sito principale. I percorsi
+  dichiarati dall'agente (`health.paths`) sono relativi al sito indicato in `wpdev.json` oppure, solo in
+  rete, URL completi `http(s)://` il cui host e il cui percorso iniziale corrispondono a un sito della
+  rete (mai host esterni, niente credenziali o frammenti).
+- **Deny list:** aggiunto `wp-content/blogs.dir/**` (upload dei multisite storici).
+- Il mu-plugin di rescue è già globale e funziona su qualsiasi sito della rete.
+
 ---
 
 ## 3. Companion `wpdev`
@@ -314,6 +344,7 @@ Regole di output: testo compatto, mai JSON verboso; risultati troncati con indic
 | Modifiche concorrenti sul server | Controllo conflitti con `base_h`, lock di deploy |
 | Esposizione dello storage | Costante fuori webroot, fallback con nome casuale + deny, avviso Nginx |
 | Escalation dal client | Nessun endpoint cambia modalità o impostazioni; il plugin non può scrivere su sé stesso |
+| Amministratore di un sottosito (multisite) | Solo super admin, attivazione solo di rete, dati e pagina solo in Amministrazione rete |
 | ReDoS / DoS | Limiti su regex, tempo, risultati, dimensioni |
 
 ## 5. Efficienza (riepilogo)
@@ -363,6 +394,11 @@ Regole di output: testo compatto, mai JSON verboso; risultati troncati con indic
 
 **M3 — Ottimizzazioni**
 - Cache con validazione e invalidazione per versione; `/read` con `known`; accelerazione `rg` opzionale lato server; hash in cache lato server (chiave `path|size|mtime`).
+
+**M4 — Multisite** (sezione 2.14)
+- Plugin: attivazione solo di rete, super admin, opzioni/transient di rete, pagina in Amministrazione rete, audit con `blog_id`, health check su siti della rete, `blogs.dir` in deny list.
+- Companion: `status` mostra la rete; `health.paths` accetta URL completi di siti della rete (validati dal server).
+- Criterio di uscita: su una rete locale un amministratore di sottosito non può usare il plugin né vederne la pagina; un super admin esplora e fa deploy dal sito principale e da un sottosito, con health check su più siti e rollback automatico.
 
 ## 8. Test
 

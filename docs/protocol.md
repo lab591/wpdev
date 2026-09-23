@@ -55,9 +55,13 @@ Altrimenti (autenticato):
   "limits": {"read_bytes": 524288, "grep_results": 200, "grep_ms": 5000,
              "deploy_zip_bytes": 20971520, "deploy_files": 500, "deploy_file_bytes": 5242880},
   "debug_log": true,
-  "rescue": "installed"
+  "rescue": "installed",
+  "site_url": "https://example.com/",
+  "network": {"main_site": "https://example.com/", "sites": 3}
 }
 ```
+
+`network` è presente solo sulle reti multisite (M4); `site_url` è il sito della rete che ha risposto.
 
 ### `POST /list`
 
@@ -115,7 +119,9 @@ Rate limit: bucket "deploy" (10/min) per `/deploy` e `/rollback`, bucket "read" 
   `{"files":[{"p":"wp-content/themes/x/a.php","action":"write","h":"<xxh128>","base_h":"<xxh128>"},{"p":"...","action":"delete","base_h":"..."}],"force":false}`
   - `h` obbligatorio per `write` (32 caratteri esadecimali minuscoli); `base_h` assente/`null` se il client
     considera il file nuovo; per `delete` `base_h` è l'hash che il client si aspetta sul server.
-  - `health_paths` (facoltativo): fino a 10 percorsi del sito dichiarati dall'agente (es. `"/shop/"`),
+  - `health_paths` (facoltativo): fino a 10 percorsi del sito dichiarati dall'agente (es. `"/shop/"`;
+    in multisite anche URL completi `http(s)://` di siti della rete: host e percorso iniziale devono
+    corrispondere a un sito, niente credenziali, porte o frammenti),
     controllati **in aggiunta** agli URL configurati dall'amministratore e mai salvati sul server.
     Solo percorsi relativi al sito: devono iniziare con `/` (non `//`), niente URL completi, `..`, `#`, `@`,
     backslash o spazi, max 200 caratteri; l'URL viene costruito dal server con `home_url()`.
@@ -205,3 +211,13 @@ Sintassi comune a plugin e companion (confronto case-insensitive per la deny lis
 - `*` qualsiasi sequenza senza `/`; `?` un carattere diverso da `/`;
 - `**/` zero o più cartelle; `/**` in coda: tutto il contenuto;
 - pattern senza `/`: confrontato con il solo nome del file/cartella, a qualsiasi livello.
+
+## Multisite (M4)
+
+- Plugin attivabile solo a livello di rete; senza attivazione di rete non registra endpoint.
+- Autorizzazione: capability `manage_network_options` (super admin) al posto di `manage_options`;
+  un amministratore di sottosito riceve `403 forbidden_user` anche se inserito in `allowed_user_ids`.
+- Gli endpoint rispondono sull'URL REST di ogni sito della rete con gli stessi dati di rete
+  (impostazioni, modalità, release, rescue, rate limit sono condivisi).
+- I percorsi relativi di `health_paths` / `paths` sono risolti sul sito che riceve la richiesta.
+- La tabella di audit (`{base_prefix}devbridge_audit`) registra anche `blog_id`.
