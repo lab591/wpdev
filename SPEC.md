@@ -280,7 +280,7 @@ In una rete multisite temi, plugin e file sono condivisi da tutti i siti: Dev Br
 - `writable` (facoltativo, 0.3.0) serve solo a **restringere** il progetto ad alcune di quelle cartelle,
   es. `"writable": ["wp-content/themes/mio-child"]`. Vuoto o assente = tutte quelle del sito. Una cartella
   elencata ma non abilitata sul sito viene segnalata (il server rifiuterebbe il deploy).
-- `php` è opzionale: default `php` cercato nel PATH; si può indicare un percorso assoluto (qualsiasi installazione: Homebrew, apt, XAMPP/WAMP/MAMP, Laragon, LocalWP, container). Se PHP non è disponibile, il lint viene saltato con un avviso, senza bloccare il deploy.
+- `php` è opzionale: default `php` cercato nel PATH; si può indicare un percorso assoluto (qualsiasi installazione: Homebrew, apt, XAMPP/WAMP/MAMP, Laragon, LocalWP, container). Se PHP non è disponibile, il lint usa il parser PHP integrato (pacchetto `php-parser`, JavaScript puro): esatto sul codice moderno, può segnalare costrutti molto vecchi come `clone( $x )`; il messaggio indica quale controllo è stato usato.
 - HTTPS obbligatorio; `http://` accettato solo con `--insecure-local` e host `localhost`/`*.local`/`*.test`. Verifica TLS sempre attiva.
 
 ### 3.3 Stato locale
@@ -311,7 +311,7 @@ Exit code: `0` ok, `1` errore, `2` deploy fallito/rollback eseguito (usato dall'
 ### 3.5 Deploy lato companion
 
 1. Calcola l'insieme delle modifiche confrontando i file locali delle cartelle scrivibili (elenco in cache, vedi 3.2) con `state.json`: nuovi, modificati, cancellati (se `allowDelete`). Nessuna modifica → esce subito con `0`, senza chiamate di rete.
-2. Se `lintPhp` è attivo e PHP è disponibile: `php -l` su ogni `.php` modificato. Errore di sintassi → blocca il deploy prima dell'upload, riporta file e riga.
+2. Se `lintPhp` è attivo: `php -l` su ogni `.php` modificato (o il parser integrato se PHP non c'è). Errore di sintassi → blocca il deploy prima dell'upload, riporta file e riga.
 3. Costruisce manifest (`h`, `base_h`) e zip in memoria.
 4. `POST /deploy`. Gestisce 409 conflitto (mostra i file), 403 modalità non attiva (messaggio chiaro: "attiva la modalità write dal pannello o con `wp devbridge enable`").
 5. Esito `ok` → aggiorna `state.json` e salva il token rescue. Esito `rolled_back` → stampa le righe di errore restituite, exit `2`.

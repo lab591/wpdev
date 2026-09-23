@@ -25,6 +25,7 @@
     "commander": "^14.0.3",
     "fflate": "^0.8.3",
     "hash-wasm": "^4.12.0",
+    "php-parser": "^3.7.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {

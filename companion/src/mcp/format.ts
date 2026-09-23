@@ -163,6 +163,7 @@ export function formatDeployOutcome(o: DeployOutcome): { text: string; isError: 
         text: [
           'deploy blocked: PHP syntax errors (nothing uploaded):',
           ...o.lint.errors.map((e) => `  ${e.p}${e.line ? `:${e.line}` : ''} ${e.message}`),
+          ...(o.lint.engine === 'parser' ? ['note: checked with the built-in PHP parser (PHP is not installed locally); exact on modern code, may flag very old syntax like "clone( $x )"'] : []),
         ].join('\n'),
         isError: true,
       };

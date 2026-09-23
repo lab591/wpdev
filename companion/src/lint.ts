@@ -1,4 +1,6 @@
 import { execFile } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
+import { Engine } from 'php-parser';
 
 /** Result of running a process: `missing` when the executable does not exist. */
 export type RunResult = { missing: true } | { missing: false; code: number; output: string };
@@ -26,22 +28,25 @@ export interface LintError {
 }
 
 export interface LintResult {
-  /** Set when linting was skipped (PHP not available). */
+  /** Set when linting was skipped. */
   skipped?: string;
+  /** `php` (php -l) or `parser` (built-in JavaScript parser, used when PHP is not available). */
+  engine?: 'php' | 'parser';
   errors: LintError[];
   checked: number;
 }
 
 /**
- * `php -l` on each file. `files` are [relative path, native absolute path].
- * A missing PHP binary skips linting with a warning instead of blocking the deploy.
+ * Syntax check of each file. `files` are [relative path, native absolute path].
+ * Uses `php -l` when PHP is available (exact), otherwise the built-in PHP parser, so that
+ * syntax errors are caught before the deploy even on machines without PHP.
  */
 export async function lintPhp(php: string, files: readonly [string, string][], runner: Runner = execRunner): Promise<LintResult> {
-  const result: LintResult = { errors: [], checked: 0 };
+  const result: LintResult = { engine: 'php', errors: [], checked: 0 };
   for (const [p, abs] of files) {
     const res = await runner(php, ['-l', abs]);
     if (res.missing) {
-      return { skipped: `PHP non trovato ("${php}"): lint saltato`, errors: [], checked: 0 };
+      return lintWithParser(files);
     }
     result.checked++;
     if (res.code !== 0) {
@@ -63,4 +68,33 @@ export function parseLintOutput(p: string, abs: string, output: string): LintErr
     .replace(/\s+in\s+.+?\s+on line \d+\s*$/, '')
     .replace(/\s+on line \d+\s*$/, '');
   return lineMatch ? { p, line: Number(lineMatch[1]), message } : { p, message };
+}
+
+let engine: Engine | undefined;
+
+/**
+ * Syntax check with the php-parser package (pure JavaScript). Very close to `php -l` on current
+ * code; a few legacy constructs (e.g. `clone( $x )` with parentheses) are reported as errors.
+ */
+export async function lintWithParser(files: readonly [string, string][]): Promise<LintResult> {
+  engine ??= new Engine({ parser: { php8: true, suppressErrors: false, version: '8.4', extractDoc: false }, ast: { withPositions: false } });
+  const result: LintResult = { engine: 'parser', errors: [], checked: 0 };
+  for (const [p, abs] of files) {
+    let code: string;
+    try {
+      code = await readFile(abs, 'utf8');
+    } catch {
+      continue; // deleted meanwhile: nothing to check
+    }
+    result.checked++;
+    try {
+      engine.parseCode(code, p);
+    } catch (e) {
+      const raw = e instanceof Error ? e.message : String(e);
+      const line = /on line (\d+)/.exec(raw);
+      const message = raw.replace(/^Parse Error\s*:\s*/i, '').replace(/\s+on line \d+\s*$/, '');
+      result.errors.push(line ? { p, line: Number(line[1]), message } : { p, message });
+    }
+  }
+  return result;
 }

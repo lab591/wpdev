@@ -86,8 +86,9 @@ npm run build
 npm link        # rende disponibile il comando `wpdev`
 ```
 
-PHP in locale è facoltativo (serve solo per il lint dei `.php` prima del deploy; si indica con
-`"php"` in `wpdev.json`, anche un percorso assoluto).
+PHP in locale è facoltativo: prima di ogni deploy la sintassi dei `.php` viene controllata con `php -l`
+se PHP c'è (si indica con `"php"` in `wpdev.json`, anche un percorso assoluto), altrimenti con il parser PHP
+integrato in `wpdev`, esatto sul codice moderno.
 
 ## 3. Collegare un progetto al sito
 

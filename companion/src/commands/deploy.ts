@@ -64,6 +64,9 @@ export interface Report {
   stderr: string[];
 }
 
+export const PARSER_NOTE =
+  'Controllo eseguito con il parser PHP integrato (PHP non è installato su questo computer). Se il codice è corretto ma usa sintassi molto vecchia (es. "clone( $x )"), installa PHP o imposta "deploy": { "lintPhp": false } in wpdev.json.';
+
 /** Builds the CLI report of a deploy outcome. */
 export function reportDeploy(outcome: DeployOutcome): Report {
   const r: Report = { code: EXIT_OK, stdout: [], stderr: [] };
@@ -78,12 +81,13 @@ export function reportDeploy(outcome: DeployOutcome): Report {
     case 'lint_failed':
       r.code = EXIT_ERROR;
       r.stderr.push(`Errori di sintassi PHP: deploy bloccato prima dell'upload (nessun file pubblicato).`, ...lintLines(outcome.lint.errors));
+      if (outcome.lint.engine === 'parser') r.stderr.push(PARSER_NOTE);
       return r;
     case 'dry_run':
       r.stdout.push(`Modifiche da pubblicare (${summary(outcome.changes)}):`);
       outcome.changes.slice(0, 200).forEach((c) => r.stdout.push(`  ${STATUS_LABEL[c.status].padEnd(10)} ${c.p}`));
       if (outcome.changes.length > 200) r.stdout.push(`  ... e altri ${outcome.changes.length - 200}`);
-      if (outcome.lint && !outcome.lint.skipped) r.stdout.push(`Lint PHP: ${outcome.lint.checked} file ok.`);
+      if (outcome.lint && !outcome.lint.skipped) r.stdout.push(`Lint PHP: ${outcome.lint.checked} file ok${outcome.lint.engine === 'parser' ? ' (parser integrato, PHP non installato)' : ''}.`);
       r.stdout.push('Dry run: nessun file inviato.');
       return r;
     case 'failed':

@@ -13,7 +13,7 @@ import type { Context } from '../src/context.js';
 import { computeChanges, runDeploy } from '../src/deploy.js';
 import { xxh128 } from '../src/hash.js';
 import { ApiClient } from '../src/http.js';
-import { execRunner, lintPhp, parseLintOutput, type Runner } from '../src/lint.js';
+import { execRunner, lintPhp, lintWithParser, parseLintOutput, type Runner } from '../src/lint.js';
 import { formatDeployOutcome } from '../src/mcp/format.js';
 import { buildTools } from '../src/mcp/tools.js';
 import { memoryOutput } from '../src/output.js';
@@ -110,12 +110,52 @@ describe('lint', () => {
     expect(mock.site.requests.length).toBe(before);
   });
 
-  it('skips linting with a warning when PHP is missing', async () => {
+  it('without PHP it checks with the built-in parser: valid code is deployed', async () => {
     await writeLocal(`${ROOT}/inc/a.php`, '<?php // changed\n');
     const out = memoryOutput();
     expect(await deployCommand(ctx, out, {}, { runner: noPhp })).toBe(0);
-    expect(out.warnings.join('\n')).toContain('lint saltato');
+    expect(out.warnings.join('\n')).not.toContain('lint saltato');
     expect(mock.site.lastDeploy).toBeDefined();
+  });
+
+  it('without PHP a syntax error is still blocked before any upload', async () => {
+    await writeLocal(`${ROOT}/inc/a.php`, '<?php\nfunction x( {\n');
+    const before = mock.site.requests.length;
+    const out = memoryOutput();
+    expect(await deployCommand(ctx, out, {}, { runner: noPhp })).toBe(1);
+    const text = out.warnings.join('\n');
+    expect(text).toMatch(new RegExp(`${ROOT}/inc/a\\.php:\\d+ `));
+    expect(text).toContain('parser PHP integrato');
+    expect(text).not.toContain(dir);
+    expect(mock.site.requests.length).toBe(before);
+  });
+
+  it('the built-in parser accepts modern PHP (8.1-8.4) and rejects broken code', async () => {
+    await writeLocal(
+      `${ROOT}/modern.php`,
+      [
+        '<?php',
+        'declare(strict_types=1);',
+        'namespace A\\B;',
+        'enum Suit: string { case Hearts = "H"; public function label(): string { return ucfirst($this->name); } }',
+        'final readonly class Point { public function __construct(public int $x = 0, public ?int $y = null) {} }',
+        '#[\\Attribute] class Tag {}',
+        '$f = strlen(...);',
+        '$v = match (true) { $f("a") > 0 => "yes", default => "no" };',
+        '$n = $obj?->prop?->method(named: 1, other: [1, 2, ...$rest]);',
+        'function f(int|string $a, (A&B)|null $b = null): never { throw new \\Exception(); }',
+        '',
+      ].join('\n')
+    );
+    await writeLocal(`${ROOT}/broken.php`, '<?php\n$a = [1, 2;\n');
+    const res = await lintWithParser([
+      [`${ROOT}/modern.php`, local(`${ROOT}/modern.php`)],
+      [`${ROOT}/broken.php`, local(`${ROOT}/broken.php`)],
+    ]);
+    expect(res.engine).toBe('parser');
+    expect(res.checked).toBe(2);
+    expect(res.errors.map((e) => e.p)).toEqual([`${ROOT}/broken.php`]);
+    expect(res.errors[0]?.line).toBe(2);
   });
 
   it('parses php -l output with Windows paths and spaces', () => {
