@@ -250,6 +250,8 @@ non permette di crearli (Windows senza modalità sviluppatore); quelli di ripgre
 
 ## Licenza
 
+Copyright (C) 2026 Lab591
+
 Dev Bridge (plugin e companion `wpdev`) è software libero, distribuito con licenza
 **GNU General Public License v2.0 o successiva** (GPL-2.0-or-later), la stessa di WordPress.
 Il testo completo è nel file [`LICENSE`](LICENSE).

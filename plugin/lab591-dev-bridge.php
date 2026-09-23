@@ -11,6 +11,13 @@
  * License URI:       https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
  * Text Domain:       lab591-dev-bridge
  *
+ * Copyright (C) 2026 Lab591
+ *
+ * This program is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version. It is distributed WITHOUT ANY WARRANTY; see the
+ * LICENSE file or <https://www.gnu.org/licenses/old-licenses/gpl-2.0.html> for details.
+ *
  * @package Lab591\DevBridge
  */
 
