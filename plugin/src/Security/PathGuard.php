@@ -100,6 +100,18 @@ final class PathGuard {
 		return $this->writableRootsAbs;
 	}
 
+	/**
+	 * The writable root containing an absolute path already resolved by this guard, or null.
+	 */
+	public function writableRootFor( string $absolute ): ?string {
+		foreach ( $this->writableRootsAbsolute() as $root ) {
+			if ( $this->isInside( $absolute, $root ) ) {
+				return $root;
+			}
+		}
+		return null;
+	}
+
 	// ------------------------------------------------------------------ internals
 
 	/**

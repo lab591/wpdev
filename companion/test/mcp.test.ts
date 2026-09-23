@@ -100,8 +100,8 @@ describe('tools', () => {
   const ctx: Context = { config, client };
   const tools = Object.fromEntries(buildTools(() => ctx).map((t) => [t.name, t]));
 
-  it('exposes the M1 tools with stable names', () => {
-    expect(Object.keys(tools).sort()).toEqual(['site_grep', 'site_list', 'site_log', 'site_read', 'site_status']);
+  it('exposes the tools with stable names', () => {
+    expect(Object.keys(tools).sort()).toEqual(['cache_flush', 'deploy', 'health', 'rollback', 'site_grep', 'site_list', 'site_log', 'site_read', 'site_status']);
   });
 
   it('refuses reads inside writable folders (case-insensitive, Windows separators)', async () => {

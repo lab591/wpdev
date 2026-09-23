@@ -43,7 +43,7 @@
         <exclude name="Squiz.Commenting.FunctionComment.WrongStyle"/>
         <exclude name="Squiz.Commenting.FunctionComment.IncorrectTypeHint"/>
         <exclude name="Squiz.Commenting.FunctionComment.ParamNameNoMatch"/>
-        <exclude name="Squiz.Commenting.FunctionCommentThrowTag.Missing"/>
+        <exclude name="Squiz.Commenting.FunctionCommentThrowTag"/>
         <!-- Exceptions carry JSON API messages, never rendered as HTML. -->
         <exclude name="WordPress.Security.EscapeOutput.ExceptionNotEscaped"/>
     </rule>

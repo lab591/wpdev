@@ -1,6 +1,6 @@
 <?php
 /**
- * Uninstall: removes options, audit table and transients (SPEC 2.13).
+ * Uninstall: removes options, audit table, transients, the rescue mu-plugin and the storage (SPEC 2.13).
  *
  * @package Lab591\DevBridge
  */
@@ -14,10 +14,27 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 require_once __DIR__ . '/src/Autoloader.php';
 Lab591\DevBridge\Autoloader::register( __DIR__ . '/src' );
 
+( new Lab591\DevBridge\Rescue\RescueInstaller(
+	__DIR__ . '/mu-plugin/' . Lab591\DevBridge\Rescue\RescueInstaller::FILE_NAME,
+	defined( 'WPMU_PLUGIN_DIR' ) ? WPMU_PLUGIN_DIR : WP_CONTENT_DIR . '/mu-plugins',
+	''
+) )->remove();
+
+$devbridge_has_storage = defined( 'DEVBRIDGE_STORAGE_DIR' ) || false !== get_option( Lab591\DevBridge\Storage\Storage::SUFFIX_OPTION );
+if ( $devbridge_has_storage ) {
+	Lab591\DevBridge\Storage\Storage::fromWordPress()->destroy();
+}
+
 ( new Lab591\DevBridge\Audit\AuditLog() )->drop();
 
-delete_option( Lab591\DevBridge\Settings::OPTION );
-delete_option( Lab591\DevBridge\Mode::OPTION );
+foreach ( [
+	Lab591\DevBridge\Settings::OPTION,
+	Lab591\DevBridge\Mode::OPTION,
+	Lab591\DevBridge\Storage\Storage::SUFFIX_OPTION,
+	Lab591\DevBridge\Rescue\RescueInstaller::CHECK_OPTION,
+] as $devbridge_option ) {
+	delete_option( $devbridge_option );
+}
 wp_clear_scheduled_hook( Lab591\DevBridge\Plugin::CRON_AUDIT );
 
 global $wpdb;

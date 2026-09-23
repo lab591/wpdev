@@ -48,14 +48,14 @@ Altrimenti (autenticato):
 
 ```json
 {
-  "mode": "read", "expires_at": 1790000000,
+  "mode": "read", "expires_at": 1790000000, "name": "Titolo del sito",
   "plugin": "0.1.0", "wp": "6.8.2", "php": "8.3.19",
-  "theme": {"stylesheet": "mio-child", "template": "hello-elementor"},
+  "theme": {"stylesheet": "mio-child", "template": "hello-elementor", "version": "1.2.0"},
   "writable_roots": ["wp-content/themes/mio-child"],
   "limits": {"read_bytes": 524288, "grep_results": 200, "grep_ms": 5000,
              "deploy_zip_bytes": 20971520, "deploy_files": 500, "deploy_file_bytes": 5242880},
   "debug_log": true,
-  "rescue": "n/a"
+  "rescue": "installed"
 }
 ```
 
@@ -77,7 +77,7 @@ Come da specifica 2.6.2. `glob` si applica al percorso relativo del file
 
 ### `POST /manifest`
 
-`{root, exclude?: [glob...]}` → `{"root":"...","files":[{p,s,m,h}],"truncated":false}`.
+`{root, exclude?: [glob...]}` → `{"root":"...","files":[{p,s,m,h}]}`.
 Massimo 20000 file (oltre → `413 too_many_files`, restringere `root` o usare `exclude`).
 
 ### `POST /archive`
@@ -90,6 +90,94 @@ omessi in modalità `root` e causano `403 path_denied` in modalità `paths`.
 
 `?lines=200 (1..1000)&since=<unix ts>` →
 `{"lines":["[23-Sep-2026 10:00:00 UTC] PHP Warning: ..."],"truncated":false}`.
+
+## Endpoint (M2)
+
+Modalità richiesta: `write` per `/deploy`, `/rollback`, `/releases`, `/cache-flush`; `read` per `/health`.
+Rate limit: bucket "deploy" (10/min) per `/deploy` e `/rollback`, bucket "read" per gli altri.
+
+### `POST /deploy` (multipart/form-data)
+
+- `manifest` (campo testo, JSON):
+  `{"files":[{"p":"wp-content/themes/x/a.php","action":"write","h":"<xxh128>","base_h":"<xxh128>"},{"p":"...","action":"delete","base_h":"..."}],"force":false}`
+  - `h` obbligatorio per `write` (32 caratteri esadecimali minuscoli); `base_h` assente/`null` se il client
+    considera il file nuovo; per `delete` `base_h` è l'hash che il client si aspetta sul server.
+- `bundle` (file zip): una voce per ogni `write`, nome della voce = `p` identico, nessuna cartella,
+  nessun symlink. Può mancare se il manifest contiene solo `delete`.
+
+Risposta `200`:
+
+```json
+{
+  "release_id": "20260923-101500-a1b2c3",
+  "status": "ok",
+  "written": 2, "deleted": 1,
+  "health": {"status": "ok", "checks": [{"url": "https://example.com/", "code": 200, "ms": 180}]},
+  "errors": ["[23-Sep-2026 10:15:01 UTC] PHP Fatal error: ..."],
+  "rescue_token": "<64 caratteri esadecimali>"
+}
+```
+
+- `status`: `ok` | `rolled_back` (health check fallito, file ripristinati) | `health_unknown`
+  (loopback non raggiungibile: nessun rollback, `health.message` spiega il motivo).
+- `health.status`: `ok` | `fail` | `unknown`; `checks[].error` presente per errori di rete.
+- `errors`: righe `PHP Fatal error` / `PHP Parse error` comparse in `debug.log` durante il deploy (max 20).
+- `rescue_token`: presente solo con `ok` e `health_unknown`; monouso, valido 24 h per questa release.
+- Se tutti i file del manifest hanno già sul server il contenuto indicato (`h` uguale all'hash attuale)
+  non viene creata alcuna release: `{"release_id": null, "status": "ok", "written": 0, "deleted": 0, "health": {"status": "skipped", "checks": []}}`.
+- `limits.deploy_zip_bytes` in `/status` è già ridotto ai limiti di upload di PHP (`upload_max_filesize`, `post_max_size`).
+
+Errori specifici:
+
+| Codice | HTTP | Note |
+|---|---|---|
+| `deploy_locked` | 409 | Un altro deploy/rollback è in corso |
+| `conflict` | 409 | `error.conflicts: [{"p": "...", "reason": "modified"\|"exists"\|"deleted"}]`; ripetere con `force:true` per sovrascrivere |
+| `invalid_manifest` | 400 | Manifest JSON non valido; `error.path` se riferito a un file |
+| `invalid_bundle` | 422 | Zip non valido, voci in più/mancanti, percorsi assoluti, `..`, symlink, hash diverso da `h`; `error.path` se riferito a una voce |
+| `too_large` / `too_many_files` | 413 | Limiti `deploy_zip_bytes`, `deploy_files`, `deploy_file_bytes` |
+| `path_denied` / `extension_denied` / `path_invalid` | 403/400 | Da PathGuard; `error.path` con il percorso relativo |
+| `deploy_failed` | 500 | Errore di scrittura: i file già scritti sono stati ripristinati dal backup |
+
+Nessun file viene scritto se una qualsiasi verifica fallisce.
+
+### `POST /rollback`
+
+`{"release_id"?: "...", "force"?: false}` → annulla la release indicata **e tutte quelle successive**
+(dalla più recente), oppure l'ultima release attiva se `release_id` manca.
+
+```json
+{"status": "ok", "rolled_back": ["20260923-101500-a1b2c3"], "files": [{"p": "wp-content/themes/x/a.php", "h": "<hash ripristinato>"}, {"p": "wp-content/themes/x/new.php", "h": null}]}
+```
+
+`files[].h` è l'hash del file dopo il ripristino (`null` = file rimosso).
+Il rollback verifica che i file siano ancora quelli lasciati dalla release (hash `h`, o assenti se cancellati). Errori: `no_release` (404),
+`conflict` (409, file modificati sul server dopo la release; `force:true` per procedere), `deploy_locked` (409).
+Il token di rescue viene invalidato.
+
+### `GET /releases`
+
+`{"releases":[{"id":"...","created_at":1790000000,"user_id":1,"written":2,"deleted":1,"status":"ok"}]}`
+(dalla più recente). `status`: `ok` | `health_unknown` | `rolled_back` | `rescued`.
+
+### `POST /health`
+
+`{}` → `{"status":"ok"|"fail"|"unknown","checks":[...],"errors":[...]}`; `errors` = righe fatali di
+`debug.log` negli ultimi 5 minuti.
+
+### `POST /cache-flush`
+
+`{"targets"?: ["opcache","object","elementor"]}` (default: tutti) →
+`{"results":{"opcache":"ok","object":"ok","elementor":"unavailable"}}`.
+
+## Rescue fuori banda (mu-plugin)
+
+- Richiesta: `GET <site>/?devbridge_rescue=1` con header `X-DevBridge-Rescue: <token>`.
+- Successo `200`: `{"status":"ok","release_id":"...","files":[{"p":"...","h":"..."|null}]}`.
+- Errori JSON: `rescue_denied` (403: token errato, scaduto, IP non ammesso, HTTP senza HTTPS),
+  `rescue_failed` (500: ripristino parziale, `error.files` con quanto ripristinato).
+- Se il rescue non è disponibile (nessun token attivo, plugin rimosso) il mu-plugin non risponde e
+  WordPress restituisce la pagina normale: il companion lo rileva perché la risposta non è JSON.
 
 ## Glob
 

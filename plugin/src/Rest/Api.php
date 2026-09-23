@@ -9,9 +9,12 @@ declare(strict_types=1);
 
 namespace Lab591\DevBridge\Rest;
 
+use Lab591\DevBridge\Deploy\Manifest;
+use Lab591\DevBridge\Deploy\ReleaseStore;
 use Lab591\DevBridge\Mode;
 use Lab591\DevBridge\Plugin;
 use Lab591\DevBridge\Services\ArchiveService;
+use Lab591\DevBridge\Services\CacheFlushService;
 use Lab591\DevBridge\Services\GrepService;
 use Lab591\DevBridge\Services\ListService;
 use Lab591\DevBridge\Services\LogService;
@@ -40,13 +43,18 @@ final class Api {
 	 * before WordPress validates parameters, so that unauthenticated callers never get past it.
 	 */
 	private const GATES = [
-		'/status'   => [ Mode::READ, 'read' ],
-		'/list'     => [ Mode::READ, 'read' ],
-		'/read'     => [ Mode::READ, 'read' ],
-		'/grep'     => [ Mode::READ, 'read' ],
-		'/manifest' => [ Mode::READ, 'read' ],
-		'/archive'  => [ Mode::READ, 'read' ],
-		'/log'      => [ Mode::READ, 'read' ],
+		'/status'      => [ Mode::READ, 'read' ],
+		'/list'        => [ Mode::READ, 'read' ],
+		'/read'        => [ Mode::READ, 'read' ],
+		'/grep'        => [ Mode::READ, 'read' ],
+		'/manifest'    => [ Mode::READ, 'read' ],
+		'/archive'     => [ Mode::READ, 'read' ],
+		'/log'         => [ Mode::READ, 'read' ],
+		'/health'      => [ Mode::READ, 'read' ],
+		'/deploy'      => [ Mode::WRITE, 'write' ],
+		'/rollback'    => [ Mode::WRITE, 'write' ],
+		'/releases'    => [ Mode::WRITE, 'read' ],
+		'/cache-flush' => [ Mode::WRITE, 'read' ],
 	];
 
 	private Gate $gate;
@@ -55,6 +63,8 @@ final class Api {
 	private int $auditBytes     = 0;
 	private string $releaseId   = '';
 	private ?string $streamFile = null;
+	/** @var string[]|null Paths recorded in the audit log instead of the request ones. */
+	private ?array $auditPaths = null;
 	/**
 	 * Gate decision for the request being dispatched, keyed by spl_object_id().
 	 *
@@ -151,6 +161,50 @@ final class Api {
 			[
 				'lines' => self::int( 1, LogService::MAX_LINES, 200 ),
 				'since' => self::int( 0, PHP_INT_MAX ),
+			]
+		);
+
+		$this->route( '/health', 'POST', [ $this, 'health' ], $read, [] );
+		$this->route(
+			'/deploy',
+			'POST',
+			[ $this, 'deploy' ],
+			$read,
+			[
+				'manifest' => [
+					'type'      => 'string',
+					'maxLength' => 4194304,
+				],
+			]
+		);
+		$this->route(
+			'/rollback',
+			'POST',
+			[ $this, 'rollback' ],
+			$read,
+			[
+				'release_id' => [
+					'type'    => 'string',
+					'pattern' => '^\d{8}-\d{6}-[0-9a-f]{6}$',
+				],
+				'force'      => self::bool(),
+			]
+		);
+		$this->route( '/releases', 'GET', [ $this, 'releases' ], $read, [] );
+		$this->route(
+			'/cache-flush',
+			'POST',
+			[ $this, 'cacheFlush' ],
+			$read,
+			[
+				'targets' => [
+					'type'     => 'array',
+					'maxItems' => 3,
+					'items'    => [
+						'type' => 'string',
+						'enum' => CacheFlushService::TARGETS,
+					],
+				],
 			]
 		);
 
@@ -268,10 +322,101 @@ final class Api {
 
 	public function log( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
 		return $this->run(
-			fn () => ( new LogService( StatusService::debugLogFile() ) )->tail(
+			fn () => ( new LogService( StatusService::debugLogFile(), ABSPATH ) )->tail(
 				(int) $request['lines'],
 				null === $request['since'] ? null : (int) $request['since']
 			)
+		);
+	}
+
+	public function health(): \WP_REST_Response|\WP_Error {
+		return $this->run( fn () => $this->plugin->health()->checkRecent() );
+	}
+
+	public function deploy( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		return $this->run(
+			function () use ( $request ): array {
+				$json = $request->get_param( 'manifest' );
+				if ( ! is_string( $json ) || '' === $json ) {
+					$length = isset( $_SERVER['CONTENT_LENGTH'] ) ? (int) $_SERVER['CONTENT_LENGTH'] : 0;
+					if ( $length > 0 && $length >= $this->plugin->deployLimits()['deploy_zip_bytes'] ) {
+						throw new ApiException( 'too_large', 'Request larger than the server upload limits', 413 );
+					}
+					throw new ApiException( 'invalid_manifest', 'Invalid manifest: missing "manifest" field', 400 );
+				}
+				$limits   = $this->plugin->deployLimits();
+				$manifest = Manifest::parse( $json, $limits['deploy_files'] );
+
+				$this->auditPaths = array_map( static fn ( $e ): string => $e->action . ' ' . $e->path, $manifest->entries );
+				$bundle           = self::uploadedBundle( $request );
+				$this->auditBytes = null === $bundle ? 0 : (int) filesize( $bundle );
+
+				$out             = $this->plugin->deployer()->deploy( $manifest, $bundle, get_current_user_id() );
+				$this->releaseId = (string) $out['release_id'];
+				return $out;
+			}
+		);
+	}
+
+	/**
+	 * Path of the uploaded `bundle` (PHP temporary file), or null when absent.
+	 */
+	private static function uploadedBundle( \WP_REST_Request $request ): ?string {
+		$files = $request->get_file_params();
+		if ( ! isset( $files['bundle'] ) || ! is_array( $files['bundle'] ) ) {
+			return null;
+		}
+		$error = (int) ( $files['bundle']['error'] ?? UPLOAD_ERR_NO_FILE );
+		if ( UPLOAD_ERR_NO_FILE === $error ) {
+			return null;
+		}
+		if ( UPLOAD_ERR_INI_SIZE === $error || UPLOAD_ERR_FORM_SIZE === $error ) {
+			throw new ApiException( 'too_large', 'Bundle larger than the server upload limits', 413 );
+		}
+		$tmp = (string) ( $files['bundle']['tmp_name'] ?? '' );
+		if ( UPLOAD_ERR_OK !== $error || '' === $tmp || ! is_uploaded_file( $tmp ) ) {
+			throw new ApiException( 'invalid_bundle', 'Invalid bundle: upload failed', 422 );
+		}
+		return $tmp;
+	}
+
+	public function rollback( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		return $this->run(
+			function () use ( $request ): array {
+				$id  = $request->get_param( 'release_id' );
+				$out = $this->plugin->rollbackService()->rollback( is_string( $id ) && '' !== $id ? $id : null, (bool) $request->get_param( 'force' ) );
+
+				$this->releaseId  = implode( ',', $out['rolled_back'] );
+				$this->auditPaths = array_column( $out['files'], 'p' );
+				return $out;
+			}
+		);
+	}
+
+	public function releases(): \WP_REST_Response|\WP_Error {
+		return $this->run(
+			function (): array {
+				$store = new ReleaseStore( $this->plugin->storage()->releasesDir() );
+				$list  = [];
+				foreach ( $store->all() as $release ) {
+					$list[] = [
+						'id'         => (string) $release['id'],
+						'created_at' => (int) $release['created_at'],
+						'user_id'    => (int) $release['user_id'],
+						'written'    => (int) $release['written'],
+						'deleted'    => (int) $release['deleted'],
+						'status'     => (string) $release['status'],
+					];
+				}
+				return [ 'releases' => $list ];
+			}
+		);
+	}
+
+	public function cacheFlush( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		$targets = $request->get_param( 'targets' );
+		return $this->run(
+			fn () => [ 'results' => ( new CacheFlushService() )->flush( is_array( $targets ) && [] !== $targets ? $targets : CacheFlushService::TARGETS ) ]
 		);
 	}
 
@@ -341,6 +486,7 @@ final class Api {
 		$this->auditable  = Mode::OFF !== $this->plugin->mode()->current();
 		$this->auditBytes = 0;
 		$this->releaseId  = '';
+		$this->auditPaths = null;
 		if ( null !== $result || ! isset( self::GATES[ self::localRoute( $request ) ] ) ) {
 			return $result;
 		}
@@ -380,7 +526,7 @@ final class Api {
 					'ip'          => $this->gate->clientIp(),
 					'endpoint'    => self::localRoute( $request ),
 					'mode'        => $this->plugin->mode()->current(),
-					'paths'       => self::requestPaths( $request ),
+					'paths'       => $this->auditPaths ?? self::requestPaths( $request ),
 					'bytes'       => $this->auditBytes,
 					'status'      => $status,
 					'duration_ms' => (int) round( ( microtime( true ) - $this->started ) * 1000 ),

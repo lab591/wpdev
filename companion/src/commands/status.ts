@@ -20,8 +20,8 @@ export async function statusCommand(ctx: Context, out: Output): Promise<number> 
   } else {
     mismatch.forEach((m) => out.warn(m));
   }
-  if (st.rescue === 'missing') {
-    out.warn('mu-plugin rescue non installato sul server: il rollback fuori banda non è disponibile');
+  if (st.rescue !== undefined && st.rescue !== 'installed') {
+    out.warn(`mu-plugin rescue ${st.rescue === 'outdated' ? 'non aggiornato' : 'non installato'} sul server: il rollback fuori banda (wpdev rollback --rescue) potrebbe non essere disponibile`);
   }
   return EXIT_OK;
 }

@@ -35,6 +35,7 @@ export type StatusResponse =
   | {
       mode: 'read' | 'write';
       expires_at: number;
+      name?: string;
       plugin: string;
       wp: string;
       php: string;
@@ -100,6 +101,75 @@ export interface LogResponse {
   truncated: boolean;
 }
 
+export interface DeployManifestEntry {
+  p: string;
+  action: 'write' | 'delete';
+  h?: string;
+  base_h: string | null;
+}
+
+export interface DeployManifest {
+  files: DeployManifestEntry[];
+  force: boolean;
+}
+
+export interface HealthCheck {
+  url: string;
+  code?: number;
+  ms?: number;
+  error?: string;
+}
+
+export interface HealthResult {
+  status: 'ok' | 'fail' | 'unknown';
+  checks: HealthCheck[];
+  message?: string;
+  errors?: string[];
+}
+
+export interface DeployResponse {
+  /** null when every file already had the requested content on the server (no release created). */
+  release_id: string | null;
+  status: 'ok' | 'rolled_back' | 'health_unknown';
+  written: number;
+  deleted: number;
+  health: HealthResult;
+  errors?: string[];
+  rescue_token?: string;
+}
+
+export interface RestoredFile {
+  p: string;
+  h: string | null;
+}
+
+export interface RollbackResponse {
+  status: 'ok';
+  rolled_back: string[];
+  files: RestoredFile[];
+}
+
+export interface RescueResponse {
+  status: 'ok';
+  release_id: string;
+  files: RestoredFile[];
+}
+
+export interface Release {
+  id: string;
+  created_at: number;
+  user_id: number;
+  written: number;
+  deleted: number;
+  status: string;
+}
+
+export interface CacheFlushResponse {
+  results: Record<string, string>;
+}
+
+export type CacheTarget = 'opcache' | 'object' | 'elementor';
+
 export interface GrepRequest {
   pattern: string;
   path: string;
@@ -122,13 +192,15 @@ export interface ClientOptions {
 type Json = Record<string, unknown>;
 
 export class ApiClient {
+  private readonly site: string;
   private readonly base: string;
   private readonly auth: string;
   private readonly timeoutMs: number;
   private readonly fetchImpl: typeof fetch;
 
   constructor(options: ClientOptions) {
-    this.base = `${options.siteUrl.replace(/\/+$/, '')}/wp-json/devbridge/v1/`;
+    this.site = options.siteUrl.replace(/\/+$/, '');
+    this.base = `${this.site}/wp-json/devbridge/v1/`;
     this.auth = `Basic ${Buffer.from(`${options.user}:${options.password}`, 'utf8').toString('base64')}`;
     this.timeoutMs = options.timeoutMs ?? 60_000;
     this.fetchImpl = options.fetchImpl ?? fetch;
@@ -167,8 +239,72 @@ export class ApiClient {
     return this.json<LogResponse>('GET', `log?${q.toString()}`);
   }
 
-  async json<T>(method: 'GET' | 'POST', endpoint: string, body?: Json): Promise<T> {
-    const res = await this.request(method, endpoint, body);
+  /** Multipart deploy: the bundle is read from disk by the caller, never from tool arguments. */
+  deploy(manifest: DeployManifest, bundle: Uint8Array | undefined): Promise<DeployResponse> {
+    const form = new FormData();
+    form.append('manifest', JSON.stringify(manifest));
+    if (bundle) {
+      form.append('bundle', new Blob([bundle], { type: 'application/zip' }), 'bundle.zip');
+    }
+    return this.json<DeployResponse>('POST', 'deploy', form, DEPLOY_TIMEOUT_MS);
+  }
+
+  rollback(releaseId?: string, force = false): Promise<RollbackResponse> {
+    const body: Json = {};
+    if (releaseId) body.release_id = releaseId;
+    if (force) body.force = true;
+    return this.json<RollbackResponse>('POST', 'rollback', body, DEPLOY_TIMEOUT_MS);
+  }
+
+  releases(): Promise<{ releases: Release[] }> {
+    return this.json<{ releases: Release[] }>('GET', 'releases');
+  }
+
+  health(): Promise<HealthResult> {
+    return this.json<HealthResult>('POST', 'health', {}, DEPLOY_TIMEOUT_MS);
+  }
+
+  cacheFlush(targets?: CacheTarget[]): Promise<CacheFlushResponse> {
+    return this.json<CacheFlushResponse>('POST', 'cache-flush', targets && targets.length ? { targets } : {});
+  }
+
+  /**
+   * Out-of-band rescue through the mu-plugin: plain GET on the site with the token header,
+   * no Authorization (the token is the credential). A non-JSON answer means that the
+   * mu-plugin did not handle the request (no active token, plugin removed).
+   */
+  async rescue(token: string): Promise<RescueResponse> {
+    let res: Response;
+    try {
+      res = await this.fetchImpl(`${this.site}/?devbridge_rescue=1`, {
+        method: 'GET',
+        headers: { 'X-DevBridge-Rescue': token, Accept: 'application/json', 'Cache-Control': 'no-cache' },
+        redirect: 'error',
+        signal: AbortSignal.timeout(DEPLOY_TIMEOUT_MS),
+      });
+    } catch (e) {
+      throw networkError(e, 'rescue', DEPLOY_TIMEOUT_MS);
+    }
+    const textBody = await res.text();
+    let data: unknown;
+    try {
+      data = JSON.parse(textBody);
+    } catch {
+      throw new ApiError(res.status, 'rescue_unavailable', 'Rescue non disponibile (token assente/scaduto o plugin rimosso)');
+    }
+    const obj = (data ?? {}) as Json;
+    if (obj.error && typeof obj.error === 'object') {
+      const { code, message, ...rest } = obj.error as Json;
+      throw new ApiError(res.status, String(code ?? 'error'), String(message ?? `HTTP ${res.status}`), rest);
+    }
+    if (!res.ok || obj.status !== 'ok') {
+      throw new ApiError(res.status, 'rescue_unavailable', 'Rescue non disponibile (risposta inattesa)');
+    }
+    return data as RescueResponse;
+  }
+
+  async json<T>(method: 'GET' | 'POST', endpoint: string, body?: Json | FormData, timeoutMs?: number): Promise<T> {
+    const res = await this.request(method, endpoint, body, timeoutMs);
     const text = await res.text();
     let data: unknown;
     try {
@@ -184,7 +320,7 @@ export class ApiClient {
     return new Uint8Array(await res.arrayBuffer());
   }
 
-  private async request(method: 'GET' | 'POST', endpoint: string, body?: Json): Promise<Response> {
+  private async request(method: 'GET' | 'POST', endpoint: string, body?: Json | FormData, timeoutMs = this.timeoutMs): Promise<Response> {
     const headers: Record<string, string> = {
       Authorization: this.auth,
       Accept: 'application/json, application/zip',
@@ -193,9 +329,11 @@ export class ApiClient {
       method,
       headers,
       redirect: 'error',
-      signal: AbortSignal.timeout(this.timeoutMs),
+      signal: AbortSignal.timeout(timeoutMs),
     };
-    if (body !== undefined) {
+    if (body instanceof FormData) {
+      init.body = body; // fetch sets the multipart boundary
+    } else if (body !== undefined) {
       headers['Content-Type'] = 'application/json';
       init.body = JSON.stringify(body);
     }
@@ -203,18 +341,24 @@ export class ApiClient {
     try {
       res = await this.fetchImpl(this.base + endpoint, init);
     } catch (e) {
-      const err = e as Error & { cause?: { code?: string; message?: string } };
-      if (err.name === 'TimeoutError' || err.name === 'AbortError') {
-        throw new ApiError(0, 'timeout', `Timeout dopo ${Math.round(this.timeoutMs / 1000)} s (${endpoint})`);
-      }
-      const cause = err.cause?.code ?? err.cause?.message ?? err.message;
-      throw new ApiError(0, 'network_error', `Errore di rete verso il sito: ${cause}`);
+      throw networkError(e, endpoint, timeoutMs);
     }
     if (!res.ok) {
       throw await toApiError(res);
     }
     return res;
   }
+}
+
+const DEPLOY_TIMEOUT_MS = 180_000;
+
+function networkError(e: unknown, endpoint: string, timeoutMs: number): ApiError {
+  const err = e as Error & { cause?: { code?: string; message?: string } };
+  if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+    return new ApiError(0, 'timeout', `Timeout dopo ${Math.round(timeoutMs / 1000)} s (${endpoint})`);
+  }
+  const cause = err.cause?.code ?? err.cause?.message ?? err.message;
+  return new ApiError(0, 'network_error', `Errore di rete verso il sito: ${cause}`);
 }
 
 async function toApiError(res: Response): Promise<ApiError> {

@@ -18,7 +18,26 @@ final class LogService {
 	public const MAX_SCAN_BYTES = 4194304;
 	private const CHUNK         = 65536;
 
-	public function __construct( private readonly ?string $logFile ) {
+	/**
+	 * @param string|null $logFile     Log path from the WordPress configuration.
+	 * @param string|null $stripPrefix Absolute site root removed from log lines (paths become relative).
+	 */
+	public function __construct(
+		private readonly ?string $logFile,
+		private readonly ?string $stripPrefix = null,
+	) {
+	}
+
+	/**
+	 * Removes the absolute site root from a log line, in both separator styles.
+	 */
+	public static function relativize( string $line, ?string $root ): string {
+		if ( null === $root || '' === $root ) {
+			return $line;
+		}
+		$root  = rtrim( $root, '/\\' );
+		$forms = array_unique( [ $root . DIRECTORY_SEPARATOR, str_replace( '\\', '/', $root ) . '/', str_replace( '/', '\\', $root ) . '\\' ] );
+		return str_ireplace( $forms, '', $line );
 	}
 
 	/**
@@ -62,7 +81,7 @@ final class LogService {
 		$truncated = count( $all ) > $lines;
 		$all       = array_slice( $all, -$lines );
 		return [
-			'lines'     => array_map( [ self::class, 'clip' ], $all ),
+			'lines'     => array_map( fn ( string $l ): string => self::clip( self::relativize( $l, $this->stripPrefix ) ), $all ),
 			'truncated' => $truncated,
 		];
 	}

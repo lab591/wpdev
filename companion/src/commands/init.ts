@@ -3,12 +3,13 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { CONFIG_FILE, ENV_LOCAL_FILE, parseConfig, resolvePassword, STATE_DIR, validateSiteUrl, type WpdevJson } from '../config.js';
-import { AUTOCRLF_WARNING, autocrlfEnabled } from '../git.js';
+import { AUTOCRLF_WARNING, autocrlfRisk } from '../git.js';
 import { ApiClient } from '../http.js';
 import { describeError, formatExpiry } from '../messages.js';
 import { EXIT_ERROR, EXIT_OK, type Output } from '../output.js';
 import { normalizeRel } from '../paths.js';
 import { compareRoots, describeRootsMismatch } from '../roots.js';
+import { ensureGitattributes, ensureMcpServer, ensureStopHook, writeClaudeMd } from '../scaffold.js';
 
 export interface InitOptions {
   site?: string;
@@ -88,24 +89,36 @@ export async function initCommand(dir: string, out: Output, options: InitOptions
 
   const added = await updateGitignore(dir);
   if (added.length) out.info(`Aggiornato .gitignore (${added.join(', ')})`);
-  if (await autocrlfEnabled(dir)) out.warn(AUTOCRLF_WARNING);
-
+  if (await ensureGitattributes(dir)) out.info('Creato .gitattributes (* -text: file identici byte per byte al server)');
+  if (await autocrlfRisk(dir)) out.warn(AUTOCRLF_WARNING);
+  const insecure = options.insecureLocal ?? false;
+  try {
+    if (await ensureStopHook(dir, insecure)) out.info("Aggiunto l'hook Stop in .claude/settings.json (deploy automatico a fine turno)");
+    if (await ensureMcpServer(dir, insecure)) out.info('Registrato il server MCP "wpdev" in .mcp.json');
+  } catch (e) {
+    out.warn(`Configurazione di Claude Code non aggiornata: ${(e as Error).message}`);
+  }
+  let siteName = new URL(config.siteUrl).host;
   const password = resolvePassword(config);
   if (!password) {
     out.info(`Imposta la Application Password in ${config.passwordEnv} (o in ${ENV_LOCAL_FILE}) e poi esegui "wpdev status".`);
-    return EXIT_OK;
-  }
-  try {
-    const client = new ApiClient({ siteUrl: config.siteUrl, user: config.user, password });
-    const st = await client.status();
-    if (st.mode === 'off') {
-      out.info('Server raggiungibile, modalità sviluppo off: le credenziali si verificano dopo averla attivata dal pannello Dev Bridge.');
-    } else {
-      out.info(`Connessione riuscita: modalità ${st.mode}, ${formatExpiry(st.expires_at)}`);
-      describeRootsMismatch(compareRoots(config.writable, st.writable_roots)).forEach((m) => out.warn(m));
+  } else {
+    try {
+      const client = new ApiClient({ siteUrl: config.siteUrl, user: config.user, password });
+      const st = await client.status();
+      if (st.mode === 'off') {
+        out.info('Server raggiungibile, modalità sviluppo off: le credenziali si verificano dopo averla attivata dal pannello Dev Bridge.');
+      } else {
+        out.info(`Connessione riuscita: modalità ${st.mode}, ${formatExpiry(st.expires_at)}`);
+        describeRootsMismatch(compareRoots(config.writable, st.writable_roots)).forEach((m) => out.warn(m));
+        if (st.name) siteName = st.name;
+      }
+    } catch (e) {
+      out.warn(`Test di /status fallito: ${describeError(e)}`);
     }
-  } catch (e) {
-    out.warn(`Test di /status fallito: ${describeError(e)}`);
   }
+
+  const claudeMd = await writeClaudeMd(dir, { name: siteName, url: config.siteUrl, writable: config.writable });
+  out.info(claudeMd === 'CLAUDE.md' ? 'Creato CLAUDE.md per il sito' : 'CLAUDE.md esiste già: il modello per il sito è in CLAUDE.wpdev.md (integralo a mano)');
   return EXIT_OK;
 }

@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { zipSync } from 'fflate';
+import { unzipSync, zipSync } from 'fflate';
 import { matchAny } from '../../src/glob.js';
 import { xxh128 } from '../../src/hash.js';
 
@@ -14,6 +14,15 @@ export interface MockSite {
   /** Force an error response for an endpoint. */
   failWith?: { endpoint: string; status: number; body: unknown };
   logLines: string[];
+  /** Overrides the /deploy response body (status 200). */
+  deployResult?: Record<string, unknown>;
+  /** Last deploy received: parsed manifest and zip bytes. */
+  lastDeploy?: { manifest: { files: { p: string; action: string; h?: string; base_h: string | null }[]; force: boolean }; bundle?: Uint8Array };
+  /** Token accepted by the simulated rescue mu-plugin (undefined: mu-plugin inert). */
+  rescueToken?: string;
+  rescueFiles: { p: string; h: string | null }[];
+  rescueStatus?: string;
+  rollbackFiles: { p: string; h: string | null }[];
 }
 
 export interface MockServer {
@@ -37,6 +46,12 @@ function error(res: ServerResponse, status: number, code: string, message = code
   send(res, status, { error: { code, message, ...extra } });
 }
 
+async function readRaw(req: IncomingMessage): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const c of req) chunks.push(c as Buffer);
+  return Buffer.concat(chunks);
+}
+
 async function readBody(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
   for await (const c of req) chunks.push(c as Buffer);
@@ -57,6 +72,8 @@ export async function startMockServer(init: Partial<MockSite> = {}): Promise<Moc
     password: 'abcd efgh ijkl',
     requests: [],
     logLines: [],
+    rescueFiles: [],
+    rollbackFiles: [],
     ...init,
   };
 
@@ -64,12 +81,28 @@ export async function startMockServer(init: Partial<MockSite> = {}): Promise<Moc
     void (async () => {
       const url = new URL(req.url ?? '/', 'http://localhost');
       const prefix = '/wp-json/devbridge/v1/';
+      if (url.searchParams.has('devbridge_rescue')) {
+        site.requests.push({ method: req.method ?? '', path: 'rescue', body: undefined });
+        const token = req.headers['x-devbridge-rescue'];
+        if (site.rescueToken === undefined) {
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.end('<html>site</html>');
+        } else if (token !== site.rescueToken) {
+          error(res, 403, 'rescue_denied', 'Invalid token');
+        } else {
+          site.rescueToken = undefined;
+          send(res, 200, { status: 'ok', release_id: '20260923-101500-abc123', files: site.rescueFiles });
+        }
+        return;
+      }
       if (!url.pathname.startsWith(prefix)) {
         send(res, 404, { code: 'rest_no_route', message: 'No route', data: { status: 404 } });
         return;
       }
       const endpoint = url.pathname.slice(prefix.length);
-      const body = req.method === 'POST' ? await readBody(req) : undefined;
+      const multipart = String(req.headers['content-type'] ?? '').startsWith('multipart/form-data');
+      const raw = req.method === 'POST' && multipart ? await readRaw(req) : undefined;
+      const body = req.method === 'POST' && !multipart ? await readBody(req) : undefined;
       site.requests.push({ method: req.method ?? '', path: endpoint, body });
 
       if (site.failWith && site.failWith.endpoint === endpoint) {
@@ -87,7 +120,61 @@ export async function startMockServer(init: Partial<MockSite> = {}): Promise<Moc
         return;
       }
       const b = (body ?? {}) as Record<string, unknown>;
+      if (['deploy', 'rollback', 'releases', 'cache-flush'].includes(endpoint) && site.mode !== 'write') {
+        error(res, 403, 'mode_insufficient', 'This endpoint requires "write" mode');
+        return;
+      }
       switch (endpoint) {
+        case 'deploy': {
+          const form = await new Response(raw, { headers: { 'content-type': String(req.headers['content-type']) } }).formData();
+          const manifest = JSON.parse(String(form.get('manifest'))) as NonNullable<MockSite['lastDeploy']>['manifest'];
+          const file = form.get('bundle');
+          const bundle = file && typeof file !== 'string' ? new Uint8Array(await file.arrayBuffer()) : undefined;
+          site.lastDeploy = bundle ? { manifest, bundle } : { manifest };
+          if (site.deployResult) {
+            send(res, 200, site.deployResult);
+            return;
+          }
+          const conflicts = [];
+          for (const f of manifest.files) {
+            const cur = site.files.get(f.p);
+            const h = cur ? await xxh128(cur) : null;
+            if (h !== null && f.base_h === null && h !== f.h) conflicts.push({ p: f.p, reason: 'exists' });
+            else if (h !== null && f.base_h !== null && h !== f.base_h && h !== f.h) conflicts.push({ p: f.p, reason: 'modified' });
+            else if (h === null && f.base_h !== null) conflicts.push({ p: f.p, reason: 'deleted' });
+          }
+          if (conflicts.length && !manifest.force) {
+            error(res, 409, 'conflict', 'Files changed on the server since the last sync', { conflicts });
+            return;
+          }
+          const entries = bundle ? unzipSync(bundle) : {};
+          let written = 0;
+          let deleted = 0;
+          for (const f of manifest.files) {
+            if (f.action === 'write') {
+              site.files.set(f.p, entries[f.p] as Uint8Array);
+              written++;
+            } else {
+              site.files.delete(f.p);
+              deleted++;
+            }
+          }
+          send(res, 200, {
+            release_id: '20260923-101500-abc123', status: 'ok', written, deleted,
+            health: { status: 'ok', checks: [{ url: 'http://localhost/', code: 200, ms: 12 }] },
+            rescue_token: 'a'.repeat(64),
+          });
+          return;
+        }
+        case 'rollback':
+          send(res, 200, { status: 'ok', rolled_back: ['20260923-101500-abc123'], files: site.rollbackFiles });
+          return;
+        case 'health':
+          send(res, 200, { status: 'fail', checks: [{ url: 'http://localhost/', code: 500, ms: 30 }], errors: ['PHP Fatal error: boom'] });
+          return;
+        case 'cache-flush':
+          send(res, 200, { results: Object.fromEntries(((b.targets as string[] | undefined) ?? ['opcache', 'object', 'elementor']).map((t) => [t, 'ok'])) });
+          return;
         case 'status':
           send(res, 200, {
             mode: site.mode,
@@ -99,6 +186,7 @@ export async function startMockServer(init: Partial<MockSite> = {}): Promise<Moc
             writable_roots: site.writableRoots,
             limits: { read_bytes: 524288, grep_results: 200, grep_ms: 5000, deploy_zip_bytes: 1, deploy_files: 1, deploy_file_bytes: 1 },
             debug_log: true,
+            rescue: site.rescueStatus ?? 'installed',
           });
           return;
         case 'manifest': {

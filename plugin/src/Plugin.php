@@ -12,11 +12,17 @@ namespace Lab591\DevBridge;
 use Lab591\DevBridge\Admin\AdminPage;
 use Lab591\DevBridge\Audit\AuditLog;
 use Lab591\DevBridge\Cli\Command;
+use Lab591\DevBridge\Deploy\Deployer;
+use Lab591\DevBridge\Deploy\RollbackService;
+use Lab591\DevBridge\Rescue\RescueInstaller;
 use Lab591\DevBridge\Rest\Api;
 use Lab591\DevBridge\Security\PathException;
 use Lab591\DevBridge\Security\PathGuard;
 use Lab591\DevBridge\Security\PathPolicy;
 use Lab591\DevBridge\Security\WritableRootValidator;
+use Lab591\DevBridge\Services\HealthService;
+use Lab591\DevBridge\Services\StatusService;
+use Lab591\DevBridge\Storage\Storage;
 
 final class Plugin {
 
@@ -28,6 +34,7 @@ final class Plugin {
 	private Mode $mode;
 	private AuditLog $audit;
 	private ?PathGuard $guard = null;
+	private ?Storage $storage = null;
 
 	private function __construct() {
 		$this->settings = new Settings();
@@ -48,6 +55,7 @@ final class Plugin {
 		add_action( 'plugins_loaded', [ $this->audit, 'maybeUpgrade' ] );
 		if ( is_admin() ) {
 			( new AdminPage( $this ) )->register();
+			add_action( 'admin_init', [ $this->rescueInstaller(), 'maybeRepair' ] );
 		}
 		if ( defined( 'WP_CLI' ) && WP_CLI && class_exists( '\WP_CLI' ) ) {
 			\WP_CLI::add_command( 'devbridge', new Command( $this ) );
@@ -57,6 +65,7 @@ final class Plugin {
 	public static function activate(): void {
 		$plugin = self::instance();
 		$plugin->audit->install();
+		$plugin->rescueInstaller()->install();
 		if ( ! wp_next_scheduled( self::CRON_AUDIT ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::CRON_AUDIT );
 		}
@@ -65,6 +74,8 @@ final class Plugin {
 	public static function deactivate(): void {
 		wp_clear_scheduled_hook( self::CRON_AUDIT );
 		self::instance()->mode->disable();
+		// Disabling the plugin must also switch off the out-of-band rescue.
+		self::instance()->rescueInstaller()->remove();
 	}
 
 	public function cleanupAudit(): void {
@@ -93,7 +104,74 @@ final class Plugin {
 	 * @return string[]
 	 */
 	public function protectedPaths(): array {
-		return [ $this->pluginDir() ];
+		return [ $this->pluginDir(), $this->storage()->dir(), $this->rescueInstaller()->target() ];
+	}
+
+	public function storage(): Storage {
+		if ( null === $this->storage ) {
+			$this->storage = Storage::fromWordPress();
+		}
+		return $this->storage;
+	}
+
+	public function rescueInstaller(): RescueInstaller {
+		return new RescueInstaller(
+			$this->pluginDir() . '/mu-plugin/' . RescueInstaller::FILE_NAME,
+			defined( 'WPMU_PLUGIN_DIR' ) ? WPMU_PLUGIN_DIR : WP_CONTENT_DIR . '/mu-plugins',
+			VERSION
+		);
+	}
+
+	public function health(): HealthService {
+		return new HealthService( $this->settings->healthUrls(), StatusService::debugLogFile(), ABSPATH );
+	}
+
+	/**
+	 * Deploy limits, capped by what PHP accepts for uploads.
+	 *
+	 * @return array{deploy_zip_bytes: int, deploy_files: int, deploy_file_bytes: int}
+	 */
+	public function deployLimits(): array {
+		$upload = min( self::iniBytes( 'upload_max_filesize' ), self::iniBytes( 'post_max_size' ) );
+		return [
+			'deploy_zip_bytes'  => min( $this->settings->limit( 'deploy_zip_bytes' ), $upload > 0 ? $upload : PHP_INT_MAX ),
+			'deploy_files'      => $this->settings->limit( 'deploy_files' ),
+			'deploy_file_bytes' => $this->settings->limit( 'deploy_file_bytes' ),
+		];
+	}
+
+	private static function iniBytes( string $key ): int {
+		$value = trim( (string) ini_get( $key ) );
+		if ( '' === $value ) {
+			return 0;
+		}
+		$unit   = strtolower( substr( $value, -1 ) );
+		$number = (int) $value;
+		return match ( $unit ) {
+			'g'     => $number * 1073741824,
+			'm'     => $number * 1048576,
+			'k'     => $number * 1024,
+			default => $number,
+		};
+	}
+
+	public function deployer(): Deployer {
+		return new Deployer(
+			$this->guard(),
+			$this->storage(),
+			$this->health(),
+			$this->deployLimits(),
+			max( 1, (int) $this->settings->get( 'retention_releases' ) ),
+			[
+				'ip_allowlist'    => (array) $this->settings->get( 'ip_allowlist' ),
+				'trusted_proxies' => (array) $this->settings->get( 'trusted_proxies' ),
+				'allow_http'      => 'local' === wp_get_environment_type(),
+			]
+		);
+	}
+
+	public function rollbackService(): RollbackService {
+		return new RollbackService( $this->guard(), $this->storage() );
 	}
 
 	public function rootValidator(): WritableRootValidator {

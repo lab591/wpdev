@@ -1,6 +1,7 @@
 import type { Config } from '../config.js';
-import type { GrepResponse, ListResponse, LogResponse, ReadResponse, StatusResponse } from '../http.js';
-import { formatSize } from '../messages.js';
+import { countChanges, type DeployOutcome } from '../deploy.js';
+import { ApiError, type CacheFlushResponse, type GrepResponse, type HealthResult, type ListResponse, type LogResponse, type ReadResponse, type RollbackResponse, type StatusResponse } from '../http.js';
+import { describeError, formatSize } from '../messages.js';
 import { isInside, relativeTo } from '../paths.js';
 import { compareRoots, describeRootsMismatch } from '../roots.js';
 
@@ -35,6 +36,7 @@ export function formatStatus(st: StatusResponse, config: Pick<Config, 'writable'
   ];
   const mismatch = describeRootsMismatch(compareRoots(config.writable, st.writable_roots));
   if (mismatch.length) lines.push(`warning: wpdev.json and server writable roots differ (${mismatch.join('; ')})`);
+  if (st.rescue !== undefined && st.rescue !== 'installed') lines.push(`warning: rescue mu-plugin ${st.rescue} (out-of-band rollback may be unavailable)`);
   return lines.join('\n');
 }
 
@@ -104,4 +106,95 @@ export function formatLog(res: LogResponse): string {
   const out = res.lines.map((l) => clip(l, 1000));
   if (res.truncated) out.push(`[showing last ${res.lines.length} lines only]`);
   return out.join('\n');
+}
+
+// ---------------------------------------------------------------- M2: deploy & co.
+
+function healthText(h: HealthResult): string {
+  const checks = h.checks.map((c) => `${c.url} ${c.code ?? c.error ?? '?'}`).join(', ');
+  return `health: ${h.status}${checks ? ` (${checks})` : ''}${h.message ? ` — ${h.message}` : ''}`;
+}
+
+function apiErrorText(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.code === 'conflict') {
+      const conflicts = Array.isArray(error.details.conflicts) ? (error.details.conflicts as { p: string; reason: string }[]) : [];
+      return [
+        `deploy refused: ${conflicts.length} file(s) changed on the server since the last sync:`,
+        ...conflicts.slice(0, 20).map((c) => `  ${c.p} (${c.reason})`),
+        'Nothing was written. Ask the user whether to run `wpdev pull` (merge server changes) or `wpdev deploy --force`.',
+      ].join('\n');
+    }
+    if (error.code === 'mode_off' || error.code === 'mode_insufficient') {
+      return 'deploy refused: write mode is not active on the server. Ask the user to enable it (Dev Bridge admin page or `wp devbridge enable --mode=write --hours=N`).';
+    }
+    const where = typeof error.details.path === 'string' ? ` (${error.details.path})` : '';
+    return `error: ${error.message}${where} [${error.code}${error.status ? ` ${error.status}` : ''}]`;
+  }
+  return `error: ${describeError(error)}`;
+}
+
+/** Compact text for the MCP `deploy` tool. */
+export function formatDeployOutcome(o: DeployOutcome): { text: string; isError: boolean } {
+  if (o.kind === 'no_changes') {
+    return { text: 'no local changes in the writable folders: nothing to deploy', isError: false };
+  }
+  const c = countChanges(o.changes);
+  const counts = `${c.new} new, ${c.modified} modified, ${c.deleted} deleted`;
+  const notes: string[] = [];
+  if (o.lint?.skipped) notes.push('note: PHP not available locally, lint skipped');
+  if ('rescueWarning' in o && o.rescueWarning) notes.push('warning: rescue mu-plugin not installed on the server');
+  switch (o.kind) {
+    case 'lint_failed':
+      return {
+        text: [
+          'deploy blocked: PHP syntax errors (nothing uploaded):',
+          ...o.lint.errors.map((e) => `  ${e.p}${e.line ? `:${e.line}` : ''} ${e.message}`),
+        ].join('\n'),
+        isError: true,
+      };
+    case 'dry_run':
+      return {
+        text: [`dry run: ${counts}`, ...o.changes.slice(0, 100).map((x) => `  ${x.status} ${x.p}`), ...(o.changes.length > 100 ? [`  [+${o.changes.length - 100} more]`] : []), ...notes].join('\n'),
+        isError: false,
+      };
+    case 'failed':
+      return { text: [apiErrorText(o.error), ...notes].join('\n'), isError: true };
+    case 'done': {
+      const r = o.response;
+      if (r.status === 'rolled_back') {
+        return {
+          text: [
+            `release ${r.release_id} ROLLED BACK automatically: the site is back to the previous version`,
+            healthText(r.health),
+            ...(r.errors?.length ? ['errors:', ...r.errors.slice(0, 20).map((e) => `  ${e}`)] : []),
+            'Fix the local files and deploy again; use site_log for details.',
+          ].join('\n'),
+          isError: true,
+        };
+      }
+      if (r.release_id === null) {
+        return { text: ['server already had this content: no release created, local state updated', ...notes].join('\n'), isError: false };
+      }
+      const lines = [`release ${r.release_id}: ${r.written} written, ${r.deleted} deleted (${counts})`, healthText(r.health)];
+      if (r.status === 'health_unknown') lines.push('warning: health check could not run (loopback unreachable), no automatic rollback: verify the site in the browser');
+      if (r.errors?.length) lines.push('fatal lines in debug.log:', ...r.errors.slice(0, 20).map((e) => `  ${e}`));
+      return { text: [...lines, ...notes].join('\n'), isError: false };
+    }
+  }
+}
+
+export function formatRollback(r: RollbackResponse): string {
+  const restored = r.files.filter((f) => f.h !== null).length;
+  return `rolled back: ${r.rolled_back.join(', ') || '(none)'}; ${restored} file(s) restored, ${r.files.length - restored} removed. Local files still contain the rolled back changes: fix them and deploy again.`;
+}
+
+export function formatHealth(h: HealthResult): string {
+  const lines = [healthText(h)];
+  if (h.errors?.length) lines.push('recent fatal errors:', ...h.errors.slice(0, 20).map((e) => `  ${e}`));
+  return lines.join('\n');
+}
+
+export function formatCacheFlush(r: CacheFlushResponse): string {
+  return `cache flush: ${Object.entries(r.results).map(([k, v]) => `${k} ${v}`).join(', ') || '(nothing)'}`;
 }

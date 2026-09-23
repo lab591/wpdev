@@ -26,12 +26,14 @@ final class StatusService {
 		$settings = $this->plugin->settings();
 		$theme    = wp_get_theme();
 		$limits   = [];
-		foreach ( [ 'read_bytes', 'grep_results', 'grep_ms', 'deploy_zip_bytes', 'deploy_files', 'deploy_file_bytes' ] as $key ) {
+		foreach ( [ 'read_bytes', 'grep_results', 'grep_ms' ] as $key ) {
 			$limits[ $key ] = $settings->limit( $key );
 		}
+		$limits += $this->plugin->deployLimits();
 		return [
 			'mode'           => $state['mode'],
 			'expires_at'     => $state['expires_at'],
+			'name'           => wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ),
 			'plugin'         => VERSION,
 			'wp'             => (string) $wp_version,
 			'php'            => PHP_VERSION,
@@ -43,6 +45,7 @@ final class StatusService {
 			'writable_roots' => $this->plugin->validWritableRoots(),
 			'limits'         => $limits,
 			'debug_log'      => null !== self::debugLogFile(),
+			'rescue'         => $this->plugin->rescueInstaller()->state(),
 		];
 	}
 

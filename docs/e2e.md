@@ -45,3 +45,33 @@ wp devbridge enable --mode=read --hours=2
 | 14 | MCP `site_status`, `site_list`, `site_read` (con numeri di riga), `site_grep` (con contesto) | output compatto, troncamenti espliciti | ok |
 | 15 | MCP `site_read` su un file scrivibile | rifiutato con invito a usare i file locali | ok |
 | 16 | MCP `site_read wp-config.php` | `path_denied` | ok |
+
+## M2 — Scrittura sicura
+
+Preparazione: `wp devbridge enable --mode=write --hours=4`; progetto locale creato con
+`wpdev --insecure-local init --site http://localhost/lab591_wpdev_site --user admin ... -y`.
+
+| # | Passo | Esito atteso | Esito |
+|---|---|---|---|
+| 1 | Attivazione del plugin | mu-plugin `devbridge-rescue.php` copiato in `wp-content/mu-plugins/` | ok |
+| 2 | `wpdev init` | `.gitattributes` (`* -text`), hook Stop in `.claude/settings.json`, `.mcp.json`, `CLAUDE.md` con nome del sito | ok |
+| 3 | `wpdev deploy` senza modifiche | "Nessuna modifica", exit 0, nessuna chiamata di rete | ok |
+| 4 | Modifica di `functions.php` + nuovo `assets/extra.css`; `wpdev deploy --dry-run` | elenco modifiche e lint, nessun invio | ok |
+| 5 | `wpdev deploy` | release creata, 2 file scritti, health check 200, pagina aggiornata | ok |
+| 6 | Chiamata a funzione inesistente in `functions.php`; `wpdev deploy` | home 500 → **rollback automatico**, errore fatale riportato (percorso relativo), exit 2, file sul server invariato | ok |
+| 7 | Errore di sintassi in un `.php`; `wpdev deploy` | bloccato dal lint prima dell'upload, file e riga, exit 1 | ok |
+| 8 | Stesso errore con `deploy --hook` e `stop_hook_active=false` | riepilogo su stderr, exit 2 | ok |
+| 9 | Idem con `stop_hook_active=true` | messaggio "mi fermo per evitare un ciclo", exit 0 | ok |
+| 10 | `deploy --hook` dopo la correzione / senza modifiche | una riga di esito, exit 0 / silenzioso | ok |
+| 11 | Fatale solo nelle richieste REST (`rest_api_init`): `wpdev deploy` | health check ok (la home funziona), deploy `ok` | ok |
+| 12 | `wpdev status` / `wpdev rollback` | 500 dal server; il rollback suggerisce `--rescue`, exit 1 | ok |
+| 13 | `wpdev rollback --rescue` | mu-plugin ripristina la release, `state.json` aggiornato, REST di nuovo funzionante | ok |
+| 14 | Secondo `wpdev rollback --rescue` | token monouso già consumato: rifiutato | ok |
+| 15 | MCP `deploy {dry_run}`, `deploy`, `health`, `cache_flush`, `rollback` | output compatto; con REST rotto l'errore invita a chiedere il rescue all'utente | ok |
+| 16 | Nuovo deploy dello stesso contenuto | nessuna release, `release_id: null` | ok |
+| 17 | Disattivazione del plugin | mu-plugin rimosso | ok |
+| 18 | `wp plugin uninstall --skip-delete` | tabella audit, opzioni, storage rimossi | ok |
+| 19 | Pagina admin (Stato, Impostazioni, Audit) | nessun errore PHP | ok |
+
+Criterio di uscita M2: un errore fatale introdotto volutamente viene annullato in automatico (passo 6);
+un fatale che sfugge all'health check si recupera con `wpdev rollback --rescue` (passi 11–13).

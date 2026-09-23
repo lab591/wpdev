@@ -9,9 +9,12 @@ declare(strict_types=1);
 
 namespace Lab591\DevBridge\Admin;
 
+use Lab591\DevBridge\Deploy\ReleaseStore;
 use Lab591\DevBridge\Mode;
 use Lab591\DevBridge\Plugin;
+use Lab591\DevBridge\Rescue\RescueInstaller;
 use Lab591\DevBridge\Settings;
+use const Lab591\DevBridge\PLUGIN_FILE;
 
 final class AdminPage {
 
@@ -26,6 +29,41 @@ final class AdminPage {
 		add_action( 'admin_menu', [ $this, 'menu' ] );
 		add_action( 'admin_post_devbridge_mode', [ $this, 'handleMode' ] );
 		add_action( 'admin_post_devbridge_settings', [ $this, 'handleSettings' ] );
+		add_action( 'admin_notices', [ $this, 'pluginsScreenNotices' ] );
+		add_filter( 'plugin_action_links_' . plugin_basename( PLUGIN_FILE ), [ $this, 'confirmDeactivation' ] );
+	}
+
+	/**
+	 * Asks for confirmation before deactivating when release backups exist.
+	 *
+	 * @param array<string, string> $links
+	 * @return array<string, string>
+	 */
+	public function confirmDeactivation( array $links ): array {
+		$count = count( ( new ReleaseStore( $this->plugin->storage()->releasesDir() ) )->all() );
+		if ( $count > 0 && isset( $links['deactivate'] ) ) {
+			$message             = sprintf( 'Esistono %d release di backup di Dev Bridge. Disattivando si spegne anche il rescue; eliminando il plugin i backup verranno cancellati. Continuare?', $count );
+			$links['deactivate'] = str_replace( '<a ', '<a onclick="return confirm(\'' . esc_js( $message ) . '\');" ', $links['deactivate'] );
+		}
+		return $links;
+	}
+
+	/**
+	 * Rescue warning on the Plugins screen (the Dev Bridge page shows full details).
+	 */
+	public function pluginsScreenNotices(): void {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( null === $screen || 'plugins' !== $screen->id || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		if ( RescueInstaller::INSTALLED !== $this->plugin->rescueInstaller()->state() ) {
+			printf(
+				'<div class="notice notice-warning"><p>%s <a href="%s">%s</a></p></div>',
+				esc_html( 'Dev Bridge: il mu-plugin di rescue non è installato, il rollback fuori banda non è disponibile.' ),
+				esc_url( add_query_arg( [ 'page' => self::SLUG ], admin_url( 'options-general.php' ) ) ),
+				esc_html( 'Dettagli' )
+			);
+		}
 	}
 
 	public function menu(): void {
@@ -192,6 +230,7 @@ final class AdminPage {
 		foreach ( $warnings as $warning ) {
 			printf( '<div class="notice notice-warning inline"><p>%s</p></div>', esc_html( $warning ) );
 		}
+		$this->renderRescueAndStorage();
 
 		echo '<h2>Attiva</h2><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		wp_nonce_field( 'devbridge_mode' );
@@ -213,6 +252,61 @@ final class AdminPage {
 			echo '</form>';
 		}
 		echo '<p class="description">La modalità si può cambiare solo da qui o con <code>wp devbridge enable|disable</code>: nessun endpoint REST può modificarla.</p>';
+
+		$this->renderReleases();
+	}
+
+	private function renderRescueAndStorage(): void {
+		$installer = $this->plugin->rescueInstaller();
+		$state     = $installer->state();
+		if ( RescueInstaller::INSTALLED !== $state ) {
+			echo '<div class="notice notice-warning inline"><p><strong>Rescue fuori banda non installato.</strong> ';
+			if ( $installer->canWriteDirectly() ) {
+				echo esc_html( 'Verrà installato automaticamente al prossimo caricamento di una pagina di amministrazione.' );
+			} else {
+				printf(
+					'%s <code>%s</code> %s <code>%s</code> %s',
+					esc_html( 'La cartella mu-plugins non è scrivibile direttamente (o FS_METHOD non è "direct"). Copia manualmente il file' ),
+					esc_html( 'wp-content/plugins/' . dirname( plugin_basename( PLUGIN_FILE ) ) . '/mu-plugin/' . RescueInstaller::FILE_NAME ),
+					esc_html( 'in' ),
+					esc_html( 'wp-content/mu-plugins/' . RescueInstaller::FILE_NAME ),
+					esc_html( '(permessi 0644).' )
+				);
+			}
+			echo '</p></div>';
+		}
+
+		$storage = $this->plugin->storage();
+		if ( $storage->isFallback() ) {
+			echo '<div class="notice notice-info inline"><p>';
+			echo esc_html( 'Lo storage privato è dentro wp-content (cartella con nome casuale, protetta da .htaccess). È consigliato spostarlo fuori dalla document root definendo in wp-config.php:' );
+			echo '<br><code>define( \'DEVBRIDGE_STORAGE_DIR\', \'/percorso/fuori/webroot/devbridge\' );</code><br>';
+			echo esc_html( 'Su Nginx .htaccess non viene letto: aggiungi alla configurazione del sito:' );
+			printf( '<br><code>location ~ ^/wp-content/%s/ { deny all; return 404; }</code>', esc_html( basename( $storage->dir() ) ) );
+			echo '</p></div>';
+		}
+	}
+
+	private function renderReleases(): void {
+		$releases = array_slice( ( new ReleaseStore( $this->plugin->storage()->releasesDir() ) )->all(), 0, 20 );
+		echo '<h2>Release</h2>';
+		if ( [] === $releases ) {
+			echo '<p>Nessuna release.</p>';
+			return;
+		}
+		echo '<table class="widefat striped"><thead><tr><th>ID</th><th>Data</th><th>Utente</th><th>Scritti</th><th>Cancellati</th><th>Esito</th></tr></thead><tbody>';
+		foreach ( $releases as $release ) {
+			printf(
+				'<tr><td><code>%s</code></td><td>%s</td><td>%d</td><td>%d</td><td>%d</td><td>%s</td></tr>',
+				esc_html( (string) $release['id'] ),
+				esc_html( wp_date( 'd/m/Y H:i', (int) $release['created_at'] ) ),
+				(int) $release['user_id'],
+				(int) $release['written'],
+				(int) $release['deleted'],
+				esc_html( (string) $release['status'] )
+			);
+		}
+		echo '</tbody></table><p class="description">Rollback: <code>wp devbridge rollback [&lt;id&gt;]</code> oppure <code>wpdev rollback</code> dal companion.</p>';
 	}
 
 	private function renderSettings(): void {

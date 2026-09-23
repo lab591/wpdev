@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 import { Command, InvalidArgumentError } from 'commander';
+import { deployCommand, hookDeploy, readHookInput } from './commands/deploy.js';
 import { diffCommand } from './commands/diff.js';
 import { initCommand, terminalAsk } from './commands/init.js';
 import { logCommand } from './commands/log.js';
 import { pullCommand } from './commands/pull.js';
+import { healthCommand, rollbackCommand, type Confirm } from './commands/rollback.js';
 import { statusCommand } from './commands/status.js';
 import { createContext, type GlobalOptions } from './context.js';
 import { startMcpServer } from './mcp/server.js';
 import { describeError } from './messages.js';
-import { consoleOutput, EXIT_ERROR } from './output.js';
+import { consoleOutput, EXIT_DEPLOY_FAILED, EXIT_ERROR } from './output.js';
 import { VERSION } from './version.js';
 
 const program = new Command();
@@ -87,13 +89,62 @@ program
   .action((opts: { lines: number }) => runWithContext((ctx) => logCommand(ctx, consoleOutput, opts.lines)));
 
 program
+  .command('deploy')
+  .description('pubblica le modifiche locali delle cartelle scrivibili (lint, conflitti, health check, rollback)')
+  .option('--dry-run', 'mostra le modifiche ed esegue il lint senza inviare nulla')
+  .option('--force', 'sovrascrive i file modificati sul server (ignora i conflitti)')
+  .option('--hook', 'modalità hook Stop di Claude Code: non interattiva, exit 2 se il deploy fallisce')
+  .action(async (opts: { dryRun?: boolean; force?: boolean; hook?: boolean }) => {
+    if (opts.hook) {
+      const input = await readHookInput();
+      process.exitCode = await hookDeploy(
+        () => createContext({ ...globals(), ...(input.cwd ? { cwd: input.cwd } : {}) }),
+        input,
+        { stdout: (l) => process.stdout.write(`${l}\n`), stderr: (l) => process.stderr.write(`${l}\n`) },
+      );
+      return;
+    }
+    await runWithContext((ctx) => deployCommand(ctx, consoleOutput, { dryRun: opts.dryRun === true, force: opts.force === true }));
+  });
+
+program
+  .command('rollback [releaseId]')
+  .description("annulla l'ultimo deploy (o la release indicata e le successive); --rescue usa il mu-plugin fuori banda")
+  .option('--rescue', "rollback fuori banda con il token dell'ultimo deploy (quando WordPress è rotto)")
+  .option('--force', 'ripristina anche se i file sono stati modificati sul server dopo la release')
+  .action((releaseId: string | undefined, opts: { rescue?: boolean; force?: boolean }) =>
+    runWithContext((ctx) =>
+      rollbackCommand(ctx, consoleOutput, { ...(releaseId ? { releaseId } : {}), rescue: opts.rescue === true, force: opts.force === true }, terminalConfirm()),
+    ),
+  );
+
+program
+  .command('health')
+  .description('health check del sito su richiesta')
+  .action(() => runWithContext((ctx) => healthCommand(ctx, consoleOutput)));
+
+program
   .command('mcp')
   .description('avvia il server MCP (stdio)')
   .action(async () => {
     await startMcpServer(globals(), VERSION);
   });
 
+/** y/N question on the terminal; undefined (no prompt) when stdin is not a TTY. */
+function terminalConfirm(): Confirm | undefined {
+  if (process.stdin.isTTY !== true) return undefined;
+  return async (question) => {
+    const term = terminalAsk();
+    try {
+      return /^(s|si|sì|y|yes)$/i.test((await term.ask(question)).trim());
+    } finally {
+      term.close();
+    }
+  };
+}
+
 program.parseAsync(process.argv).catch((e: unknown) => {
   process.stderr.write(`errore: ${describeError(e)}\n`);
-  process.exitCode = EXIT_ERROR;
+  // Every failure of the Stop hook must be visible to Claude.
+  process.exitCode = process.argv.includes('--hook') ? EXIT_DEPLOY_FAILED : EXIT_ERROR;
 });

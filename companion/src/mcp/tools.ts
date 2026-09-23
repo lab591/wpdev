@@ -1,8 +1,23 @@
 import { z } from 'zod';
+import { applyRestored } from '../commands/rollback.js';
 import type { Context } from '../context.js';
+import { runDeploy, type DeployDeps } from '../deploy.js';
+import { ApiError, type CacheTarget } from '../http.js';
 import { describeError } from '../messages.js';
 import { normalizeRel, normalizeRelOrRoot } from '../paths.js';
-import { formatGrep, formatList, formatLog, formatRead, formatStatus, writableRefusal } from './format.js';
+import { deleteRescue } from '../rescue.js';
+import {
+  formatCacheFlush,
+  formatDeployOutcome,
+  formatGrep,
+  formatHealth,
+  formatList,
+  formatLog,
+  formatRead,
+  formatRollback,
+  formatStatus,
+  writableRefusal,
+} from './format.js';
 
 export interface ToolResult {
   text: string;
@@ -22,8 +37,8 @@ function refuse(text: string): ToolResult {
   return { text, isError: true };
 }
 
-/** Tool definitions (M1: read-only). `getContext` is lazy so config errors surface per call. */
-export function buildTools(getContext: () => Context): ToolDef[] {
+/** Tool definitions. `getContext` is lazy so config errors surface per call. */
+export function buildTools(getContext: () => Context, deps: DeployDeps = {}): ToolDef[] {
   const run = async (fn: (ctx: Context) => Promise<string>): Promise<ToolResult> => {
     try {
       return { text: await fn(getContext()) };
@@ -111,6 +126,59 @@ export function buildTools(getContext: () => Context): ToolDef[] {
       },
       handler: (args) =>
         run(async (ctx) => formatLog(await ctx.client.log(typeof args.lines === 'number' ? args.lines : 200))),
+    },
+    {
+      name: 'deploy',
+      description:
+        'Publish local changes of the writable folders to the site (read from disk: never pass file contents). Lints PHP, checks conflicts, runs a health check with automatic rollback. Normally done by the Stop hook.',
+      inputSchema: {
+        dry_run: z.boolean().optional().describe('Only list the changes and lint, upload nothing'),
+      },
+      handler: async (args) => {
+        try {
+          const outcome = await runDeploy(getContext(), { dryRun: args.dry_run === true }, deps);
+          const res = formatDeployOutcome(outcome);
+          return res.isError ? refuse(res.text) : { text: res.text };
+        } catch (e) {
+          return refuse(`error: ${describeError(e)}`);
+        }
+      },
+    },
+    {
+      name: 'rollback',
+      description: 'Undo the last deploy (or the given release and all later ones) restoring the backup on the server.',
+      inputSchema: {
+        release_id: z.string().min(1).max(64).optional().describe('Release to undo (default: the last active one)'),
+      },
+      handler: async (args) => {
+        try {
+          const ctx = getContext();
+          const res = await ctx.client.rollback(typeof args.release_id === 'string' ? args.release_id : undefined);
+          await applyRestored(ctx.config, res.files);
+          await deleteRescue(ctx.config.projectRoot);
+          return { text: formatRollback(res) };
+        } catch (e) {
+          if (e instanceof ApiError && (e.status >= 500 || e.status === 0)) {
+            return refuse(`error: ${describeError(e)}. The site may be broken by a fatal error: ask the user to run \`wpdev rollback --rescue\` (out-of-band rollback).`);
+          }
+          return refuse(`error: ${describeError(e)}`);
+        }
+      },
+    },
+    {
+      name: 'health',
+      description: 'Run the site health check now (HTTP status of the health URLs and recent fatal errors in debug.log).',
+      inputSchema: {},
+      handler: () => run(async (ctx) => formatHealth(await ctx.client.health())),
+    },
+    {
+      name: 'cache_flush',
+      description: 'Flush server caches: PHP opcache, WordPress object cache, Elementor CSS cache (default: all).',
+      inputSchema: {
+        targets: z.array(z.enum(['opcache', 'object', 'elementor'])).optional(),
+      },
+      handler: (args) =>
+        run(async (ctx) => formatCacheFlush(await ctx.client.cacheFlush(Array.isArray(args.targets) ? (args.targets as CacheTarget[]) : undefined))),
     },
   ];
 }

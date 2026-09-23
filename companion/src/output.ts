@@ -22,3 +22,5 @@ export function memoryOutput(): Output & { lines: string[]; warnings: string[] }
 
 export const EXIT_OK = 0;
 export const EXIT_ERROR = 1;
+/** Deploy failed or was rolled back (also every failure of `deploy --hook`). */
+export const EXIT_DEPLOY_FAILED = 2;

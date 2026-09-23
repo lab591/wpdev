@@ -390,6 +390,13 @@ final class ReadServicesTest extends TestCase {
 		$this->assertFalse( $since['truncated'] );
 	}
 
+	public function test_log_lines_hide_the_absolute_site_root(): void {
+		$line = '[14-Nov-2023 22:13:20 UTC] PHP Fatal error: x in C:\\site\\wp-content\\themes\\a\\functions.php:8';
+		$this->assertSame( '[14-Nov-2023 22:13:20 UTC] PHP Fatal error: x in wp-content\\themes\\a\\functions.php:8', LogService::relativize( $line, 'C:/site/' ) );
+		$this->assertSame( 'in wp-content/x.php', LogService::relativize( 'in /var/www/html/wp-content/x.php', '/var/www/html/' ) );
+		$this->assertSame( 'unchanged', LogService::relativize( 'unchanged', null ) );
+	}
+
 	public function test_log_missing(): void {
 		$this->expectException( ApiException::class );
 		( new LogService( null ) )->tail();

@@ -1,6 +1,6 @@
 <?php
 /**
- * WP-CLI: `wp devbridge status|enable|disable` (SPEC 2.12).
+ * WP-CLI: `wp devbridge status|enable|disable|releases|rollback` (SPEC 2.12).
  *
  * @package Lab591\DevBridge
  */
@@ -9,8 +9,10 @@ declare(strict_types=1);
 
 namespace Lab591\DevBridge\Cli;
 
+use Lab591\DevBridge\Deploy\ReleaseStore;
 use Lab591\DevBridge\Mode;
 use Lab591\DevBridge\Plugin;
+use Lab591\DevBridge\Support\ApiException;
 use const Lab591\DevBridge\VERSION;
 
 /**
@@ -68,6 +70,59 @@ final class Command {
 			return;
 		}
 		\WP_CLI::success( sprintf( 'Mode "%s" enabled until %s.', $state['mode'], wp_date( 'Y-m-d H:i', $state['expires_at'] ) ) );
+	}
+
+	/**
+	 * Lists deploy releases, newest first.
+	 *
+	 * @param string[]             $args       Positional arguments.
+	 * @param array<string, mixed> $assoc_args Named arguments.
+	 */
+	public function releases( array $args, array $assoc_args ): void {
+		$rows = [];
+		foreach ( ( new ReleaseStore( $this->plugin->storage()->releasesDir() ) )->all() as $release ) {
+			$rows[] = [
+				'id'      => $release['id'],
+				'date'    => wp_date( 'Y-m-d H:i', (int) $release['created_at'] ),
+				'user'    => $release['user_id'],
+				'written' => $release['written'],
+				'deleted' => $release['deleted'],
+				'status'  => $release['status'],
+			];
+		}
+		if ( [] === $rows ) {
+			\WP_CLI::line( 'No releases.' );
+			return;
+		}
+		\WP_CLI\Utils\format_items( 'table', $rows, [ 'id', 'date', 'user', 'written', 'deleted', 'status' ] );
+	}
+
+	/**
+	 * Rolls back the latest active release, or the given one and every newer release.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [<id>]
+	 * : Release id (default: latest active release).
+	 *
+	 * [--force]
+	 * : Roll back even if files changed on the server after the release.
+	 *
+	 * @param string[]             $args       Positional arguments.
+	 * @param array<string, mixed> $assoc_args Named arguments.
+	 */
+	public function rollback( array $args, array $assoc_args ): void {
+		try {
+			$out = $this->plugin->rollbackService()->rollback( $args[0] ?? null, isset( $assoc_args['force'] ) );
+		} catch ( ApiException $e ) {
+			$detail = '';
+			if ( isset( $e->extra()['conflicts'] ) ) {
+				$detail = ' ' . implode( ', ', array_column( $e->extra()['conflicts'], 'p' ) ) . ' (use --force)';
+			}
+			\WP_CLI::error( $e->getMessage() . $detail );
+			return;
+		}
+		\WP_CLI::success( sprintf( 'Rolled back %s (%d files).', implode( ', ', $out['rolled_back'] ), count( $out['files'] ) ) );
 	}
 
 	/**

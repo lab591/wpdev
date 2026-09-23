@@ -1,5 +1,5 @@
 import type { Context } from '../context.js';
-import { AUTOCRLF_WARNING, autocrlfEnabled } from '../git.js';
+import { AUTOCRLF_WARNING, autocrlfRisk } from '../git.js';
 import { EXIT_OK, type Output } from '../output.js';
 import { scanTree, type LocalFile } from '../scan.js';
 import { State } from '../state.js';
@@ -26,7 +26,7 @@ export async function computeDiff(ctx: Context, warn: (m: string) => void): Prom
 }
 
 export async function diffCommand(ctx: Context, out: Output): Promise<number> {
-  if (await autocrlfEnabled(ctx.config.projectRoot)) {
+  if (await autocrlfRisk(ctx.config.projectRoot)) {
     out.warn(AUTOCRLF_WARNING);
   }
   const plan = await computeDiff(ctx, out.warn);
