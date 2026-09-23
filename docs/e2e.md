@@ -168,3 +168,24 @@ Sito locale `lab591_wpdev_site`, progetto nuovo senza `writable` in `wpdev.json`
 | 8 | `wpdev status` / `wpdev pull` | elenco dal sito; la cartella vuota viene creata in locale | ok |
 | 9 | File del nuovo plugin creato in locale + `wpdev deploy` | plugin visibile in WordPress | ok |
 | 10 | `wpdev deploy --hook` senza modifiche | exit 0, usa l'elenco in cache (nessuna chiamata) | ok |
+
+## 0.4.0 — Nuova interfaccia di amministrazione
+
+React + `@wordpress/components`, dati via admin-ajax. Sito singolo `lab591_wpdev_site` e rete `lab591_wpdev_ms`.
+
+| # | Passo | Esito atteso | Esito |
+|---|---|---|---|
+| 1 | Scheda Stato | modalità con tempo residuo, 7 controlli (ripgrep rilevato con versione e PCRE2), comandi di collegamento, cartelle, release | ok |
+| 2 | Cambio modalità (lettura 1 h, poi scrittura 2 h) | badge aggiornato senza ricaricare, notifica | ok |
+| 3 | Durata oltre il massimo (999 h) | rifiutata con messaggio | ok |
+| 4 | Impostazioni: sottocartelle, selezione di `twentytwentyfive/assets`, salvataggio | barra "modifiche non salvate", salvato; alla riapertura il genitore è espanso | ok |
+| 5 | IP non valido | salvato il resto, messaggio con la voce scartata | ok |
+| 6 | Nuova cartella `ui-test-plugin` | creata, selezionata, notifica | ok |
+| 7 | Audit log: filtro "Errori", paginazione | solo voci con esito ≥ 400 | ok |
+| 8 | Nonce errato, metodo sbagliato, Application Password su admin-ajax | 403 / 405 / non autenticato | ok |
+| 9 | Lingua utente `it_IT` | interfaccia e messaggi del server in italiano | ok |
+| 10 | Rete: pagina in Amministrazione rete (super admin); admin di sottosito | pagina e dati di rete (3 siti) / 403 e ajax rifiutato | ok |
+
+Problema trovato e corretto: un salvataggio con dati mancanti o non validi azzerava le impostazioni (i campi
+assenti erano trattati come vuoti). Ora una richiesta senza impostazioni viene rifiutata e i campi assenti
+mantengono il valore attuale.

@@ -58,6 +58,18 @@ final class RipgrepSearcher {
 		return null !== $out && 0 === $out['code'];
 	}
 
+	/**
+	 * Runs `rg --version`: the first line (e.g. "ripgrep 14.1.1"), or null when rg cannot run.
+	 */
+	public static function version( string $binary, string $tmpDir ): ?string {
+		$out = self::run( [ $binary, '--version' ], $tmpDir, 5.0 );
+		if ( null === $out || 0 !== $out['code'] ) {
+			return null;
+		}
+		$line = trim( explode( "\n", $out['output'] )[0] );
+		return '' === $line ? null : substr( $line, 0, 80 );
+	}
+
 	public function supports( bool $regex ): bool {
 		return ! $regex || $this->pcre2;
 	}

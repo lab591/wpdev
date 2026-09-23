@@ -7,3 +7,5 @@
 .env.local
 *.log
 /dist/
+/plugin/node_modules/
+/plugin/build/

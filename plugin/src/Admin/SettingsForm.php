@@ -63,7 +63,8 @@ final class SettingsForm {
 			try {
 				$out['writable_roots'][] = $validator->validate( $root );
 			} catch ( PathException $e ) {
-				$this->errors[] = sprintf( 'Cartella scrivibile "%s" rifiutata: %s', $root, $e->getMessage() );
+				/* translators: 1: folder, 2: reason. */
+				$this->errors[] = sprintf( __( 'Writable folder "%1$s" rejected: %2$s', 'lab591-dev-bridge' ), $root, $e->getMessage() );
 			}
 		}
 		$out['writable_roots'] = self::withoutNested( array_values( array_unique( $out['writable_roots'] ) ) );
@@ -82,7 +83,8 @@ final class SettingsForm {
 				}
 				$out['read_roots'][] = $resolved->relative;
 			} catch ( PathException $e ) {
-				$this->errors[] = sprintf( 'Cartella leggibile "%s" rifiutata: %s', $root, $e->getMessage() );
+				/* translators: 1: folder, 2: reason. */
+				$this->errors[] = sprintf( __( 'Readable folder "%1$s" rejected: %2$s', 'lab591-dev-bridge' ), $root, $e->getMessage() );
 			}
 		}
 		$out['read_roots'] = array_values( array_unique( $out['read_roots'] ) );
@@ -93,11 +95,13 @@ final class SettingsForm {
 		foreach ( self::lines( $input['write_extensions'] ?? '', true ) as $ext ) {
 			$ext = strtolower( ltrim( $ext, '.' ) );
 			if ( 1 !== preg_match( '/^[a-z0-9]{1,10}$/', $ext ) ) {
-				$this->errors[] = sprintf( 'Estensione "%s" non valida', $ext );
+				/* translators: %s: file extension. */
+				$this->errors[] = sprintf( __( 'Extension "%s" is not valid', 'lab591-dev-bridge' ), $ext );
 				continue;
 			}
 			if ( in_array( $ext, PathPolicy::EXECUTABLE_EXTENSIONS, true ) ) {
-				$this->errors[] = sprintf( 'Estensione "%s" sempre vietata', $ext );
+				/* translators: %s: file extension. */
+				$this->errors[] = sprintf( __( 'Extension "%s" is never writable', 'lab591-dev-bridge' ), $ext );
 				continue;
 			}
 			$exts[] = $ext;
@@ -110,7 +114,8 @@ final class SettingsForm {
 				if ( IpMatcher::isValidEntry( $entry ) ) {
 					$out[ $key ][] = $entry;
 				} else {
-					$this->errors[] = sprintf( 'Indirizzo IP/CIDR "%s" non valido', $entry );
+					/* translators: %s: IP address or CIDR range. */
+					$this->errors[] = sprintf( __( 'IP address/CIDR "%s" is not valid', 'lab591-dev-bridge' ), $entry );
 				}
 			}
 		}
@@ -127,14 +132,16 @@ final class SettingsForm {
 			$out['grep_rg'] = $rg;
 		} else {
 			$out['grep_rg'] = '';
-			$this->errors[] = sprintf( 'ripgrep "%s" rifiutato: indica "rg" oppure il percorso assoluto di rg/rg.exe', $rg );
+			/* translators: %s: configured ripgrep binary. */
+			$this->errors[] = sprintf( __( 'ripgrep "%s" rejected: use "rg" or the absolute path of rg/rg.exe', 'lab591-dev-bridge' ), $rg );
 		}
 
 		$out['health_urls'] = [];
 		foreach ( self::lines( $input['health_urls'] ?? '' ) as $url ) {
 			$parts = self::parseUrl( $url );
 			if ( null === $parts || ! in_array( $parts['scheme'], [ 'http', 'https' ], true ) || ! in_array( strtolower( $parts['host'] ), array_map( 'strtolower', (array) $this->allowedHosts ), true ) ) {
-				$this->errors[] = sprintf( 'URL di health check "%s" rifiutato: deve essere sullo stesso host del sito', $url );
+				/* translators: %s: URL. */
+				$this->errors[] = sprintf( __( 'Health check URL "%s" rejected: it must be on the same host as the site', 'lab591-dev-bridge' ), $url );
 				continue;
 			}
 			$out['health_urls'][] = $url;

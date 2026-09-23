@@ -32,6 +32,20 @@ namespace {
 
 	use Lab591\DevBridge\Tests\Support\WpStubs;
 
+	if ( ! function_exists( '__' ) ) {
+		// phpcs:disable WordPress.WP.I18n -- stand-ins of the i18n functions (tests use the English source strings).
+		function __( string $text, string $domain = 'default' ): string {
+			return $text;
+		}
+		function _n( string $single, string $plural, int $number, string $domain = 'default' ): string {
+			return 1 === $number ? $single : $plural;
+		}
+		function esc_html__( string $text, string $domain = 'default' ): string {
+			return htmlspecialchars( $text, ENT_QUOTES );
+		}
+		// phpcs:enable
+	}
+
 	if ( ! function_exists( 'get_option' ) ) {
 		function get_option( string $name, mixed $default_value = false ): mixed {
 			return WpStubs::$options[ $name ] ?? $default_value;

@@ -21,10 +21,11 @@ La specifica completa è in [`SPEC.md`](SPEC.md); i dettagli del protocollo in
 
 ## 1. Installare il plugin sul sito
 
-Requisiti: WordPress ≥ 6.4, PHP ≥ 8.1 con estensione `zip`, HTTPS (in locale basta
+Requisiti: WordPress ≥ 6.6, PHP ≥ 8.1 con estensione `zip`, HTTPS (in locale basta
 `WP_ENVIRONMENT_TYPE` = `local`).
 
-1. Crea lo zip: `cd plugin && composer package` → `dist/lab591-dev-bridge-<versione>.zip`.
+1. Crea lo zip: `cd plugin && npm install && npm run package` → `dist/lab591-dev-bridge-<versione>.zip`
+   (compila l'interfaccia di amministrazione e impacchetta; servono Node 20+ e Composer).
 2. Caricalo da *Plugin → Aggiungi nuovo → Carica plugin* e attivalo.
    All'attivazione viene copiato il mu-plugin di rescue in `wp-content/mu-plugins/`.
 3. **Consigliato:** sposta lo storage privato (backup delle release, token) fuori dalla document root,
@@ -37,7 +38,8 @@ Requisiti: WordPress ≥ 6.4, PHP ≥ 8.1 con estensione `zip`, HTTPS (in locale
    Senza la costante lo storage è in `wp-content/devbridge-<suffisso casuale>/`, protetto da
    `.htaccess`. **Su Nginx** serve una regola esplicita (la pagina del plugin mostra lo snippet esatto):
    `location ~ ^/wp-content/devbridge-<suffisso>/ { deny all; return 404; }`.
-4. In *Impostazioni → Dev Bridge → Impostazioni*:
+4. In *Impostazioni → Dev Bridge* la scheda **Stato** mostra modalità, controlli di configurazione (utenti,
+   HTTPS, rescue, storage, ripgrep) e i comandi per collegare Claude Code. Nella scheda **Impostazioni**:
    - **Utenti autorizzati**: spunta il tuo utente amministratore (di default nessuno può accedere);
    - **Cartelle scrivibili**: spunta il tema e/o il plugin su cui lavorare (es. `mio-child`, `mio-plugin`);
      con *sottocartelle* puoi scegliere anche solo una parte. L'elenco mostra solo ciò che è ammesso: le
@@ -228,8 +230,19 @@ le regex richiedono ripgrep con PCRE2, altrimenti si usa la ricerca PHP. `site_g
 
 ```bash
 cd plugin    && composer install && composer test && composer lint
+cd plugin    && npm install && npm run lint && npm run build   # interfaccia admin (React)
 cd companion && npm install && npm test && npm run lint && npm run build
 ```
+
+L'interfaccia di amministrazione è in `plugin/admin/src/` (React + TypeScript con i componenti di
+WordPress, `@wordpress/components`); `npm run build` la compila in `plugin/build/` (non versionata, inclusa
+nello zip). `npm run start` la ricompila a ogni modifica. Parla con il PHP tramite `admin-ajax`
+(`Admin\AdminController`), **mai** tramite la REST API: le Application Password usate dal companion
+valgono per la REST API, e nessuna API raggiungibile con quelle credenziali può cambiare modalità o
+impostazioni.
+
+Traduzioni: stringhe in inglese nel codice, italiano in `plugin/tools/translations/it_IT.json`.
+`npm run i18n` (richiede WP-CLI) rigenera `languages/` (`.pot`, `.po`, `.mo` e il JSON per il JavaScript).
 
 I test PHPUnit del plugin girano senza WordPress. I test sui symlink vengono saltati dove il sistema
 non permette di crearli (Windows senza modalità sviluppatore); quelli di ripgrep girano se

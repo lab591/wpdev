@@ -1,0 +1,926 @@
+# Copyright (C) 2026 Lab591
+# This file is distributed under the Proprietary.
+msgid ""
+msgstr ""
+"Project-Id-Version: Lab591 Dev Bridge 0.3.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/lab591-dev-bridge\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-09-23T18:02:53+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: lab591-dev-bridge\n"
+
+#. Plugin Name of the plugin
+#: lab591-dev-bridge.php
+msgid "Lab591 Dev Bridge"
+msgstr ""
+
+#. Description of the plugin
+#: lab591-dev-bridge.php
+msgid "Secure bridge between a local Claude Code workspace and this site: read-only exploration, controlled deploys with health check and rollback."
+msgstr ""
+
+#. Author of the plugin
+#: lab591-dev-bridge.php
+msgid "Lab591"
+msgstr ""
+
+#: src/Admin/AdminController.php:88
+msgid "You are not allowed to manage Dev Bridge."
+msgstr ""
+
+#: src/Admin/AdminController.php:91
+msgid "This page has expired: reload it and try again."
+msgstr ""
+
+#. translators: %d: number of authorized users.
+#: src/Admin/AdminController.php:181
+#, php-format
+msgid "%d authorized user"
+msgid_plural "%d authorized users"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Admin/AdminController.php:183
+msgid "No authorized user"
+msgstr ""
+
+#: src/Admin/AdminController.php:183
+msgid "Nobody can connect until you select at least one user in Settings → Access."
+msgstr ""
+
+#. translators: %d: number of writable folders.
+#: src/Admin/AdminController.php:189
+#, php-format
+msgid "%d writable folder"
+msgid_plural "%d writable folders"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Admin/AdminController.php:191
+msgid "No writable folder"
+msgstr ""
+
+#: src/Admin/AdminController.php:191
+msgid "Claude can read the site but not deploy: choose a theme or plugin in Settings → Writable folders."
+msgstr ""
+
+#: src/Admin/AdminController.php:195
+msgid "HTTPS active"
+msgstr ""
+
+#: src/Admin/AdminController.php:197
+msgid "Local environment: HTTP allowed"
+msgstr ""
+
+#: src/Admin/AdminController.php:197
+msgid "On a real site HTTPS is mandatory."
+msgstr ""
+
+#: src/Admin/AdminController.php:199
+msgid "The site is not on HTTPS"
+msgstr ""
+
+#: src/Admin/AdminController.php:199
+msgid "Requests will be rejected until the site uses HTTPS."
+msgstr ""
+
+#: src/Admin/AdminController.php:203
+msgid "Application Passwords available"
+msgstr ""
+
+#: src/Admin/AdminController.php:205
+msgid "Application Passwords are disabled"
+msgstr ""
+
+#: src/Admin/AdminController.php:205
+msgid "They are required to connect: check plugins or code that disable them."
+msgstr ""
+
+#: src/Admin/AdminController.php:210
+msgid "Out-of-band rescue installed"
+msgstr ""
+
+#: src/Admin/AdminController.php:212
+msgid "Out-of-band rescue not installed yet"
+msgstr ""
+
+#: src/Admin/AdminController.php:212
+msgid "It will be installed automatically on the next admin page load."
+msgstr ""
+
+#: src/Admin/AdminController.php:217
+msgid "Out-of-band rescue not installed"
+msgstr ""
+
+#: src/Admin/AdminController.php:218
+msgid "The mu-plugins folder is not directly writable. Copy the file below into wp-content/mu-plugins/ (permissions 0644)."
+msgstr ""
+
+#: src/Admin/AdminController.php:228
+msgid "Private storage inside wp-content"
+msgstr ""
+
+#: src/Admin/AdminController.php:229
+msgid "It has a random name and is protected by .htaccess. Recommended: move it outside the web root in wp-config.php; on Nginx add the rule below."
+msgstr ""
+
+#: src/Admin/AdminController.php:233
+msgid "Private storage outside the web root"
+msgstr ""
+
+#: src/Admin/AdminController.php:238
+msgid "Fast search active, regular expressions included (PCRE2)."
+msgstr ""
+
+#: src/Admin/AdminController.php:238
+msgid "Fast search active for text; regular expressions use the PHP search (no PCRE2)."
+msgstr ""
+
+#: src/Admin/AdminController.php:240
+msgid "ripgrep configured but not executable"
+msgstr ""
+
+#: src/Admin/AdminController.php:240
+msgid "Search keeps working with the PHP engine. Check the path in Settings → Search."
+msgstr ""
+
+#: src/Admin/AdminController.php:242
+msgid "ripgrep not configured"
+msgstr ""
+
+#: src/Admin/AdminController.php:242
+msgid "Optional: search uses the PHP engine."
+msgstr ""
+
+#: src/Admin/AdminController.php:257
+msgid "Development mode disabled."
+msgstr ""
+
+#: src/Admin/AdminController.php:262
+msgid "Choose read or write."
+msgstr ""
+
+#. translators: %d: maximum number of hours.
+#: src/Admin/AdminController.php:267
+#, php-format
+msgid "Duration must be between 1 and %d hours."
+msgstr ""
+
+#. translators: %d: hours.
+#: src/Admin/AdminController.php:272
+#, php-format
+msgid "Read and write enabled for %d hour."
+msgid_plural "Read and write enabled for %d hours."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: hours.
+#: src/Admin/AdminController.php:274
+#, php-format
+msgid "Read-only access enabled for %d hour."
+msgid_plural "Read-only access enabled for %d hours."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Admin/AdminController.php:299
+msgid "Invalid request: nothing was saved."
+msgstr ""
+
+#: src/Admin/AdminController.php:311
+msgid "Settings saved."
+msgstr ""
+
+#: src/Admin/AdminController.php:311
+#: build/index.js:8
+msgid "Settings saved, some entries were discarded:"
+msgstr ""
+
+#: src/Admin/AdminController.php:395
+msgid "This folder cannot be listed."
+msgstr ""
+
+#. translators: %s: folder path.
+#: src/Admin/AdminController.php:424
+#, php-format
+msgid "Folder %s created and made writable. Run \"wpdev pull\" in the local project."
+msgstr ""
+
+#: src/Admin/AdminController.php:449
+msgid "active theme"
+msgstr ""
+
+#: src/Admin/AdminPage.php:106
+msgid "The admin interface has not been built: run \"npm install && npm run build\" in the plugin folder, or install the release zip."
+msgstr ""
+
+#: src/Admin/AdminPage.php:109
+msgid "Dev Bridge settings need JavaScript."
+msgstr ""
+
+#: src/Admin/AdminPage.php:119
+#: build/index.js:12
+msgid "Settings"
+msgstr ""
+
+#. translators: %d: number of release backups.
+#: src/Admin/AdminPage.php:124
+#, php-format
+msgid "There is %d Dev Bridge release backup. Deactivating also switches off the rescue; deleting the plugin deletes the backups. Continue?"
+msgid_plural "There are %d Dev Bridge release backups. Deactivating also switches off the rescue; deleting the plugin deletes the backups. Continue?"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Admin/AdminPage.php:148
+msgid "Dev Bridge: the rescue mu-plugin is not installed, out-of-band rollback is not available."
+msgstr ""
+
+#: src/Admin/AdminPage.php:150
+msgid "Details"
+msgstr ""
+
+#: src/Admin/FolderCreator.php:41
+msgid "container not allowed"
+msgstr ""
+
+#. translators: %s: reason.
+#: src/Admin/FolderCreator.php:61
+#, php-format
+msgid "the folder cannot be created there (%s)"
+msgstr ""
+
+#: src/Admin/FolderCreator.php:75
+msgid "The folder could not be created (server permissions?)"
+msgstr ""
+
+#. translators: %s: reason.
+#: src/Admin/FolderCreator.php:85
+#, php-format
+msgid "folder not allowed (%s)"
+msgstr ""
+
+#: src/Admin/FolderCreator.php:96
+msgid "missing name"
+msgstr ""
+
+#. translators: %d: maximum depth.
+#: src/Admin/FolderCreator.php:101
+#, php-format
+msgid "at most %d levels"
+msgstr ""
+
+#. translators: %s: folder name.
+#: src/Admin/FolderCreator.php:106
+#, php-format
+msgid "name \"%s\" is not valid: use letters, numbers, \"-\", \"_\" and \".\" (not first)"
+msgstr ""
+
+#: src/Admin/FolderCreator.php:128
+msgid "deny list or protected folder"
+msgstr ""
+
+#: src/Admin/FolderPicker.php:76
+#: src/Admin/FolderPicker.php:122
+msgid "contains Dev Bridge files"
+msgstr ""
+
+#: src/Admin/FolderPicker.php:125
+msgid "symbolic link pointing outside"
+msgstr ""
+
+#: src/Admin/FolderPicker.php:127
+msgid "not allowed (deny list or invalid name)"
+msgstr ""
+
+#. translators: 1: folder, 2: reason.
+#: src/Admin/SettingsForm.php:67
+#, php-format
+msgid "Writable folder \"%1$s\" rejected: %2$s"
+msgstr ""
+
+#. translators: 1: folder, 2: reason.
+#: src/Admin/SettingsForm.php:87
+#, php-format
+msgid "Readable folder \"%1$s\" rejected: %2$s"
+msgstr ""
+
+#. translators: %s: file extension.
+#: src/Admin/SettingsForm.php:99
+#, php-format
+msgid "Extension \"%s\" is not valid"
+msgstr ""
+
+#. translators: %s: file extension.
+#: src/Admin/SettingsForm.php:104
+#, php-format
+msgid "Extension \"%s\" is never writable"
+msgstr ""
+
+#. translators: %s: IP address or CIDR range.
+#: src/Admin/SettingsForm.php:118
+#, php-format
+msgid "IP address/CIDR \"%s\" is not valid"
+msgstr ""
+
+#. translators: %s: configured ripgrep binary.
+#: src/Admin/SettingsForm.php:136
+#, php-format
+msgid "ripgrep \"%s\" rejected: use \"rg\" or the absolute path of rg/rg.exe"
+msgstr ""
+
+#. translators: %s: URL.
+#: src/Admin/SettingsForm.php:144
+#, php-format
+msgid "Health check URL \"%s\" rejected: it must be on the same host as the site"
+msgstr ""
+
+#: src/Plugin.php:83
+msgid "On a multisite network Dev Bridge can only be network-activated (Network Admin → Plugins → Network Activate), because themes and plugins are shared by all sites."
+msgstr ""
+
+#: src/Plugin.php:84
+msgid "Activation not allowed"
+msgstr ""
+
+#: src/Plugin.php:117
+msgid "Dev Bridge is active on this site only, but this is a multisite network: deactivate it and network-activate it from Network Admin. Until then it does nothing."
+msgstr ""
+
+#. translators: %d: HTTP status code.
+#: build/index.js:2
+#, js-format
+msgid "The request failed (HTTP %d). Reload the page and try again."
+msgstr ""
+
+#. translators: %d: minutes.
+#: build/index.js:3
+#, js-format
+msgid "%d minute"
+msgid_plural "%d minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: hours, 2: minutes.
+#: build/index.js:4
+#, js-format
+msgid "%1$d h %2$d min"
+msgstr ""
+
+#. translators: %d: hours.
+#: build/index.js:5
+#, js-format
+msgid "%d hour"
+msgid_plural "%d hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#: build/index.js:5
+#: build/index.js:11
+msgid "Read"
+msgstr ""
+
+#: build/index.js:5
+msgid "Write"
+msgstr ""
+
+#: build/index.js:5
+msgid "Off"
+msgstr ""
+
+#. translators: %s: remaining time.
+#: build/index.js:6
+#, js-format
+msgid "%s left"
+msgstr ""
+
+#: build/index.js:6
+msgid "Copy"
+msgstr ""
+
+#: build/index.js:6
+msgid "Copied"
+msgstr ""
+
+#: build/index.js:6
+#: build/index.js:12
+msgid "Audit log"
+msgstr ""
+
+#: build/index.js:6
+msgid "Every API request: who, from where, what and with which result. File contents and passwords are never logged."
+msgstr ""
+
+#: build/index.js:6
+msgid "Refresh"
+msgstr ""
+
+#: build/index.js:6
+msgid "Endpoint"
+msgstr ""
+
+#: build/index.js:6
+msgid "All"
+msgstr ""
+
+#: build/index.js:6
+msgid "Site"
+msgstr ""
+
+#: build/index.js:6
+#: build/index.js:10
+msgid "Result"
+msgstr ""
+
+#: build/index.js:6
+msgid "Successful"
+msgstr ""
+
+#: build/index.js:6
+msgid "Errors"
+msgstr ""
+
+#: build/index.js:6
+msgid "User ID"
+msgstr ""
+
+#: build/index.js:6
+msgid "From"
+msgstr ""
+
+#: build/index.js:6
+msgid "To"
+msgstr ""
+
+#: build/index.js:6
+msgid "Filter"
+msgstr ""
+
+#: build/index.js:6
+msgid "Reset"
+msgstr ""
+
+#: build/index.js:6
+msgid "Date (UTC)"
+msgstr ""
+
+#: build/index.js:6
+#: build/index.js:10
+msgid "User"
+msgstr ""
+
+#: build/index.js:6
+msgid "IP"
+msgstr ""
+
+#: build/index.js:6
+msgid "Mode"
+msgstr ""
+
+#: build/index.js:6
+msgid "Paths"
+msgstr ""
+
+#: build/index.js:6
+msgid "Size"
+msgstr ""
+
+#: build/index.js:6
+msgid "Time"
+msgstr ""
+
+#: build/index.js:6
+#: build/index.js:10
+msgid "Release"
+msgstr ""
+
+#: build/index.js:6
+msgid "No entries."
+msgstr ""
+
+#. translators: %d: number of entries.
+#: build/index.js:7
+#, js-format
+msgid "%d entry"
+msgid_plural "%d entries"
+msgstr[0] ""
+msgstr[1] ""
+
+#: build/index.js:7
+msgid "Previous"
+msgstr ""
+
+#. translators: 1: current page, 2: total pages.
+#: build/index.js:8
+#, js-format
+msgid "Page %1$d of %2$d"
+msgstr ""
+
+#: build/index.js:8
+msgid "Next"
+msgstr ""
+
+#: build/index.js:8
+msgid "… list truncated"
+msgstr ""
+
+#: build/index.js:8
+msgid "No folders."
+msgstr ""
+
+#: build/index.js:8
+msgid "included"
+msgstr ""
+
+#: build/index.js:8
+msgid "Hide sub-folders"
+msgstr ""
+
+#: build/index.js:8
+msgid "Sub-folders"
+msgstr ""
+
+#: build/index.js:8
+msgid "Bytes per read"
+msgstr ""
+
+#: build/index.js:8
+msgid "Search results"
+msgstr ""
+
+#: build/index.js:8
+msgid "Search time (ms)"
+msgstr ""
+
+#: build/index.js:8
+msgid "Largest file searched"
+msgstr ""
+
+#: build/index.js:8
+msgid "Files per manifest"
+msgstr ""
+
+#: build/index.js:8
+msgid "Files per download"
+msgstr ""
+
+#: build/index.js:8
+msgid "Bytes per download"
+msgstr ""
+
+#: build/index.js:8
+msgid "Deploy size"
+msgstr ""
+
+#: build/index.js:8
+msgid "Files per deploy"
+msgstr ""
+
+#: build/index.js:8
+msgid "Largest deployed file"
+msgstr ""
+
+#: build/index.js:8
+msgid ". (whole site)"
+msgstr ""
+
+#: build/index.js:8
+#: build/index.js:11
+msgid "Access"
+msgstr ""
+
+#: build/index.js:8
+msgid "Only network super admins, authenticated with an Application Password."
+msgstr ""
+
+#: build/index.js:8
+msgid "Only administrators, authenticated with an Application Password."
+msgstr ""
+
+#: build/index.js:8
+msgid "Authorized users"
+msgstr ""
+
+#: build/index.js:8
+msgid "Nobody can connect until you select a user."
+msgstr ""
+
+#: build/index.js:8
+msgid "IP allowlist"
+msgstr ""
+
+#: build/index.js:8
+msgid "Empty = any IP. IPv4/IPv6 or CIDR, e.g. 203.0.113.0/24."
+msgstr ""
+
+#: build/index.js:8
+msgid "Trusted proxies"
+msgstr ""
+
+#: build/index.js:8
+msgid "X-Forwarded-For is used only for requests coming from these addresses."
+msgstr ""
+
+#: build/index.js:8
+#: build/index.js:10
+msgid "Writable folders"
+msgstr ""
+
+#: build/index.js:8
+msgid "Choose the themes and plugins Claude works on (or only some of their sub-folders). Selecting a folder includes its sub-folders. The whole themes/ and plugins/ folders and Dev Bridge itself cannot be selected."
+msgstr ""
+
+#. translators: %s: list of folders.
+#: build/index.js:9
+#, js-format
+msgid "Saved folders that are no longer valid and will be removed on save: %s"
+msgstr ""
+
+#: build/index.js:9
+msgid "Allow folders in wp-content/mu-plugins/"
+msgstr ""
+
+#: build/index.js:9
+msgid "Save to update the list of folders."
+msgstr ""
+
+#: build/index.js:9
+msgid "Must-use plugins load on every request: enable only if you need it."
+msgstr ""
+
+#: build/index.js:9
+msgid "Reading and search"
+msgstr ""
+
+#: build/index.js:9
+msgid "What Claude can read. wp-config, .env, .git, .htpasswd and the private storage are always excluded."
+msgstr ""
+
+#: build/index.js:9
+msgid "Readable folders"
+msgstr ""
+
+#: build/index.js:9
+msgid "\".\" is the whole site."
+msgstr ""
+
+#: build/index.js:9
+msgid "Deny list (glob)"
+msgstr ""
+
+#: build/index.js:9
+msgid "Applied after resolving paths, e.g. **/*.sql."
+msgstr ""
+
+#: build/index.js:9
+msgid "Folders skipped by search"
+msgstr ""
+
+#: build/index.js:9
+msgid "Folder names, e.g. node_modules."
+msgstr ""
+
+#: build/index.js:9
+msgid "ripgrep acceleration (optional)"
+msgstr ""
+
+#: build/index.js:9
+msgid "Empty = off. \"rg\" from the PATH or the absolute path of rg/rg.exe. Results still go through the path checks and the deny list."
+msgstr ""
+
+#: build/index.js:9
+msgid "Deploy and health check"
+msgstr ""
+
+#: build/index.js:9
+msgid "Writable file extensions"
+msgstr ""
+
+#: build/index.js:9
+msgid ".htaccess, .user.ini, .phar and alternative PHP extensions are never writable."
+msgstr ""
+
+#: build/index.js:9
+msgid "Health check URLs"
+msgstr ""
+
+#: build/index.js:9
+msgid "Checked after every deploy. Empty = home page. Only URLs of this site (or network)."
+msgstr ""
+
+#: build/index.js:9
+msgid "Releases kept"
+msgstr ""
+
+#: build/index.js:9
+msgid "Older backups are deleted."
+msgstr ""
+
+#: build/index.js:9
+msgid "Audit log days"
+msgstr ""
+
+#: build/index.js:9
+msgid "Durations and limits"
+msgstr ""
+
+#: build/index.js:9
+msgid "Defaults suit most sites."
+msgstr ""
+
+#: build/index.js:9
+msgid "Longest read mode (hours)"
+msgstr ""
+
+#: build/index.js:9
+msgid "Longest write mode (hours)"
+msgstr ""
+
+#: build/index.js:9
+msgid "Unsaved changes"
+msgstr ""
+
+#: build/index.js:9
+msgid "All changes saved"
+msgstr ""
+
+#: build/index.js:9
+msgid "Discard"
+msgstr ""
+
+#: build/index.js:9
+msgid "Save settings"
+msgstr ""
+
+#: build/index.js:9
+msgid "New folder"
+msgstr ""
+
+#: build/index.js:9
+msgid "For a plugin or theme that does not exist yet: the folder is created empty and made writable. After \"wpdev pull\" you can ask Claude, for example, to create a plugin or a child theme there."
+msgstr ""
+
+#: build/index.js:9
+msgid "In"
+msgstr ""
+
+#: build/index.js:9
+msgid "Name"
+msgstr ""
+
+#: build/index.js:9
+msgid "my-plugin or my-theme/blocks"
+msgstr ""
+
+#: build/index.js:9
+msgid "Create and select"
+msgstr ""
+
+#: build/index.js:9
+msgid "Setup checks"
+msgstr ""
+
+#. translators: %d: number of checks needing attention.
+#: build/index.js:10
+#, js-format
+msgid "%d item needs attention."
+msgid_plural "%d items need attention."
+msgstr[0] ""
+msgstr[1] ""
+
+#: build/index.js:10
+msgid "Everything is ready."
+msgstr ""
+
+#: build/index.js:10
+msgid "The only folders Claude can change. The companion reads this list from the site."
+msgstr ""
+
+#: build/index.js:10
+msgid "Change"
+msgstr ""
+
+#: build/index.js:10
+msgid "None yet: Claude can read the site but not deploy."
+msgstr ""
+
+#: build/index.js:10
+msgid "Recent releases"
+msgstr ""
+
+#: build/index.js:10
+msgid "Every deploy keeps a backup. Roll back with \"wpdev rollback\" or \"wp devbridge rollback\"."
+msgstr ""
+
+#: build/index.js:10
+msgid "Date"
+msgstr ""
+
+#: build/index.js:10
+msgid "Written"
+msgstr ""
+
+#: build/index.js:10
+msgid "Deleted"
+msgstr ""
+
+#: build/index.js:10
+msgid "No deploys yet."
+msgstr ""
+
+#: build/index.js:10
+msgid "Development mode"
+msgstr ""
+
+#: build/index.js:10
+msgid "Claude can connect only while a mode is active. It switches off by itself when the time is up."
+msgstr ""
+
+#. translators: 1: remaining time, 2: date and time.
+#: build/index.js:11
+#, js-format
+msgid "%1$s left · until %2$s"
+msgstr ""
+
+#: build/index.js:11
+msgid "No access: the API answers only with the mode."
+msgstr ""
+
+#: build/index.js:11
+msgid "Read + write"
+msgstr ""
+
+#: build/index.js:11
+msgid "Hours"
+msgstr ""
+
+#. translators: %d: maximum hours.
+#: build/index.js:12
+#, js-format
+msgid "Up to %d hours."
+msgstr ""
+
+#: build/index.js:12
+msgid "Update"
+msgstr ""
+
+#: build/index.js:12
+msgid "Enable"
+msgstr ""
+
+#: build/index.js:12
+msgid "Disable now"
+msgstr ""
+
+#: build/index.js:12
+msgid "The mode can only be changed here or with WP-CLI (wp devbridge enable|disable): no API can change it."
+msgstr ""
+
+#: build/index.js:12
+msgid "Connect Claude Code"
+msgstr ""
+
+#: build/index.js:12
+msgid "Three steps on your computer, in the folder of the local project."
+msgstr ""
+
+#: build/index.js:12
+msgid "Create an Application Password for your user."
+msgstr ""
+
+#: build/index.js:12
+msgid "Open your profile"
+msgstr ""
+
+#: build/index.js:12
+msgid "Save it in .env.local and initialize the project:"
+msgstr ""
+
+#: build/index.js:12
+msgid "Download the writable folders, then open Claude Code in that folder:"
+msgstr ""
+
+#: build/index.js:12
+msgid "REST endpoint:"
+msgstr ""
+
+#: build/index.js:12
+msgid "Status"
+msgstr ""
+
+#. translators: 1: "whole network" or empty, 2: plugin version.
+#: build/index.js:13
+#, js-format
+msgid "Claude Code ↔ WordPress%1$s · v%2$s"
+msgstr ""
+
+#: build/index.js:13
+msgid "whole network"
+msgstr ""
+
+#: build/index.js:13
+msgid "Dev Bridge sections"
+msgstr ""

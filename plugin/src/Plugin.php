@@ -61,6 +61,7 @@ final class Plugin {
 			add_action( 'admin_notices', [ self::class, 'singleSiteNotice' ] );
 			return;
 		}
+		add_action( 'init', [ self::class, 'loadTextdomain' ] );
 		add_action( 'rest_api_init', [ new Api( $this ), 'register' ] );
 		add_action( self::CRON_AUDIT, [ $this, 'cleanupAudit' ] );
 		add_action( 'plugins_loaded', [ $this->audit, 'maybeUpgrade' ] );
@@ -79,8 +80,8 @@ final class Plugin {
 	public static function activate( $networkWide = false ): void {
 		if ( Options::network() && ! $networkWide ) {
 			wp_die(
-				esc_html__( 'Dev Bridge in una rete multisite si attiva solo a livello di rete (Amministrazione rete → Plugin → Attiva sulla rete), perché temi e plugin sono condivisi da tutti i siti.', 'lab591-dev-bridge' ),
-				esc_html__( 'Attivazione non consentita', 'lab591-dev-bridge' ),
+				esc_html__( 'On a multisite network Dev Bridge can only be network-activated (Network Admin → Plugins → Network Activate), because themes and plugins are shared by all sites.', 'lab591-dev-bridge' ),
+				esc_html__( 'Activation not allowed', 'lab591-dev-bridge' ),
 				[ 'back_link' => true ]
 			);
 		}
@@ -105,11 +106,15 @@ final class Plugin {
 		return is_array( $active ) && isset( $active[ plugin_basename( PLUGIN_FILE ) ] );
 	}
 
+	public static function loadTextdomain(): void {
+		load_plugin_textdomain( 'lab591-dev-bridge', false, dirname( plugin_basename( PLUGIN_FILE ) ) . '/languages' );
+	}
+
 	public static function singleSiteNotice(): void {
 		if ( ! current_user_can( 'activate_plugins' ) ) {
 			return;
 		}
-		echo '<div class="notice notice-error"><p>' . esc_html__( 'Dev Bridge è attivo solo su questo sito ma l\'installazione è una rete multisite: disattivalo e attivalo dall\'Amministrazione rete. Finché non lo fai è inattivo.', 'lab591-dev-bridge' ) . '</p></div>';
+		echo '<div class="notice notice-error"><p>' . esc_html__( 'Dev Bridge is active on this site only, but this is a multisite network: deactivate it and network-activate it from Network Admin. Until then it does nothing.', 'lab591-dev-bridge' ) . '</p></div>';
 	}
 
 	/**
@@ -276,6 +281,47 @@ final class Plugin {
 			}
 		}
 		return new GrepService( $this->guard(), $settings->limit( 'grep_results' ), $settings->limit( 'grep_ms' ), $settings->limit( 'grep_file_bytes' ), $skip, $rg );
+	}
+
+	/**
+	 * Optional ripgrep acceleration, for the admin status: "off" (not configured), "ok" (runs;
+	 * version and PCRE2 support) or "error" (configured but not executable). Cached for a day.
+	 *
+	 * @return array{state: string, version: string, pcre2: bool}
+	 */
+	public function ripgrepStatus( bool $refresh = false ): array {
+		$binary = trim( (string) $this->settings->get( 'grep_rg' ) );
+		$result = [
+			'state'   => 'off',
+			'version' => '',
+			'pcre2'   => false,
+		];
+		if ( '' === $binary ) {
+			return $result;
+		}
+		$key    = 'devbridge_rg_status_' . md5( $binary );
+		$cached = $refresh ? false : Options::getTransient( $key );
+		if ( is_array( $cached ) && isset( $cached['state'], $cached['version'], $cached['pcre2'] ) ) {
+			return $cached;
+		}
+		$result['state'] = 'error';
+		if ( RipgrepSearcher::isValidBinary( $binary ) && function_exists( 'proc_open' ) ) {
+			try {
+				$this->storage()->ensure();
+				$version = RipgrepSearcher::version( $binary, $this->storage()->tmpDir() );
+				if ( null !== $version ) {
+					$result = [
+						'state'   => 'ok',
+						'version' => $version,
+						'pcre2'   => RipgrepSearcher::detectPcre2( $binary, $this->storage()->tmpDir() ),
+					];
+				}
+			} catch ( \Throwable ) {
+				$result['state'] = 'error';
+			}
+		}
+		Options::setTransient( $key, $result, DAY_IN_SECONDS );
+		return $result;
 	}
 
 	public function rollbackService(): RollbackService {

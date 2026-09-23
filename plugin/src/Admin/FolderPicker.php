@@ -73,7 +73,7 @@ final class FolderPicker {
 					'path'       => $rel,
 					'name'       => $name,
 					'selectable' => false,
-					'reason'     => in_array( $rel, $this->devBridgeDirs, true ) ? 'contiene i file di Dev Bridge' : self::reason( $e ),
+					'reason'     => in_array( $rel, $this->devBridgeDirs, true ) ? __( 'contains Dev Bridge files', 'lab591-dev-bridge' ) : self::reason( $e ),
 					'expandable' => false,
 				];
 			}
@@ -114,16 +114,16 @@ final class FolderPicker {
 	}
 
 	/**
-	 * Short Italian reason shown next to a folder that cannot be selected.
+	 * Short reason shown next to a folder that cannot be selected.
 	 */
 	private static function reason( PathException $e ): string {
 		$message = $e->getMessage();
 		if ( str_contains( $message, 'Dev Bridge' ) ) {
-			return 'contiene i file di Dev Bridge';
+			return __( 'contains Dev Bridge files', 'lab591-dev-bridge' );
 		}
 		if ( str_contains( $message, 'outside' ) || str_contains( $message, 'symbolic' ) ) {
-			return 'collegamento simbolico verso fuori';
+			return __( 'symbolic link pointing outside', 'lab591-dev-bridge' );
 		}
-		return 'non consentita (deny list o nome non valido)';
+		return __( 'not allowed (deny list or invalid name)', 'lab591-dev-bridge' );
 	}
 }

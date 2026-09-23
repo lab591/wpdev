@@ -62,7 +62,7 @@ final class FolderPickerTest extends TestCase {
 		$items = self::byName( $this->picker()->children( 'wp-content/plugins' ) );
 		$this->assertTrue( $items['myplug']['selectable'] );
 		$this->assertFalse( $items['lab591-dev-bridge']['selectable'] );
-		$this->assertSame( 'contiene i file di Dev Bridge', $items['lab591-dev-bridge']['reason'] );
+		$this->assertSame( 'contains Dev Bridge files', $items['lab591-dev-bridge']['reason'] );
 	}
 
 	public function test_expands_subfolders_of_a_selectable_folder(): void {

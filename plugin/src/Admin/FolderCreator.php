@@ -32,13 +32,13 @@ final class FolderCreator {
 	 *
 	 * @param string $container One of the validator containers (e.g. "wp-content/plugins").
 	 * @param string $path      Folder name or sub-path below the container (e.g. "mio-tema/blocks").
-	 * @throws PathException When the folder is not acceptable or cannot be created (message in Italian).
+	 * @throws PathException When the folder is not acceptable or cannot be created (translated message).
 	 */
 	public function create( string $container, string $path ): string {
 		try {
 			$base = $this->validator->resolveContainer( $container );
 		} catch ( PathException ) {
-			throw PathException::denied( 'contenitore non ammesso' );
+			throw new PathException( 'path_denied', __( 'container not allowed', 'lab591-dev-bridge' ), 403 );
 		}
 		$segments = self::segments( $path );
 
@@ -57,7 +57,8 @@ final class FolderCreator {
 			try {
 				$ancestor = $this->validator->resolve( $base->relative . '/' . implode( '/', array_slice( $segments, 0, $existing ) ) );
 			} catch ( PathException $e ) {
-				throw PathException::denied( 'la cartella non può stare lì (' . self::reason( $e ) . ')' );
+				/* translators: %s: reason. */
+				throw new PathException( 'path_denied', sprintf( __( 'the folder cannot be created there (%s)', 'lab591-dev-bridge' ), self::reason( $e ) ), 403 );
 			}
 			if ( count( $segments ) === $existing ) {
 				return $ancestor->relative; // Already there.
@@ -71,7 +72,7 @@ final class FolderCreator {
 			$absolute .= DIRECTORY_SEPARATOR . $segment;
 			if ( ! mkdir( $absolute, 0755 ) && ! is_dir( $absolute ) ) {
 				self::cleanup( $created );
-				throw new PathException( 'internal_error', 'Impossibile creare la cartella (permessi del server?)', 500 );
+				throw new PathException( 'internal_error', __( 'The folder could not be created (server permissions?)', 'lab591-dev-bridge' ), 500 );
 			}
 			$created[] = $absolute;
 		}
@@ -80,7 +81,8 @@ final class FolderCreator {
 			return $this->validator->validate( $target );
 		} catch ( PathException $e ) {
 			self::cleanup( $created );
-			throw PathException::denied( 'cartella non ammessa (' . self::reason( $e ) . ')' );
+			/* translators: %s: reason. */
+			throw new PathException( 'path_denied', sprintf( __( 'folder not allowed (%s)', 'lab591-dev-bridge' ), self::reason( $e ) ), 403 );
 		}
 	}
 
@@ -91,15 +93,17 @@ final class FolderCreator {
 	private static function segments( string $path ): array {
 		$path = trim( str_replace( '\\', '/', trim( $path ) ), '/' );
 		if ( '' === $path ) {
-			throw PathException::invalid( 'nome mancante' );
+			throw new PathException( 'path_invalid', __( 'missing name', 'lab591-dev-bridge' ), 400 );
 		}
 		$segments = explode( '/', $path );
 		if ( count( $segments ) > self::MAX_SEGMENTS ) {
-			throw PathException::invalid( 'al massimo ' . self::MAX_SEGMENTS . ' livelli' );
+			/* translators: %d: maximum depth. */
+			throw new PathException( 'path_invalid', sprintf( __( 'at most %d levels', 'lab591-dev-bridge' ), self::MAX_SEGMENTS ), 400 );
 		}
 		foreach ( $segments as $segment ) {
 			if ( 1 !== preg_match( self::SEGMENT, $segment ) || str_ends_with( $segment, '.' ) ) {
-				throw PathException::invalid( 'nome "' . $segment . '" non valido: usa lettere, numeri, "-", "_" e "." (non all\'inizio)' );
+				/* translators: %s: folder name. */
+				throw new PathException( 'path_invalid', sprintf( __( 'name "%s" is not valid: use letters, numbers, "-", "_" and "." (not first)', 'lab591-dev-bridge' ), $segment ), 400 );
 			}
 		}
 		return $segments;
@@ -121,7 +125,7 @@ final class FolderCreator {
 	private static function reason( PathException $e ): string {
 		$message = $e->getMessage();
 		if ( str_contains( $message, 'Dev Bridge' ) || str_contains( $message, 'path not allowed' ) ) {
-			return 'deny list o cartella protetta';
+			return __( 'deny list or protected folder', 'lab591-dev-bridge' );
 		}
 		return $message;
 	}

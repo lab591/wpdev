@@ -39,7 +39,7 @@ Distribuzione privata (non WordPress.org).
 
 ### 2.1 Requisiti
 
-- PHP ≥ 8.1 (`declare(strict_types=1)`, `hash('xxh128')` disponibile), WordPress ≥ 6.4.
+- PHP ≥ 8.1 (`declare(strict_types=1)`, `hash('xxh128')` disponibile), WordPress ≥ 6.6 (l'interfaccia admin usa React di WordPress).
 - Nessuna dipendenza Composer a runtime. Estensioni: `zip` (ZipArchive) obbligatoria; `opcache` opzionale.
 - Slug `lab591-dev-bridge`, namespace PHP `Lab591\DevBridge`, namespace REST `devbridge/v1`.
 - Nessuna chiamata a `exec`, `shell_exec`, `system`, `passthru`. Unica eccezione opzionale: `proc_open` in forma array (senza shell) per `rg`, disattivata di default (M3).
@@ -71,7 +71,8 @@ Distribuzione privata (non WordPress.org).
   - non possono essere né contenere il plugin Dev Bridge né la cartella di storage;
   - non possono essere la radice di `themes/` o `plugins/`.
 
-  Nella pagina admin si scelgono con caselle di spunta (0.3.0): l'elenco mostra le cartelle di `themes/`,
+  Nella pagina admin (0.4.0: interfaccia React con `@wordpress/components`, dati via admin-ajax con
+  cookie + nonce + capability, mai via REST; inglese con traduzione italiana) si scelgono con caselle di spunta: l'elenco mostra le cartelle di `themes/`,
   `plugins/` (e `mu-plugins/` se abilitato) con il nome del tema/plugin; le sottocartelle si caricano
   espandendo (admin-ajax di sola lettura, capability + nonce, ogni cartella validata con gli stessi
   controlli del salvataggio). Le cartelle non ammesse (Dev Bridge, deny list, symlink verso fuori) sono

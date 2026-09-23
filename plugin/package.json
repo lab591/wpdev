@@ -1,0 +1,24 @@
+{
+  "name": "lab591-dev-bridge-admin",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Admin interface of the Lab591 Dev Bridge WordPress plugin (build-time only: the plugin ships the compiled files in build/).",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "wp-scripts build ./admin/src/index.tsx --output-path=build",
+    "start": "wp-scripts start ./admin/src/index.tsx --output-path=build",
+    "typecheck": "tsc --noEmit",
+    "lint": "npm run typecheck && wp-scripts lint-js ./admin/src && wp-scripts lint-style \"admin/src/**/*.scss\"",
+    "i18n": "wp i18n make-pot . languages/lab591-dev-bridge.pot --slug=lab591-dev-bridge --domain=lab591-dev-bridge --exclude=node_modules,admin,vendor,tests,tools,dist && node tools/translations/make-po.mjs it_IT && wp i18n make-mo languages && wp i18n make-json languages --no-purge",
+    "package": "npm run build && composer package"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@wordpress/components": "^41.0.0",
+    "@wordpress/compose": "^8.9.0",
+    "@wordpress/element": "^8.8.0",
+    "@wordpress/i18n": "^6.29.0",
+    "@wordpress/scripts": "^36.0.0",
+    "typescript": "^6.0.3"
+  }
+}

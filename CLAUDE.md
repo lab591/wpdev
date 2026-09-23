@@ -64,5 +64,7 @@ Se un requisito sembra richiedere di violare un invariante, fermati e chiedi.
 ## Comandi
 
 - Plugin: `composer install` (solo dev), `composer test`, `composer lint`
+- Interfaccia admin del plugin (`plugin/admin/src`, React/TS): `npm install`, `npm run lint`, `npm run build`,
+  `npm run i18n` (WP-CLI); zip: `npm run package`
 - Companion: `npm install`, `npm test`, `npm run lint`, `npm run build`
 - Prova locale del companion: `npm run dev -- <comando>`
