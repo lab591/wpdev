@@ -191,6 +191,8 @@ export function formatDeployOutcome(o: DeployOutcome): { text: string; isError: 
         return { text: ['server already had this content: no release created, local state updated', ...notes].join('\n'), isError: false };
       }
       const lines = [`release ${r.release_id}: ${r.written} written, ${r.deleted} deleted (${counts})`, healthText(r.health)];
+      if (o.git?.hash) lines.push(`git commit ${o.git.hash} (published files only)`);
+      if (o.git?.error) lines.push(`note: automatic git commit failed: ${o.git.error}`);
       if (r.status === 'health_unknown') lines.push('warning: health check could not run (loopback unreachable), no automatic rollback: verify the site in the browser');
       if (r.errors?.length) lines.push('fatal lines in debug.log:', ...r.errors.slice(0, 20).map((e) => `  ${e}`));
       if (r.health.warnings?.length) {

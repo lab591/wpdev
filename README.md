@@ -118,6 +118,10 @@ progetto lavori su **una parte** di quelle cartelle, indicale in `wpdev.json`
 | `.mcp.json` | server MCP `wpdev` per Claude Code |
 | `CLAUDE.md` | istruzioni per Claude sul sito, in una sezione tra i marcatori `wpdev:start`/`wpdev:end` (se il file esiste già la sezione viene aggiunta in fondo) |
 
+Se il progetto è un repository git, dopo ogni deploy riuscito `wpdev` fa un commit con **solo** i file
+pubblicati (messaggio `wpdev deploy <release>`), così la cronologia locale segue le release del sito; le altre
+modifiche restano come sono. Si disattiva con `"deploy": { "gitCommit": false }` in `wpdev.json`.
+
 Se `wpdev.json` esiste già, `wpdev init` lo riusa e ricrea solo il resto (utile dopo un `git clone`);
 `--force` lo ricrea da zero. Quando cambiano le cartelle scrivibili o altro sul sito, `wpdev claude-md`
 aggiorna la sezione di `CLAUDE.md` senza toccare quello che hai scritto fuori dai marcatori.

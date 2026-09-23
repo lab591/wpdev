@@ -121,6 +121,8 @@ export function reportDeploy(outcome: DeployOutcome): Report {
       }
       r.stdout.push(`Release ${res.release_id}: ${res.written} file scritti, ${res.deleted} cancellati.`);
       r.stdout.push(healthLine(res.health));
+      if (outcome.git?.hash) r.stdout.push(`Commit git ${outcome.git.hash} (solo i file pubblicati).`);
+      if (outcome.git?.error) r.stderr.push(`Commit git non riuscito: ${outcome.git.error} (il deploy è comunque online).`);
       if (res.status === 'health_unknown') {
         r.stderr.push('ATTENZIONE: health check non eseguibile (loopback non raggiungibile): nessun rollback automatico. Verifica il sito a mano; in caso di problemi `wpdev rollback`.');
       }

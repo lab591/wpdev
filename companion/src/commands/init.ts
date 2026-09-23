@@ -94,7 +94,7 @@ async function createConfig(dir: string, target: string, out: Output, options: I
     exclude: ['**/node_modules/**', '**/.git/**', '**/*.map'],
     php: 'php',
     cache: { enabled: true, trustWindowSec: 60 },
-    deploy: { allowDelete: true, lintPhp: true },
+    deploy: { allowDelete: true, lintPhp: true, gitCommit: true },
     health: { paths: [] },
   };
   const config = parseConfig(json, dir, { insecureLocal: options.insecureLocal ?? false });

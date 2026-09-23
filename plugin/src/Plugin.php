@@ -129,7 +129,9 @@ final class Plugin {
 		if ( ! (bool) $this->settings->get( 'health_backend' ) ) {
 			return [];
 		}
-		return [ wp_login_url(), admin_url( 'admin-ajax.php?action=' . self::PING_ACTION ) ];
+		// Login page, admin-ajax (runs admin_init) and the REST index (runs rest_api_init: without a
+		// working REST API even the normal rollback is impossible).
+		return [ wp_login_url(), admin_url( 'admin-ajax.php?action=' . self::PING_ACTION ), rest_url() ];
 	}
 
 	public static function loadTextdomain(): void {

@@ -186,8 +186,10 @@ Le cancellazioni sono ammesse solo dentro `writable_roots`; le cartelle rimaste 
 - Fallimento se: status ≥ 500, oppure nuove righe `PHP Fatal error` / `PHP Parse error` in `debug.log` scritte dopo l'inizio del deploy (se il log è attivo).
 - Se il loopback non è raggiungibile (errore di rete, bloccato dall'hosting) → `health_unknown`: **nessun rollback automatico**, ma avviso esplicito nella risposta.
 - **Backend** (0.5.0, impostazione `health_backend`, attiva di default): si controllano anche la pagina di login
-  (`wp_login_url()`) e `admin-ajax.php?action=devbridge_ping`, che carica plugin ed esegue `admin_init` e risponde
-  `pong` senza autenticazione (nessun dato esposto). Un fatale che rompe solo `wp-admin` provoca il rollback.
+  (`wp_login_url()`), `admin-ajax.php?action=devbridge_ping`, che carica plugin ed esegue `admin_init` e risponde
+  `pong` senza autenticazione (nessun dato esposto), e l'indice REST (`rest_url()`, esegue `rest_api_init`). Un
+  fatale che rompe solo `wp-admin` o solo la REST API (che renderebbe impossibile anche il rollback normale)
+  provoca il rollback.
   Solo i 5xx contano come errore: una pagina di login rinominata da un plugin di sicurezza (404/403/redirect) non
   fa fallire il deploy.
 - **Avvisi** (0.5.0): le nuove righe `PHP Warning/Notice/Deprecated` scritte in `debug.log` dopo l'inizio del
@@ -285,10 +287,14 @@ In una rete multisite temi, plugin e file sono condivisi da tutti i siti: Dev Br
   "exclude": ["**/node_modules/**", "**/.git/**", "**/*.map"],
   "php": "php",
   "cache": { "enabled": true, "trustWindowSec": 60 },
-  "deploy": { "allowDelete": true, "lintPhp": true }
+  "deploy": { "allowDelete": true, "lintPhp": true, "gitCommit": true }
 }
 ```
 
+- `deploy.gitCommit` (0.5.0, default `true`): dopo ogni deploy riuscito, se il progetto è un repository git, il
+  companion fa un commit con **solo** i file pubblicati (le altre modifiche, anche già in stage, restano come
+  sono), messaggio `wpdev deploy <release>` con sito, conteggi e percorsi. I file ignorati da `.gitignore` e quelli
+  cancellati mai tracciati sono esclusi. Un errore di git non annulla il deploy (viene solo segnalato).
 - La password **non sta mai** in `wpdev.json`: variabile d'ambiente, oppure `.env.local` (escluso da git) caricato dal companion.
 - Le cartelle scrivibili le decide **solo il sito** (`writable_roots`, impostate dall'amministratore): il companion
   le legge da `/status` e salva l'ultimo elenco ricevuto in `.wpdev/writable-roots.json` (usato quando il sito

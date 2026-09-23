@@ -40,7 +40,7 @@ describe('parseConfig', () => {
     expect(c.writable).toEqual(['wp-content/themes/child']);
     expect(c.passwordEnv).toBe('WPDEV_APP_PASSWORD');
     expect(c.exclude).toContain('**/node_modules/**');
-    expect(c.deploy).toEqual({ allowDelete: true, lintPhp: true });
+    expect(c.deploy).toEqual({ allowDelete: true, lintPhp: true, gitCommit: true });
     expect(c.cache.trustWindowSec).toBe(60);
   });
 

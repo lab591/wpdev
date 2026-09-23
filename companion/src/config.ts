@@ -71,8 +71,10 @@ const configSchema = z.object({
     .object({
       allowDelete: z.boolean().default(true),
       lintPhp: z.boolean().default(true),
+      /** Commit the published files to the local git repository after each successful deploy. */
+      gitCommit: z.boolean().default(true),
     })
-    .default({ allowDelete: true, lintPhp: true }),
+    .default({ allowDelete: true, lintPhp: true, gitCommit: true }),
   health: z
     .object({
       /** Pages the agent wants checked after each deploy, on top of the admin-configured URLs. */

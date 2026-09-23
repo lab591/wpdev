@@ -5,6 +5,7 @@ import type { Context } from './context.js';
 import { matchAny } from './glob.js';
 import { xxh128 } from './hash.js';
 import type { DeployManifest, DeployResponse } from './http.js';
+import { commitPaths, type CommitResult } from './git.js';
 import { lintPhp, type LintResult, type Runner } from './lint.js';
 import { toNative } from './paths.js';
 import { deleteRescue, loadRescue, saveRescue } from './rescue.js';
@@ -84,7 +85,7 @@ export type DeployOutcome =
   | { kind: 'no_changes' }
   | { kind: 'lint_failed'; changes: Change[]; lint: LintResult }
   | { kind: 'dry_run'; changes: Change[]; lint: LintResult | undefined }
-  | { kind: 'done'; changes: Change[]; lint: LintResult | undefined; response: DeployResponse; rescueWarning?: string }
+  | { kind: 'done'; changes: Change[]; lint: LintResult | undefined; response: DeployResponse; rescueWarning?: string; git?: CommitResult }
   | { kind: 'failed'; changes: Change[]; lint: LintResult | undefined; error: unknown; rescueWarning?: string };
 
 export interface DeployOptions {
@@ -154,10 +155,27 @@ export async function runDeploy(ctx: Context, options: DeployOptions = {}, deps:
         }
       }
     }
-    return rescueWarning ? { kind: 'done', changes, lint, response, rescueWarning } : { kind: 'done', changes, lint, response };
+    let git: CommitResult | undefined;
+    if (config.deploy.gitCommit && response.release_id !== null && (response.status === 'ok' || response.status === 'health_unknown')) {
+      git = await commitPaths(
+        config.projectRoot,
+        changes.map((c) => ({ p: c.p, deleted: c.status === 'deleted' })),
+        commitMessage(response.release_id, config.siteUrl, changes),
+      );
+    }
+    const done = { kind: 'done' as const, changes, lint, response, ...(git ? { git } : {}) };
+    return rescueWarning ? { ...done, rescueWarning } : done;
   } catch (error) {
     return rescueWarning ? { kind: 'failed', changes, lint, error, rescueWarning } : { kind: 'failed', changes, lint, error };
   }
+}
+
+/** Message of the automatic commit: release, site, counts and (up to 50) paths. */
+export function commitMessage(releaseId: string, siteUrl: string, changes: readonly Change[]): string {
+  const c = countChanges(changes);
+  const lines = changes.slice(0, 50).map((x) => `${x.status === 'deleted' ? 'D' : x.status === 'new' ? 'A' : 'M'} ${x.p}`);
+  if (changes.length > 50) lines.push(`... +${changes.length - 50}`);
+  return `wpdev deploy ${releaseId}\n\n${siteUrl}: ${c.new} nuovi, ${c.modified} modificati, ${c.deleted} cancellati\n\n${lines.join('\n')}\n`;
 }
 
 /** Short change counts: "2 nuovi, 1 modificati, 0 cancellati". */
