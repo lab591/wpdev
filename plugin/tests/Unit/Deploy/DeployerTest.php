@@ -291,8 +291,8 @@ final class DeployerTest extends TestCase {
 
 	public function test_deploy_fires_an_action_without_the_rescue_token(): void {
 		\Lab591\DevBridge\Tests\Support\WpStubs::$actions = [];
-		$out    = $this->standardDeploy();
-		$fired  = array_values( array_filter( \Lab591\DevBridge\Tests\Support\WpStubs::$actions, static fn ( array $a ): bool => 'devbridge_deployed' === $a[0] ) );
+		$out   = $this->standardDeploy();
+		$fired = array_values( array_filter( \Lab591\DevBridge\Tests\Support\WpStubs::$actions, static fn ( array $a ): bool => 'devbridge_deployed' === $a[0] ) );
 		$this->assertCount( 1, $fired );
 		[ $response, $paths, $user ] = $fired[0][1];
 		$this->assertSame( $out['release_id'], $response['release_id'] );
