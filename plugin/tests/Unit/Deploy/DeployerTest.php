@@ -277,7 +277,7 @@ final class DeployerTest extends TestCase {
 				'PHP Notice:  Something in wp-content/themes/child/style.css on line 1',
 			],
 		];
-		$out = $this->standardDeploy();
+		$out                  = $this->standardDeploy();
 		$this->assertSame( 'ok', $out['status'], 'Warnings never cause a rollback' );
 		$this->assertSame(
 			[

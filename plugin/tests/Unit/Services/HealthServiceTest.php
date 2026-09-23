@@ -48,8 +48,11 @@ final class HealthServiceTest extends TestCase {
 
 	public function test_new_warnings_are_collected_once_without_timestamp(): void {
 		$fx  = FsFixture::wordpress();
-		$log = $fx->write( 'wp-content/debug.log', "[23-Sep-2026 09:00:00 UTC] PHP Warning:  old one
-" );
+		$log = $fx->write(
+			'wp-content/debug.log',
+			'[23-Sep-2026 09:00:00 UTC] PHP Warning:  old one
+'
+		);
 		$svc = new HealthService( [], $log, $fx->abspath );
 
 		$offset = $svc->logOffset();
@@ -62,8 +65,8 @@ final class HealthServiceTest extends TestCase {
 " .
 			"[23-Sep-2026 10:00:02 UTC] PHP Deprecated:  Old API in {$file} on line 9
 " .
-			"[23-Sep-2026 10:00:03 UTC] Some unrelated line
-",
+			'[23-Sep-2026 10:00:03 UTC] Some unrelated line
+',
 			FILE_APPEND
 		);
 		$result = $svc->check( $offset );
@@ -71,7 +74,13 @@ final class HealthServiceTest extends TestCase {
 		$this->assertSame( 'ok', $result['status'], 'Warnings are not failures' );
 		$this->assertCount( 2, $result['warnings'] );
 		$this->assertStringStartsWith( 'PHP Warning:  Undefined variable $a in wp-content', $result['warnings'][0] );
-		$this->assertStringNotContainsString( $fx->abspath, implode( "
-", $result['warnings'] ) );
+		$this->assertStringNotContainsString(
+			$fx->abspath,
+			implode(
+				'
+',
+				$result['warnings']
+			)
+		);
 	}
 }

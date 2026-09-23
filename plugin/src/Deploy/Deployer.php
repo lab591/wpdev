@@ -131,7 +131,7 @@ final class Deployer {
 				$paths[] = strtolower( $op->target->relative );
 			}
 		}
-		$own = array_values(
+		$own                = array_values(
 			array_filter(
 				$all,
 				static function ( string $line ) use ( $paths ): bool {
