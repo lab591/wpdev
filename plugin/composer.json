@@ -2,7 +2,7 @@
     "name": "lab591/dev-bridge",
     "description": "Dev Bridge: secure bridge between a local Claude Code workspace and a WordPress site.",
     "type": "wordpress-plugin",
-    "license": "proprietary",
+    "license": "GPL-2.0-or-later",
     "require": {
         "php": ">=8.1"
     },

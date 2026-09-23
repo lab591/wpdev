@@ -247,3 +247,9 @@ Traduzioni: stringhe in inglese nel codice, italiano in `plugin/tools/translatio
 I test PHPUnit del plugin girano senza WordPress. I test sui symlink vengono saltati dove il sistema
 non permette di crearli (Windows senza modalità sviluppatore); quelli di ripgrep girano se
 `DEVBRIDGE_TEST_RG` indica un eseguibile `rg`.
+
+## Licenza
+
+Dev Bridge (plugin e companion `wpdev`) è software libero, distribuito con licenza
+**GNU General Public License v2.0 o successiva** (GPL-2.0-or-later), la stessa di WordPress.
+Il testo completo è nel file [`LICENSE`](LICENSE).

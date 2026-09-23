@@ -7,7 +7,8 @@
  * Requires PHP:      8.1
  * Network:           true
  * Author:            Lab591
- * License:           Proprietary
+ * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
  * Text Domain:       lab591-dev-bridge
  *
  * @package Lab591\DevBridge

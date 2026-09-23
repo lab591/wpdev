@@ -3,7 +3,7 @@
   "version": "0.4.0",
   "private": true,
   "description": "Admin interface of the Lab591 Dev Bridge WordPress plugin (build-time only: the plugin ships the compiled files in build/).",
-  "license": "UNLICENSED",
+  "license": "GPL-2.0-or-later",
   "scripts": {
     "build": "wp-scripts build ./admin/src/index.tsx --output-path=build",
     "start": "wp-scripts start ./admin/src/index.tsx --output-path=build",

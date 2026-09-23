@@ -40,5 +40,8 @@ sort( $files );
 foreach ( $files as $rel ) {
 	$zip->addFile( $root . '/' . $rel, 'lab591-dev-bridge/' . $rel );
 }
+// GPL-2.0-or-later: the license text travels with the plugin.
+$zip->addFile( dirname( $root ) . '/LICENSE', 'lab591-dev-bridge/LICENSE' );
+$files[] = 'LICENSE';
 $zip->close();
 fwrite( STDOUT, sprintf( "%s (%d files)\n", $target, count( $files ) ) );
