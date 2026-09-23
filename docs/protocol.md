@@ -115,6 +115,11 @@ Rate limit: bucket "deploy" (10/min) per `/deploy` e `/rollback`, bucket "read" 
   `{"files":[{"p":"wp-content/themes/x/a.php","action":"write","h":"<xxh128>","base_h":"<xxh128>"},{"p":"...","action":"delete","base_h":"..."}],"force":false}`
   - `h` obbligatorio per `write` (32 caratteri esadecimali minuscoli); `base_h` assente/`null` se il client
     considera il file nuovo; per `delete` `base_h` è l'hash che il client si aspetta sul server.
+  - `health_paths` (facoltativo): fino a 10 percorsi del sito dichiarati dall'agente (es. `"/shop/"`),
+    controllati **in aggiunta** agli URL configurati dall'amministratore e mai salvati sul server.
+    Solo percorsi relativi al sito: devono iniziare con `/` (non `//`), niente URL completi, `..`, `#`, `@`,
+    backslash o spazi, max 200 caratteri; l'URL viene costruito dal server con `home_url()`.
+    Un percorso non valido rende invalido il manifest (`400 invalid_manifest`).
 - `bundle` (file zip): una voce per ogni `write`, nome della voce = `p` identico, nessuna cartella,
   nessun symlink. Può mancare se il manifest contiene solo `delete`.
 
@@ -133,7 +138,8 @@ Risposta `200`:
 
 - `status`: `ok` | `rolled_back` (health check fallito, file ripristinati) | `health_unknown`
   (loopback non raggiungibile: nessun rollback, `health.message` spiega il motivo).
-- `health.status`: `ok` | `fail` | `unknown`; `checks[].error` presente per errori di rete.
+- `health.status`: `ok` | `fail` | `unknown`; `checks[].error` presente per errori di rete;
+  `checks[].source`: `admin` (impostazioni) o `agent` (`health_paths`).
 - `errors`: righe `PHP Fatal error` / `PHP Parse error` comparse in `debug.log` durante il deploy (max 20).
 - `rescue_token`: presente solo con `ok` e `health_unknown`; monouso, valido 24 h per questa release.
 - Se tutti i file del manifest hanno già sul server il contenuto indicato (`h` uguale all'hash attuale)
@@ -175,8 +181,8 @@ Il token di rescue viene invalidato.
 
 ### `POST /health`
 
-`{}` → `{"status":"ok"|"fail"|"unknown","checks":[...],"errors":[...]}`; `errors` = righe fatali di
-`debug.log` negli ultimi 5 minuti.
+`{"paths"?: ["/shop/"]}` → `{"status":"ok"|"fail"|"unknown","checks":[...],"errors":[...]}`; `errors` = righe
+fatali di `debug.log` negli ultimi 5 minuti; `paths` con le stesse regole di `health_paths`.
 
 ### `POST /cache-flush`
 

@@ -120,10 +120,14 @@ export interface DeployManifestEntry {
 export interface DeployManifest {
   files: DeployManifestEntry[];
   force: boolean;
+  /** Extra same-site paths checked after this deploy (never stored on the server). */
+  health_paths?: string[];
 }
 
 export interface HealthCheck {
   url: string;
+  /** "admin": configured on the server; "agent": declared in wpdev.json health.paths. */
+  source?: 'admin' | 'agent';
   code?: number;
   ms?: number;
   error?: string;
@@ -274,8 +278,8 @@ export class ApiClient {
     return this.json<{ releases: Release[] }>('GET', 'releases');
   }
 
-  health(): Promise<HealthResult> {
-    return this.json<HealthResult>('POST', 'health', {}, DEPLOY_TIMEOUT_MS);
+  health(paths: readonly string[] = []): Promise<HealthResult> {
+    return this.json<HealthResult>('POST', 'health', paths.length ? { paths } : {}, DEPLOY_TIMEOUT_MS);
   }
 
   cacheFlush(targets?: CacheTarget[]): Promise<CacheFlushResponse> {

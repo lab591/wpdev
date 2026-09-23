@@ -101,6 +101,14 @@ export function renderClaudeMd(input: ClaudeMdInput): string {
 - Dopo modifiche visibili, verifica la pagina nel browser (Chrome).
 - Contenuti e pagine Elementor si gestiscono con l'MCP del sito (WSP), non via file.
 
+## Pagine da verificare dopo le modifiche
+- Dopo ogni deploy il server controlla la home (e gli URL configurati dall'amministratore).
+- Quando modifichi qualcosa che riguarda pagine specifiche (template, shortcode, checkout,
+  form...), aggiungi i loro percorsi in \`wpdev.json\` → \`health.paths\` (es. \`"/shop/"\`,
+  \`"/contatti/"\`, max 10, solo percorsi del sito): verranno controllati a ogni deploy e un
+  errore 500 o un fatale nel log attiverà il rollback automatico. Rimuovi quelli non più rilevanti.
+- Per una verifica immediata senza deploy usa lo strumento MCP \`health\` con \`paths\`.
+
 ## Convenzioni
 - Child theme: ${themes.join(', ') || '<nome>'}. Plugin custom: ${plugins.join(', ') || '<nome>'}, prefisso funzioni \`<prefisso>_\`.
 - Page builder: Elementor.

@@ -23,6 +23,28 @@ const relPath = z.string().transform((value, ctx) => {
   }
 });
 
+/**
+ * Site-relative page path for the health check (e.g. "/shop/"): same rules as the plugin
+ * (no full URLs, "//", "..", "#", "@", backslashes or whitespace; max 200 chars).
+ */
+export function isValidHealthPath(path: string): boolean {
+  if (path.length === 0 || path.length > 200 || !path.startsWith('/') || path.startsWith('//')) return false;
+  // eslint-disable-next-line no-control-regex -- rejecting control characters is the point.
+  if (/[\u0000-\u0020\u007f\\#@]/.test(path)) return false;
+  let route: string;
+  try {
+    route = decodeURIComponent(path.split('?')[0] ?? '');
+  } catch {
+    return false;
+  }
+  if (route.includes('://')) return false;
+  return !route.split('/').some((seg) => seg === '..' || seg === '.');
+}
+
+const healthPath = z.string().refine(isValidHealthPath, {
+  message: 'percorso di health check non valido: usa percorsi del sito come "/shop/" (niente URL completi, "..", "#", "@")',
+});
+
 const configSchema = z.object({
   site: z.string().min(1),
   user: z.string().min(1),
@@ -42,6 +64,12 @@ const configSchema = z.object({
       lintPhp: z.boolean().default(true),
     })
     .default({ allowDelete: true, lintPhp: true }),
+  health: z
+    .object({
+      /** Pages the agent wants checked after each deploy, on top of the admin-configured URLs. */
+      paths: z.array(healthPath).max(10).default([]),
+    })
+    .default({ paths: [] }),
 });
 
 export type WpdevJson = z.infer<typeof configSchema>;

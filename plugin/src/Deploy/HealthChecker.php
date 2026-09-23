@@ -21,7 +21,8 @@ interface HealthChecker {
 	public function logOffset(): int;
 
 	/**
+	 * @param list<string> $extraPaths Same-site paths declared by the agent, checked in addition to the configured URLs.
 	 * @return array{status: string, checks: list<array<string, mixed>>, errors: list<string>, message?: string}
 	 */
-	public function check( int $logOffset ): array;
+	public function check( int $logOffset, array $extraPaths = [] ): array;
 }

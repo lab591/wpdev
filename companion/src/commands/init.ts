@@ -82,6 +82,7 @@ export async function initCommand(dir: string, out: Output, options: InitOptions
     php: 'php',
     cache: { enabled: true, trustWindowSec: 60 },
     deploy: { allowDelete: true, lintPhp: true },
+    health: { paths: [] },
   };
   const config = parseConfig(json, dir, { insecureLocal: options.insecureLocal ?? false });
   await writeFile(target, `${JSON.stringify(json, null, 2)}\n`, 'utf8');

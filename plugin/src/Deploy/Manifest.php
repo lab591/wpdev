@@ -17,10 +17,12 @@ final class Manifest {
 
 	/**
 	 * @param list<ManifestEntry> $entries
+	 * @param list<string>        $healthPaths Extra same-site paths to check after this deploy.
 	 */
 	private function __construct(
 		public readonly array $entries,
 		public readonly bool $force,
+		public readonly array $healthPaths = [],
 	) {
 	}
 
@@ -73,7 +75,7 @@ final class Manifest {
 			$seen[ $key ] = true;
 			$entries[]    = new ManifestEntry( $path, $action, 'write' === $action ? $h : null, $baseH );
 		}
-		return new self( $entries, $force );
+		return new self( $entries, $force, HealthPaths::parse( $data['health_paths'] ?? null, 'invalid_manifest' ) );
 	}
 
 	private static function invalid( string $message, ?string $path = null ): ApiException {

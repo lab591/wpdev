@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Lab591\DevBridge\Rest;
 
+use Lab591\DevBridge\Deploy\HealthPaths;
 use Lab591\DevBridge\Deploy\Manifest;
 use Lab591\DevBridge\Deploy\ReleaseStore;
 use Lab591\DevBridge\Mode;
@@ -183,7 +184,22 @@ final class Api {
 			]
 		);
 
-		$this->route( '/health', 'POST', [ $this, 'health' ], $read, [] );
+		$this->route(
+			'/health',
+			'POST',
+			[ $this, 'health' ],
+			$read,
+			[
+				'paths' => [
+					'type'     => 'array',
+					'maxItems' => \Lab591\DevBridge\Deploy\HealthPaths::MAX_PATHS,
+					'items'    => [
+						'type'      => 'string',
+						'maxLength' => \Lab591\DevBridge\Deploy\HealthPaths::MAX_LENGTH,
+					],
+				],
+			]
+		);
 		$this->route(
 			'/deploy',
 			'POST',
@@ -350,8 +366,14 @@ final class Api {
 		);
 	}
 
-	public function health(): \WP_REST_Response|\WP_Error {
-		return $this->run( fn () => $this->plugin->health()->checkRecent() );
+	public function health( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		return $this->run(
+			function () use ( $request ): array {
+				$paths            = HealthPaths::parse( $request->get_param( 'paths' ) );
+				$this->auditPaths = $paths;
+				return $this->plugin->health()->checkRecent( 300, $paths );
+			}
+		);
 	}
 
 	public function deploy( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {

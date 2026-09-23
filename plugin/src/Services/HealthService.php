@@ -35,11 +35,21 @@ final class HealthService implements HealthChecker {
 		return (int) filesize( $this->logFile );
 	}
 
-	public function check( int $logOffset ): array {
+	public function check( int $logOffset, array $extraPaths = [] ): array {
 		$checks  = [];
 		$failed  = false;
 		$unknown = false;
+		$targets = [];
 		foreach ( $this->urls as $url ) {
+			$targets[ $url ] = 'admin';
+		}
+		foreach ( $extraPaths as $path ) {
+			$url = home_url( $path );
+			if ( ! isset( $targets[ $url ] ) ) {
+				$targets[ $url ] = 'agent';
+			}
+		}
+		foreach ( $targets as $url => $source ) {
 			$started  = microtime( true );
 			$response = wp_remote_get(
 				add_query_arg( 'devbridge_health', bin2hex( random_bytes( 4 ) ), $url ),
@@ -51,8 +61,9 @@ final class HealthService implements HealthChecker {
 				]
 			);
 			$check    = [
-				'url' => $url,
-				'ms'  => (int) round( ( microtime( true ) - $started ) * 1000 ),
+				'url'    => $url,
+				'source' => $source,
+				'ms'     => (int) round( ( microtime( true ) - $started ) * 1000 ),
 			];
 			if ( is_wp_error( $response ) ) {
 				$check['error'] = $response->get_error_message();
@@ -87,8 +98,8 @@ final class HealthService implements HealthChecker {
 	 *
 	 * @return array{status: string, checks: list<array<string, mixed>>, errors: list<string>, message?: string}
 	 */
-	public function checkRecent( int $seconds = 300 ): array {
-		$result = $this->check( $this->logOffset() );
+	public function checkRecent( int $seconds = 300, array $extraPaths = [] ): array {
+		$result = $this->check( $this->logOffset(), $extraPaths );
 		if ( null !== $this->logFile && is_file( $this->logFile ) ) {
 			$since  = time() - $seconds;
 			$recent = [];

@@ -101,10 +101,12 @@ export async function rollbackCommand(ctx: Context, out: Output, options: Rollba
 }
 
 export async function healthCommand(ctx: Context, out: Output): Promise<number> {
-  const h = await ctx.client.health();
+  const h = await ctx.client.health(ctx.config.health.paths);
   const label = h.status === 'ok' ? 'ok' : h.status === 'fail' ? 'FALLITO' : 'sconosciuto';
   out.info(`Health check: ${label}${h.message ? ` — ${h.message}` : ''}`);
-  h.checks.forEach((c) => out.info(`  ${c.url}  ${c.code ?? c.error ?? '?'}${c.ms !== undefined ? ` (${c.ms} ms)` : ''}`));
+  h.checks.forEach((c) =>
+    out.info(`  ${c.url}${c.source === 'agent' ? ' [wpdev.json]' : ''}  ${c.code ?? c.error ?? '?'}${c.ms !== undefined ? ` (${c.ms} ms)` : ''}`),
+  );
   if (h.errors?.length) {
     out.warn('Errori fatali recenti nel debug.log:');
     h.errors.slice(0, 20).forEach((l) => out.warn(`  ${l}`));

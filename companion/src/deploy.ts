@@ -75,7 +75,9 @@ export async function buildBundle(config: Config, changes: readonly Change[], fo
     files.push({ p: c.p, action: 'write', h, base_h: c.base_h });
     writes++;
   }
-  return { manifest: { files, force }, zip: writes > 0 ? zipSync(entries, { level: 6 }) : undefined, stats };
+  const manifest: DeployManifest = { files, force };
+  if (config.health.paths.length) manifest.health_paths = [...config.health.paths];
+  return { manifest, zip: writes > 0 ? zipSync(entries, { level: 6 }) : undefined, stats };
 }
 
 export type DeployOutcome =

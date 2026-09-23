@@ -383,6 +383,22 @@ describe('rollback', () => {
     expect(out.warnings.join('\n')).toContain('Nessun token di rescue');
   });
 
+  it('sends health.paths from wpdev.json with the deploy and the on-demand check', async () => {
+    const withPaths = makeContext({ health: { paths: ['/shop/', '/contatti/'] } });
+    await writeLocal(`${ROOT}/style.css`, 'body{color:green}\n');
+    expect(await deployCommand(withPaths, memoryOutput(), {}, { runner: fakePhp })).toBe(0);
+    expect(mock.site.lastDeploy?.manifest.health_paths).toEqual(['/shop/', '/contatti/']);
+
+    await healthCommand(withPaths, memoryOutput());
+    expect(mock.site.lastHealthBody).toEqual({ paths: ['/shop/', '/contatti/'] });
+  });
+
+  it('omits health_paths when none are configured', async () => {
+    await writeLocal(`${ROOT}/style.css`, 'body{color:green}\n');
+    expect(await deployCommand(ctx, memoryOutput(), {}, { runner: fakePhp })).toBe(0);
+    expect(mock.site.lastDeploy?.manifest.health_paths).toBeUndefined();
+  });
+
   it('health prints checks and recent errors', async () => {
     const out = memoryOutput();
     expect(await healthCommand(ctx, out)).toBe(1);

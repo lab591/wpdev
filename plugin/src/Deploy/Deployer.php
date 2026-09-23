@@ -79,7 +79,7 @@ final class Deployer {
 			}
 
 			$token  = $rescue->issue( $id, $this->rescueContext['ip_allowlist'], $this->rescueContext['trusted_proxies'], $this->rescueContext['allow_http'] );
-			$health = $this->health->check( $offset );
+			$health = $this->health->check( $offset, $manifest->healthPaths );
 
 			$response = [
 				'release_id' => $id,

@@ -287,6 +287,24 @@ final class DeployerTest extends TestCase {
 		$this->assertCount( 2, ( new ReleaseStore( $this->storage->releasesDir() ) )->all() );
 	}
 
+	public function test_agent_health_paths_reach_the_health_check(): void {
+		$manifest = json_encode(
+			[
+				'files'        => [
+					[
+						'p'      => 'wp-content/themes/child/h.txt',
+						'action' => 'write',
+						'h'      => hash( 'xxh128', 'h' ),
+					],
+				],
+				'health_paths' => [ '/shop/', '/contatti/' ],
+			]
+		);
+		$zip      = ZipBuilder::build( $this->fx->base . '/h.zip', [ 'wp-content/themes/child/h.txt' => 'h' ] );
+		$this->deployer()->deploy( Manifest::parse( (string) $manifest, 50 ), $zip, 1 );
+		$this->assertSame( [ '/shop/', '/contatti/' ], $this->health->lastPaths );
+	}
+
 	public function test_validation_error_leaves_no_release(): void {
 		$manifest = json_encode(
 			[

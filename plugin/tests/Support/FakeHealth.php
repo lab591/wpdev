@@ -24,7 +24,11 @@ final class FakeHealth implements HealthChecker {
 		return 0;
 	}
 
-	public function check( int $logOffset ): array {
+	/** @var list<string> Paths received by the last check. */
+	public array $lastPaths = [];
+
+	public function check( int $logOffset, array $extraPaths = [] ): array {
+		$this->lastPaths = $extraPaths;
 		return $this->result;
 	}
 }

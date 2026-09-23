@@ -132,6 +132,20 @@ Comandi utili:
 
 Exit code: `0` ok, `1` errore, `2` deploy fallito o annullato con rollback.
 
+### Pagine da verificare (health check dell'agente)
+
+Oltre agli URL configurati dall'amministratore, `wpdev.json` ha una sezione che Claude può aggiornare
+quando tocca pagine specifiche:
+
+```json
+"health": { "paths": ["/shop/", "/contatti/"] }
+```
+
+I percorsi (max 10, solo del sito) vengono inviati a ogni deploy e controllati **in aggiunta** a quelli
+dell'amministratore: un 500 o un nuovo errore fatale attiva il rollback automatico. Non vengono mai salvati
+sul server, quindi l'agente non può ridurre i controlli configurati in WordPress. `wpdev health` e lo
+strumento MCP `health` li usano anche per una verifica immediata.
+
 ### Cosa succede durante un deploy
 
 1. Il companion calcola le modifiche rispetto all'ultima sincronizzazione (nessuna modifica → nessuna chiamata).

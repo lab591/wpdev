@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { applyRestored } from '../commands/rollback.js';
 import { ReadCache } from '../cache.js';
+import { isValidHealthPath } from '../config.js';
 import type { Context } from '../context.js';
 import { runDeploy, type DeployDeps } from '../deploy.js';
 import { ApiError, type CacheTarget } from '../http.js';
@@ -169,9 +170,17 @@ export function buildTools(getContext: () => Context, deps: DeployDeps = {}): To
     },
     {
       name: 'health',
-      description: 'Run the site health check now (HTTP status of the health URLs and recent fatal errors in debug.log).',
-      inputSchema: {},
-      handler: () => run(async (ctx) => formatHealth(await ctx.client.health())),
+      description:
+        'Run the site health check now: admin health URLs + the pages in wpdev.json health.paths + optional extra site paths (e.g. "/shop/"), and recent fatal errors in debug.log. To have pages checked after every deploy, add them to health.paths in wpdev.json.',
+      inputSchema: {
+        paths: z
+          .array(z.string().refine(isValidHealthPath, 'site-relative path like "/shop/"'))
+          .max(10)
+          .optional()
+          .describe('extra site-relative paths to check this time only'),
+      },
+      handler: (args: { paths?: string[] }) =>
+        run(async (ctx) => formatHealth(await ctx.client.health([...new Set([...ctx.config.health.paths, ...(args.paths ?? [])])].slice(0, 10)))),
     },
     {
       name: 'cache_flush',

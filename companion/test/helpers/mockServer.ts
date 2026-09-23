@@ -17,7 +17,8 @@ export interface MockSite {
   /** Overrides the /deploy response body (status 200). */
   deployResult?: Record<string, unknown>;
   /** Last deploy received: parsed manifest and zip bytes. */
-  lastDeploy?: { manifest: { files: { p: string; action: string; h?: string; base_h: string | null }[]; force: boolean }; bundle?: Uint8Array };
+  lastDeploy?: { manifest: { files: { p: string; action: string; h?: string; base_h: string | null }[]; force: boolean; health_paths?: string[] }; bundle?: Uint8Array };
+  lastHealthBody?: unknown;
   /** Token accepted by the simulated rescue mu-plugin (undefined: mu-plugin inert). */
   rescueToken?: string;
   rescueFiles: { p: string; h: string | null }[];
@@ -175,6 +176,7 @@ export async function startMockServer(init: Partial<MockSite> = {}): Promise<Moc
           send(res, 200, { status: 'ok', rolled_back: ['20260923-101500-abc123'], files: site.rollbackFiles });
           return;
         case 'health':
+          site.lastHealthBody = body;
           send(res, 200, { status: 'fail', checks: [{ url: 'http://localhost/', code: 500, ms: 30 }], errors: ['PHP Fatal error: boom'] });
           return;
         case 'cache-flush':

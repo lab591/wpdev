@@ -113,3 +113,11 @@ Problema trovato e corretto durante la verifica: `is_link()` di PHP restituisce 
 junction, quindi il walker le attraversava (ciclo fino al limite di file/tempo con una junction verso
 la radice). Ora una cartella è considerata un link quando il suo `realpath` non coincide con
 `genitore/nome` (`PathGuard::isLinkLike`).
+
+## Estensione: percorsi di health check dichiarati dall'agente
+
+| # | Passo | Esito atteso | Esito |
+|---|---|---|---|
+| 1 | `wpdev.json` → `"health": {"paths": ["/sample-page/", "/?p=1"]}`; `wpdev health` | home (admin) + 2 percorsi marcati `[wpdev.json]` | ok |
+| 2 | `wpdev deploy` di una modifica CSS | stessi 3 controlli nell'health check del deploy | ok |
+| 3 | Percorso `https://evil.test/` in `wpdev.json` | rifiutato già dal companion; il server lo rifiuta comunque (`invalid_manifest`) | ok (test) |

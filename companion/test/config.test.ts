@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ConfigError, findProjectRoot, loadConfig, parseConfig, parseEnvFile, resolvePassword, validateSiteUrl } from '../src/config.js';
+import { ConfigError, findProjectRoot, isValidHealthPath, loadConfig, parseConfig, parseEnvFile, resolvePassword, validateSiteUrl } from '../src/config.js';
 
 const base = { site: 'https://example.com/', user: 'claudio', writable: ['wp-content\\themes\\child'] };
 
@@ -85,5 +85,22 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ cwd: dir })).toThrow(/wpdev init/);
     await writeFile(path.join(dir, 'wpdev.json'), '{ nope');
     expect(() => loadConfig({ cwd: dir })).toThrow(ConfigError);
+  });
+});
+
+describe('health paths', () => {
+  it('accepts site-relative paths only', () => {
+    for (const ok of ['/', '/shop/', '/contatti/?utm=1', '/città/']) expect(isValidHealthPath(ok)).toBe(true);
+    for (const bad of ['shop/', '//evil.test/', 'https://evil.test/', '/a/../b', '/a/%2e%2e/b', '/a#b', '/@evil', '/a b', '/a\\b', '']) {
+      expect(isValidHealthPath(bad)).toBe(false);
+    }
+  });
+
+  it('is an optional wpdev.json section with at most 10 valid paths', () => {
+    const base = { site: 'https://example.com', user: 'u' };
+    expect(parseConfig(base, '/p').health.paths).toEqual([]);
+    expect(parseConfig({ ...base, health: { paths: ['/shop/'] } }, '/p').health.paths).toEqual(['/shop/']);
+    expect(() => parseConfig({ ...base, health: { paths: ['https://evil.test/'] } }, '/p')).toThrow(ConfigError);
+    expect(() => parseConfig({ ...base, health: { paths: Array.from({ length: 11 }, (_, i) => `/p${i}/`) } }, '/p')).toThrow(ConfigError);
   });
 });
