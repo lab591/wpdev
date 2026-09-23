@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<ruleset name="Lab591 Dev Bridge">
+    <description>WordPress Coding Standards with PSR-4 exceptions.</description>
+    <file>lab591-dev-bridge.php</file>
+    <file>uninstall.php</file>
+    <file>src</file>
+    <file>mu-plugin</file>
+    <file>tests</file>
+    <file>tools</file>
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <arg name="extensions" value="php"/>
+    <arg value="sp"/>
+    <arg name="colors"/>
+
+    <config name="minimum_wp_version" value="6.4"/>
+    <config name="testVersion" value="8.1-"/>
+
+    <rule ref="WordPress">
+        <!-- PSR-4 file and class naming. -->
+        <exclude name="WordPress.Files.FileName"/>
+        <!-- Namespaced code: prefixes are provided by the namespace. -->
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals"/>
+        <!-- Short array syntax and typed code are allowed. -->
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+        <exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+        <!-- Doc comments are required only where they add information. -->
+        <exclude name="Squiz.Commenting.FunctionComment.Missing"/>
+        <exclude name="Squiz.Commenting.VariableComment.Missing"/>
+        <exclude name="Squiz.Commenting.ClassComment.Missing"/>
+        <exclude name="Squiz.Commenting.FileComment"/>
+        <exclude name="Generic.Commenting.DocComment.MissingShort"/>
+        <exclude name="Squiz.Commenting.FunctionComment.MissingParamTag"/>
+        <exclude name="Squiz.Commenting.FunctionComment.MissingParamComment"/>
+        <exclude name="Squiz.Commenting.FunctionComment.ParamCommentFullStop"/>
+        <exclude name="Squiz.Commenting.InlineComment.InvalidEndChar"/>
+        <!-- This plugin works on the site filesystem by design and validates every path via PathGuard. -->
+        <exclude name="WordPress.WP.AlternativeFunctions"/>
+        <exclude name="WordPress.PHP.YodaConditions.NotYoda"/>
+        <!-- PSR-4 OOP code base: camelCase methods, properties and variables (consistent across src/ and tests/). -->
+        <exclude name="WordPress.NamingConventions.ValidVariableName"/>
+        <exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid"/>
+        <!-- Native type declarations are authoritative; docblocks only add generics and notes. -->
+        <exclude name="Squiz.Commenting.FunctionComment.WrongStyle"/>
+        <exclude name="Squiz.Commenting.FunctionComment.IncorrectTypeHint"/>
+        <exclude name="Squiz.Commenting.FunctionComment.ParamNameNoMatch"/>
+        <exclude name="Squiz.Commenting.FunctionCommentThrowTag.Missing"/>
+        <!-- Exceptions carry JSON API messages, never rendered as HTML. -->
+        <exclude name="WordPress.Security.EscapeOutput.ExceptionNotEscaped"/>
+    </rule>
+
+    <!-- WP-CLI and hook callbacks have fixed signatures. -->
+    <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+        <exclude-pattern>src/Cli/*</exclude-pattern>
+        <exclude-pattern>src/Rest/*</exclude-pattern>
+        <exclude-pattern>tests/Support/*</exclude-pattern>
+    </rule>
+
+    <!-- In-memory WordPress stubs for unit tests. -->
+    <rule ref="Universal.Namespaces.DisallowCurlyBraceSyntax">
+        <exclude-pattern>tests/Support/wp-stubs.php</exclude-pattern>
+    </rule>
+    <rule ref="Universal.Namespaces.OneDeclarationPerFile">
+        <exclude-pattern>tests/Support/wp-stubs.php</exclude-pattern>
+    </rule>
+    <rule ref="Universal.Namespaces.DisallowDeclarationWithoutName">
+        <exclude-pattern>tests/Support/wp-stubs.php</exclude-pattern>
+    </rule>
+    <rule ref="Universal.Files.SeparateFunctionsFromOO">
+        <exclude-pattern>tests/Support/wp-stubs.php</exclude-pattern>
+    </rule>
+    <rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+        <exclude-pattern>tests/Support/wp-stubs.php</exclude-pattern>
+    </rule>
+
+    <!-- Tests and dev tools do not run inside WordPress. -->
+    <rule ref="WordPress.Security">
+        <exclude-pattern>tests/*</exclude-pattern>
+        <exclude-pattern>tools/*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+</ruleset>

@@ -1,0 +1,56 @@
+<?php
+/**
+ * Site status (`GET /status`).
+ *
+ * @package Lab591\DevBridge
+ */
+
+declare(strict_types=1);
+
+namespace Lab591\DevBridge\Services;
+
+use Lab591\DevBridge\Plugin;
+use const Lab591\DevBridge\VERSION;
+
+final class StatusService {
+
+	public function __construct( private readonly Plugin $plugin ) {
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	public function status(): array {
+		global $wp_version;
+		$state    = $this->plugin->mode()->state();
+		$settings = $this->plugin->settings();
+		$theme    = wp_get_theme();
+		$limits   = [];
+		foreach ( [ 'read_bytes', 'grep_results', 'grep_ms', 'deploy_zip_bytes', 'deploy_files', 'deploy_file_bytes' ] as $key ) {
+			$limits[ $key ] = $settings->limit( $key );
+		}
+		return [
+			'mode'           => $state['mode'],
+			'expires_at'     => $state['expires_at'],
+			'plugin'         => VERSION,
+			'wp'             => (string) $wp_version,
+			'php'            => PHP_VERSION,
+			'theme'          => [
+				'stylesheet' => (string) $theme->get_stylesheet(),
+				'template'   => (string) $theme->get_template(),
+				'version'    => (string) $theme->get( 'Version' ),
+			],
+			'writable_roots' => $this->plugin->validWritableRoots(),
+			'limits'         => $limits,
+			'debug_log'      => null !== self::debugLogFile(),
+		];
+	}
+
+	public static function debugLogFile(): ?string {
+		if ( ! defined( 'WP_DEBUG_LOG' ) || ! WP_DEBUG_LOG ) {
+			return null;
+		}
+		$file = LogService::locate( WP_DEBUG_LOG, WP_CONTENT_DIR );
+		return null !== $file && is_file( $file ) ? $file : null;
+	}
+}

@@ -1,0 +1,8 @@
+/plugin/vendor/
+/plugin/.phpunit.cache/
+/plugin/.phpunit.result.cache
+/companion/node_modules/
+/companion/dist/
+/companion/coverage/
+.env.local
+*.log
