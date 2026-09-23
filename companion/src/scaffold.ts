@@ -99,6 +99,10 @@ export function renderClaudeMd(input: ClaudeMdInput): string {
   MCP \`site_list\`, \`site_read\`, \`site_grep\`. Preferisci \`site_grep\` per trovare hook,
   filtri e classi; poi leggi solo le righe che servono con \`site_read\`.
 - Non cercare di scrivere fuori dalle cartelle consentite: il server lo rifiuta.
+- Se il server rifiuta una cartella, chiedi all'amministratore di aggiungere quella cartella
+  specifica (es. \`wp-content/themes/nome-tema\`) nelle impostazioni Dev Bridge e in
+  \`wpdev.json\` → \`writable\`. Non suggerire mai \`wp-content/themes/\` o \`wp-content/plugins/\`
+  interi: il server non lo consente.
 - Se il deploy fallisce, leggi gli errori riportati, controlla \`site_log\` e correggi.
 - Dopo modifiche visibili, verifica la pagina nel browser (Chrome).
 - Contenuti e pagine Elementor si gestiscono con l'MCP del sito (WSP), non via file.
