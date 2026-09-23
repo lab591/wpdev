@@ -11,7 +11,7 @@ import { toNative } from './paths.js';
 import { deleteRescue, loadRescue, saveRescue } from './rescue.js';
 import { scanTree } from './scan.js';
 import { State } from './state.js';
-import { localHasher } from './sync.js';
+import { fetchRemote, localHasher } from './sync.js';
 
 /** A local change relative to `.wpdev/state.json`. */
 export interface Change {
@@ -105,7 +105,10 @@ export const RESCUE_MISSING_WARNING = 'mu-plugin rescue non installato sul serve
  */
 export async function runDeploy(ctx: Context, options: DeployOptions = {}, deps: DeployDeps = {}): Promise<DeployOutcome> {
   const { config, client } = ctx;
-  const state = await State.load(config.projectRoot);
+  const state = await State.load(config.stateDir);
+  if (state.isEmpty() && (await seedBaseline(ctx, state))) {
+    await state.save();
+  }
   const changes = await computeChanges(config, state);
   if (changes.length === 0) {
     return { kind: 'no_changes' };
@@ -127,7 +130,7 @@ export async function runDeploy(ctx: Context, options: DeployOptions = {}, deps:
 
   let rescueWarning: string | undefined;
   try {
-    if (!(await loadRescue(config.projectRoot))) {
+    if (!(await loadRescue(config.stateDir))) {
       // First deploy from this workspace: make sure the out-of-band safety net exists.
       const st = await client.status();
       if (st.mode !== 'off' && st.rescue !== undefined && st.rescue !== 'installed') {
@@ -149,9 +152,9 @@ export async function runDeploy(ctx: Context, options: DeployOptions = {}, deps:
       // No release (content already on the server): the previous token is still the valid one.
       if (response.release_id !== null) {
         if (response.rescue_token) {
-          await saveRescue(config.projectRoot, response.release_id, response.rescue_token);
+          await saveRescue(config.stateDir, response.release_id, response.rescue_token);
         } else {
-          await deleteRescue(config.projectRoot); // any previous token is no longer valid
+          await deleteRescue(config.stateDir); // any previous token is no longer valid
         }
       }
     }
@@ -168,6 +171,26 @@ export async function runDeploy(ctx: Context, options: DeployOptions = {}, deps:
   } catch (error) {
     return rescueWarning ? { kind: 'failed', changes, lint, error, rescueWarning } : { kind: 'failed', changes, lint, error };
   }
+}
+
+/**
+ * A target never pulled from (e.g. the first deploy to production after working on staging): the
+ * server hashes of the files that exist locally become the base, without downloading anything, so
+ * only files that really differ are deployed and nothing that exists only on the server is deleted.
+ */
+export async function seedBaseline(ctx: Context, state: State): Promise<boolean> {
+  const { config, client } = ctx;
+  const local = new Set<string>();
+  for (const root of config.writable) {
+    for (const p of (await scanTree(config.projectRoot, root, config.exclude)).keys()) local.add(p);
+  }
+  if (local.size === 0) return false;
+  const remote = await fetchRemote(client, config.writable, config.exclude);
+  for (const [p, f] of remote) {
+    // s/m = -1: the local file is always re-hashed against the server hash.
+    if (local.has(p)) state.set({ p, h_base: f.h, s: -1, m: -1 });
+  }
+  return true;
 }
 
 /** Message of the automatic commit: release, site, counts and (up to 50) paths. */

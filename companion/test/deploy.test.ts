@@ -74,7 +74,7 @@ describe('computeChanges', () => {
     await writeLocal(`${ROOT}/new dir/nuovo è.php`, '<?php // new\n');
     await writeLocal(`${ROOT}/node_modules/x.js`, 'ignored');
     await rm(local(`${ROOT}/inc/a.php`));
-    const changes = await computeChanges(ctx.config, await State.load(dir));
+    const changes = await computeChanges(ctx.config, await State.load(path.join(dir, '.wpdev')));
     expect(changes.map((c) => [c.status, c.p])).toEqual([
       ['deleted', `${ROOT}/inc/a.php`],
       ['new', `${ROOT}/new dir/nuovo è.php`],
@@ -87,7 +87,7 @@ describe('computeChanges', () => {
   it('does not delete when allowDelete is false', async () => {
     await rm(local(`${ROOT}/inc/a.php`));
     const noDelete = makeContext({ deploy: { allowDelete: false, lintPhp: true } });
-    expect(await computeChanges(noDelete.config, await State.load(dir))).toEqual([]);
+    expect(await computeChanges(noDelete.config, await State.load(path.join(dir, '.wpdev')))).toEqual([]);
   });
 
   it('exits without network when nothing changed', async () => {
@@ -203,22 +203,22 @@ describe('deploy', () => {
     expect(Object.keys(entries).sort()).toEqual([`${ROOT}/new/x.js`, `${ROOT}/style.css`]);
     expect(Buffer.from(entries[`${ROOT}/style.css`]!).toString('utf8')).toBe('body{color:red}\r\n');
 
-    const state = await State.load(dir);
+    const state = await State.load(path.join(dir, '.wpdev'));
     expect(state.get(`${ROOT}/style.css`)?.h_base).toBe(await xxh128(text('body{color:red}\r\n')));
     expect(state.get(`${ROOT}/inc/a.php`)).toBeUndefined();
-    const rescue = await loadRescue(dir);
+    const rescue = await loadRescue(path.join(dir, '.wpdev'));
     expect(rescue).toMatchObject({ release_id: '20260923-101500-abc123', token: 'a'.repeat(64) });
     expect([...out.lines, ...out.warnings].join('\n')).not.toContain('a'.repeat(64));
     expect(out.lines[0]).toBe('Release 20260923-101500-abc123: 2 file scritti, 1 cancellati.');
 
     // Nothing left to deploy afterwards.
-    expect(await computeChanges(ctx.config, await State.load(dir))).toEqual([]);
+    expect(await computeChanges(ctx.config, await State.load(path.join(dir, '.wpdev')))).toEqual([]);
   });
 
   it('no release (content already on the server): state aligned, previous rescue token kept', async () => {
     await writeLocal(`${ROOT}/style.css`, 'body{color:red}\n');
     expect(await deployCommand(ctx, memoryOutput(), {}, { runner: fakePhp })).toBe(0);
-    const token = await loadRescue(dir);
+    const token = await loadRescue(path.join(dir, '.wpdev'));
     expect(token).toBeDefined();
 
     mock.site.deployResult = { release_id: null, status: 'ok', written: 0, deleted: 0, health: { status: 'skipped', checks: [] } };
@@ -226,8 +226,8 @@ describe('deploy', () => {
     const out = memoryOutput();
     expect(await deployCommand(ctx, out, {}, { runner: fakePhp })).toBe(0);
     expect(out.lines.join('\n')).toContain('nessuna release creata');
-    expect(await loadRescue(dir)).toEqual(token);
-    expect(await computeChanges(ctx.config, await State.load(dir))).toEqual([]);
+    expect(await loadRescue(path.join(dir, '.wpdev'))).toEqual(token);
+    expect(await computeChanges(ctx.config, await State.load(path.join(dir, '.wpdev')))).toEqual([]);
   });
 
   it('omits the bundle when only deleting', async () => {
@@ -251,13 +251,13 @@ describe('deploy', () => {
       errors: ['[23-Sep-2026 10:15:01 UTC] PHP Fatal error: Uncaught Error in functions.php:3'],
     };
     await writeLocal(`${ROOT}/style.css`, 'broken');
-    const before = (await State.load(dir)).get(`${ROOT}/style.css`);
+    const before = (await State.load(path.join(dir, '.wpdev'))).get(`${ROOT}/style.css`);
     const out = memoryOutput();
     expect(await deployCommand(ctx, out, {}, { runner: fakePhp })).toBe(2);
     expect(out.warnings.join('\n')).toContain('rollback automatico');
     expect(out.warnings.join('\n')).toContain('PHP Fatal error: Uncaught Error');
-    expect((await State.load(dir)).get(`${ROOT}/style.css`)).toEqual(before);
-    expect(await loadRescue(dir)).toBeUndefined();
+    expect((await State.load(path.join(dir, '.wpdev'))).get(`${ROOT}/style.css`)).toEqual(before);
+    expect(await loadRescue(path.join(dir, '.wpdev'))).toBeUndefined();
   });
 
   it('health_unknown: warns explicitly but succeeds', async () => {
@@ -388,9 +388,9 @@ describe('rollback', () => {
     mock.site.rollbackFiles = [{ p: `${ROOT}/style.css`, h: await xxh128(text('body{}\n')) }, { p: `${ROOT}/gone.php`, h: null }];
     const out = memoryOutput();
     expect(await rollbackCommand(ctx, out, {})).toBe(0);
-    const state = await State.load(dir);
+    const state = await State.load(path.join(dir, '.wpdev'));
     expect(state.get(`${ROOT}/style.css`)?.h_base).toBe(await xxh128(text('body{}\n')));
-    expect(await loadRescue(dir)).toBeUndefined();
+    expect(await loadRescue(path.join(dir, '.wpdev'))).toBeUndefined();
     // Local file still has v2: it shows up as a local modification to redeploy.
     expect((await computeChanges(ctx.config, state)).map((c) => c.p)).toEqual([`${ROOT}/style.css`]);
   });
@@ -420,8 +420,8 @@ describe('rollback', () => {
     const out = memoryOutput();
     expect(await rollbackCommand(ctx, out, { rescue: true })).toBe(0);
     expect(out.lines[0]).toContain('Rescue eseguito');
-    expect(await loadRescue(dir)).toBeUndefined();
-    expect((await State.load(dir)).get(`${ROOT}/style.css`)?.h_base).toBe(await xxh128(text('body{}\n')));
+    expect(await loadRescue(path.join(dir, '.wpdev'))).toBeUndefined();
+    expect((await State.load(path.join(dir, '.wpdev'))).get(`${ROOT}/style.css`)?.h_base).toBe(await xxh128(text('body{}\n')));
   });
 
   it('--rescue reports non-JSON answers as unavailable and wrong tokens as errors', async () => {
@@ -434,7 +434,7 @@ describe('rollback', () => {
     const out2 = memoryOutput();
     expect(await rollbackCommand(ctx, out2, { rescue: true })).toBe(1);
     expect(out2.warnings.join('\n')).toContain('rescue_denied');
-    expect(await loadRescue(dir)).toBeDefined();
+    expect(await loadRescue(path.join(dir, '.wpdev'))).toBeDefined();
   });
 
   it('--rescue without a saved token', async () => {

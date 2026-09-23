@@ -16,7 +16,7 @@ Gli invarianti di sicurezza di `CLAUDE.md` valgono per tutte.
 | 7 | **Notifiche** — email e/o webhook (es. Slack) per deploy, rollback e attivazione della scrittura; solo percorsi e metadati, mai contenuti | sicurezza: l'amministratore sa cosa succede | fatto (0.5.0) |
 | 8 | **Commit git automatico** dopo ogni deploy riuscito (solo i file pubblicati, messaggio con la release) | cronologia locale allineata alle release | fatto (0.5.0) |
 | 8b | **`wpdev restore <percorso>`** — riporta un file locale alla versione del server (scarta una modifica locale) | emerso nei test: oggi `pull` non tocca le modifiche solo locali | fatto (0.5.0) |
-| 9 | **Ambienti multipli** — `environments` in `wpdev.json` (es. staging e produzione), `--env`, stato separato per ambiente; l'hook pubblica solo sull'ambiente predefinito | sicurezza: la produzione non si tocca per sbaglio | |
+| 9 | **Ambienti multipli** — `environments` in `wpdev.json` (es. staging e produzione), `--env`, stato separato per ambiente; l'hook pubblica solo sull'ambiente predefinito | sicurezza: la produzione non si tocca per sbaglio | fatto (0.5.0) |
 | 10 | **CI GitHub Actions** — test e lint a ogni push, zip del plugin allegato alle release | progetto pubblico affidabile | |
 | 11 | **Test end-to-end automatici** — WordPress in container (`wp-env`) + scenari del companion | le prove manuali diventano ripetibili | |
 | 12 | **Distribuzione** — `wpdev` pronto per npm; aggiornamenti del plugin da GitHub Releases | installazione e aggiornamenti semplici | |

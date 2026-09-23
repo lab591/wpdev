@@ -7,7 +7,11 @@ import { NO_WRITABLE_MESSAGE, resolveWritable, sanitizeServerRoots } from '../wr
 export async function statusCommand(ctx: Context, out: Output): Promise<number> {
   const st = await ctx.client.status();
   await resolveWritable(ctx, { status: st });
-  out.info(`Sito: ${ctx.config.siteUrl}`);
+  out.info(
+    ctx.config.env === null
+      ? `Sito: ${ctx.config.siteUrl}`
+      : `Ambiente: ${ctx.config.env}${ctx.config.autoDeploy ? '' : ' (protetto: niente deploy automatici)'} — ${ctx.config.siteUrl} (altri: ${ctx.config.envs.filter((e) => e !== ctx.config.env).join(', ') || 'nessuno'})`,
+  );
   if (st.mode === 'off') {
     out.info('Modalità: off — attivala dal pannello Dev Bridge o con `wp devbridge enable --mode=read --hours=N`');
     return EXIT_OK;

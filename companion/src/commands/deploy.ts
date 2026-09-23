@@ -204,7 +204,12 @@ export async function hookDeploy(
   let report: Report;
   let outcome: DeployOutcome | undefined;
   try {
-    outcome = await runDeploy(await getContext(), {}, deps);
+    const ctx = await getContext();
+    if (!ctx.config.autoDeploy) {
+      // Protected environment (e.g. production): the hook never publishes there.
+      return EXIT_OK;
+    }
+    outcome = await runDeploy(ctx, {}, deps);
     report = reportDeploy(outcome);
   } catch (e) {
     report = { code: EXIT_ERROR, stdout: [], stderr: [`Deploy non eseguito: ${describeError(e)}`] };

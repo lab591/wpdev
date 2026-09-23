@@ -122,6 +122,26 @@ Se il progetto è un repository git, dopo ogni deploy riuscito `wpdev` fa un com
 pubblicati (messaggio `wpdev deploy <release>`), così la cronologia locale segue le release del sito; le altre
 modifiche restano come sono. Si disattiva con `"deploy": { "gitCommit": false }` in `wpdev.json`.
 
+### Più ambienti (staging e produzione)
+
+Si può lavorare con un sito di prova e pubblicare in produzione solo quando serve:
+
+```json
+{
+  "environments": {
+    "staging":    { "site": "https://staging.esempio.it", "user": "mioutente", "passwordEnv": "WPDEV_STAGING_PASSWORD" },
+    "production": { "site": "https://www.esempio.it", "user": "mioutente", "passwordEnv": "WPDEV_PROD_PASSWORD", "autoDeploy": false }
+  },
+  "defaultEnv": "staging"
+}
+```
+
+Claude e l'hook lavorano sull'ambiente predefinito (staging). La produzione, con `"autoDeploy": false`, non
+riceve mai deploy automatici: si pubblica da terminale con `wpdev --env production deploy`, che chiede conferma.
+Ogni ambiente ha il suo stato in `.wpdev/env/<nome>/`; il primo deploy verso un ambiente mai scaricato confronta
+i file locali con quelli del server e pubblica solo le differenze. Qualsiasi comando accetta `--env` (anche
+`status`, `pull`, `info`); in alternativa la variabile `WPDEV_ENV`.
+
 Se `wpdev.json` esiste già, `wpdev init` lo riusa e ricrea solo il resto (utile dopo un `git clone`);
 `--force` lo ricrea da zero. Quando cambiano le cartelle scrivibili o altro sul sito, `wpdev claude-md`
 aggiorna la sezione di `CLAUDE.md` senza toccare quello che hai scritto fuori dai marcatori.

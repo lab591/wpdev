@@ -31,7 +31,7 @@ function mainFile(version: string): Uint8Array {
 }
 
 function cache(overrides: Partial<{ enabled: boolean; trustWindowSec: number }> = {}): ReadCache {
-  return new ReadCache(dir, client, { enabled: true, trustWindowSec: 60, writable: ['wp-content/themes/child'], now: () => clock, ...overrides });
+  return new ReadCache(path.join(dir, '.wpdev'), client, { enabled: true, trustWindowSec: 60, writable: ['wp-content/themes/child'], now: () => clock, ...overrides });
 }
 
 /** Requests to /read (and /list) since the last reset. */
@@ -236,12 +236,12 @@ describe('cache clear', () => {
     await cache().read(CORE);
     await cache().read(FILE);
     const out = memoryOutput();
-    expect(await cacheClearCommand(dir, out)).toBe(0);
+    expect(await cacheClearCommand(path.join(dir, '.wpdev'), out)).toBe(0);
     expect(out.lines[0]).toMatch(/^Cache svuotata: 3 file rimossi/);
     expect(existsSync(path.join(dir, '.wpdev', 'cache'))).toBe(false);
-    expect(await clearCache(dir)).toEqual({ entries: 0, bytes: 0 });
+    expect(await clearCache(path.join(dir, '.wpdev'))).toEqual({ entries: 0, bytes: 0 });
     const again = memoryOutput();
-    await cacheClearCommand(dir, again);
+    await cacheClearCommand(path.join(dir, '.wpdev'), again);
     expect(again.lines[0]).toBe('Cache già vuota.');
   });
 });

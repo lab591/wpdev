@@ -95,7 +95,7 @@ export function buildTools(getContext: () => Context | Promise<Context>, deps: D
           if (refusal) throw new Error(refusal);
           const from = typeof args.from === 'number' ? args.from : undefined;
           const to = typeof args.to === 'number' ? args.to : undefined;
-          const cache = new ReadCache(ctx.config.projectRoot, ctx.client, { ...ctx.config.cache, writable: ctx.config.writable });
+          const cache = new ReadCache(ctx.config.stateDir, ctx.client, { ...ctx.config.cache, writable: ctx.config.writable });
           return formatRead(await cache.read(path, from, to), path);
         }),
     },
@@ -177,7 +177,13 @@ export function buildTools(getContext: () => Context | Promise<Context>, deps: D
       },
       handler: async (args) => {
         try {
-          const outcome = await runDeploy(await getContext(), { dryRun: args.dry_run === true }, deps);
+          const ctx = await getContext();
+          if (!ctx.config.autoDeploy && args.dry_run !== true) {
+            return refuse(
+              `deploy refused: "${ctx.config.env}" is a protected environment (autoDeploy: false). Only the user can publish there, from the terminal: wpdev --env ${ctx.config.env} deploy`,
+            );
+          }
+          const outcome = await runDeploy(ctx, { dryRun: args.dry_run === true }, deps);
           const res = formatDeployOutcome(outcome);
           return res.isError ? refuse(res.text) : { text: res.text };
         } catch (e) {
@@ -196,7 +202,7 @@ export function buildTools(getContext: () => Context | Promise<Context>, deps: D
           const ctx = await getContext();
           const res = await ctx.client.rollback(typeof args.release_id === 'string' ? args.release_id : undefined);
           await applyRestored(ctx.config, res.files);
-          await deleteRescue(ctx.config.projectRoot);
+          await deleteRescue(ctx.config.stateDir);
           return { text: formatRollback(res) };
         } catch (e) {
           if (e instanceof ApiError && (e.status >= 500 || e.status === 0)) {

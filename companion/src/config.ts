@@ -54,10 +54,27 @@ const healthPath = z.string().refine(isValidHealthPath, {
   message: 'percorso di health check non valido: usa percorsi del sito come "/shop/" (niente URL completi, "..", "#", "@")',
 });
 
-const configSchema = z.object({
+const envVar = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
+
+/** One target site (0.5.0): staging, production... */
+const environmentSchema = z.object({
   site: z.string().min(1),
   user: z.string().min(1),
-  passwordEnv: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/).default('WPDEV_APP_PASSWORD'),
+  passwordEnv: envVar.optional(),
+  /** false = protected: never deployed by the Stop hook or the MCP tool, only by an explicit, confirmed CLI deploy. */
+  autoDeploy: z.boolean().default(true),
+});
+
+export const ENV_NAME = /^[A-Za-z0-9_-]{1,32}$/;
+
+const configSchema = z.object({
+  /** Single-site configuration (ignored when `environments` is present). */
+  site: z.string().min(1).optional(),
+  user: z.string().min(1).optional(),
+  passwordEnv: envVar.optional(),
+  environments: z.record(z.string().regex(ENV_NAME, 'nome di ambiente non valido (lettere, numeri, "-", "_")'), environmentSchema).optional(),
+  /** Environment used when --env / WPDEV_ENV are not given (default: the first one). */
+  defaultEnv: z.string().optional(),
   writable: z.array(relPath).default([]),
   exclude: z.array(z.string().min(1)).default(['**/node_modules/**', '**/.git/**', '**/*.map']),
   php: z.string().min(1).default('php'),
@@ -85,7 +102,18 @@ const configSchema = z.object({
 
 export type WpdevJson = z.infer<typeof configSchema>;
 
-export interface Config extends WpdevJson {
+export interface Config extends Omit<WpdevJson, 'site' | 'user' | 'passwordEnv' | 'environments' | 'defaultEnv'> {
+  site: string;
+  user: string;
+  passwordEnv: string;
+  /** Active environment name, or null for a single-site configuration. */
+  env: string | null;
+  /** Names of all environments (empty for a single-site configuration). */
+  envs: string[];
+  /** false for protected environments (see environmentSchema). */
+  autoDeploy: boolean;
+  /** Absolute folder of the local state of the active target: `.wpdev/` or `.wpdev/env/<name>/`. */
+  stateDir: string;
   /** Absolute native path of the local project (folder containing wpdev.json). */
   projectRoot: string;
   /** Normalized site URL without trailing slash. */
@@ -99,6 +127,8 @@ export interface Config extends WpdevJson {
 
 export interface LoadOptions {
   insecureLocal?: boolean;
+  /** Environment to use (overrides WPDEV_ENV and defaultEnv). */
+  env?: string;
 }
 
 const LOCAL_HOST = /^(localhost|(?:[a-z0-9-]+\.)+(?:local|test))$/i;
@@ -155,7 +185,24 @@ export function parseConfig(raw: unknown, projectRoot: string, options: LoadOpti
     throw new ConfigError(`${CONFIG_FILE} non valido: ${where}: ${issue?.message ?? 'errore'}`);
   }
   const data = parsed.data;
-  const siteUrl = validateSiteUrl(data.site, options.insecureLocal ?? false);
+  const { environments, defaultEnv, ...rest } = data;
+  let target: { site: string; user: string; passwordEnv: string; autoDeploy: boolean };
+  let env: string | null = null;
+  const envs = Object.keys(environments ?? {});
+  if (envs.length) {
+    const wanted = options.env ?? process.env.WPDEV_ENV ?? defaultEnv ?? envs[0];
+    const chosen = wanted === undefined ? undefined : environments?.[wanted];
+    if (!chosen || wanted === undefined) {
+      throw new ConfigError(`Ambiente "${wanted}" non definito in ${CONFIG_FILE} (disponibili: ${envs.join(', ')})`);
+    }
+    env = wanted;
+    target = { site: chosen.site, user: chosen.user, passwordEnv: chosen.passwordEnv ?? data.passwordEnv ?? 'WPDEV_APP_PASSWORD', autoDeploy: chosen.autoDeploy };
+  } else {
+    if (options.env) throw new ConfigError(`--env "${options.env}": ${CONFIG_FILE} non definisce "environments"`);
+    if (!data.site || !data.user) throw new ConfigError(`${CONFIG_FILE} non valido: servono "site" e "user" (oppure "environments")`);
+    target = { site: data.site, user: data.user, passwordEnv: data.passwordEnv ?? 'WPDEV_APP_PASSWORD', autoDeploy: true };
+  }
+  const siteUrl = validateSiteUrl(target.site, options.insecureLocal ?? false);
   const seen = new Set<string>();
   for (const root of data.writable) {
     const key = root.toLowerCase();
@@ -164,7 +211,16 @@ export function parseConfig(raw: unknown, projectRoot: string, options: LoadOpti
     }
     seen.add(key);
   }
-  return { ...data, projectRoot, siteUrl, writableFromSite: data.writable.length === 0 };
+  return {
+    ...rest,
+    ...target,
+    env,
+    envs,
+    stateDir: env === null ? path.join(projectRoot, STATE_DIR) : path.join(projectRoot, STATE_DIR, 'env', env),
+    projectRoot,
+    siteUrl,
+    writableFromSite: data.writable.length === 0,
+  };
 }
 
 export function loadConfig(options: LoadOptions & { cwd?: string } = {}): Config {

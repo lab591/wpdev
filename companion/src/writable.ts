@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { STATE_DIR, type Config } from './config.js';
+import type { Config } from './config.js';
 import type { ApiClient, StatusResponse } from './http.js';
 import { normalizeRel } from './paths.js';
 
@@ -38,17 +38,17 @@ export function sanitizeServerRoots(list: unknown): string[] {
   return out;
 }
 
-export async function loadRootsCache(projectRoot: string): Promise<string[] | undefined> {
+export async function loadRootsCache(stateDir: string): Promise<string[] | undefined> {
   try {
-    const data = JSON.parse(await readFile(path.join(projectRoot, STATE_DIR, ROOTS_CACHE_FILE), 'utf8')) as { roots?: unknown };
+    const data = JSON.parse(await readFile(path.join(stateDir, ROOTS_CACHE_FILE), 'utf8')) as { roots?: unknown };
     return sanitizeServerRoots(data.roots);
   } catch {
     return undefined;
   }
 }
 
-export async function saveRootsCache(projectRoot: string, roots: readonly string[]): Promise<void> {
-  const dir = path.join(projectRoot, STATE_DIR);
+export async function saveRootsCache(stateDir: string, roots: readonly string[]): Promise<void> {
+  const dir = stateDir;
   await mkdir(dir, { recursive: true });
   const file = path.join(dir, ROOTS_CACHE_FILE);
   await writeFile(`${file}.tmp`, `${JSON.stringify({ roots, at: new Date().toISOString() }, null, 2)}\n`, 'utf8');
@@ -70,7 +70,7 @@ export async function resolveWritable(ctx: WritableTarget, options: { status?: S
   const { config } = ctx;
   if (!config.writableFromSite) return;
   if (options.offline && !options.status) {
-    const cached = await loadRootsCache(config.projectRoot);
+    const cached = await loadRootsCache(config.stateDir);
     if (cached) {
       config.writable = cached;
       return;
@@ -80,13 +80,13 @@ export async function resolveWritable(ctx: WritableTarget, options: { status?: S
     const st = options.status ?? (await ctx.client.status());
     if (st.mode !== 'off') {
       config.writable = sanitizeServerRoots(st.writable_roots);
-      await saveRootsCache(config.projectRoot, config.writable);
+      await saveRootsCache(config.stateDir, config.writable);
       return;
     }
   } catch {
     // Unreachable site: fall back to the last known list.
   }
-  config.writable = (await loadRootsCache(config.projectRoot)) ?? [];
+  config.writable = (await loadRootsCache(config.stateDir)) ?? [];
 }
 
 /** Message when there is nothing to work on (a restricting wpdev.json is never empty). */

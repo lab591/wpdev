@@ -1,6 +1,5 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { STATE_DIR } from '../config.js';
 import type { Context } from '../context.js';
 import { xxh128File } from '../hash.js';
 import type { ManifestFile } from '../http.js';
@@ -29,7 +28,7 @@ export async function pullCommand(ctx: Context, out: Output, options: PullOption
     return EXIT_ERROR;
   }
   const base = config.projectRoot;
-  const state = await State.load(base);
+  const state = await State.load(config.stateDir);
   const remote = await fetchRemote(client, config.writable, config.exclude, out.warn);
   const local = new Map<string, LocalFile>();
   for (const root of config.writable) {
@@ -94,7 +93,7 @@ async function pullReadonly(ctx: Context, out: Output, rel: string): Promise<num
     out.warn(`${rel} contiene o è dentro una cartella scrivibile: usa "wpdev pull" senza --path`);
     return EXIT_ERROR;
   }
-  const base = path.join(config.projectRoot, STATE_DIR, READONLY_DIR);
+  const base = path.join(config.stateDir, READONLY_DIR);
   const remote = await fetchRemote(client, [rel], config.exclude, out.warn);
   const local = await scanTree(base, rel, config.exclude);
   const toDownload: ManifestFile[] = [];
@@ -112,6 +111,6 @@ async function pullReadonly(ctx: Context, out: Output, rel: string): Promise<num
       removed += 1;
     }
   }
-  out.info(`${rel}: ${remote.size} file sul server, scaricati ${written.length}, rimossi ${removed} (in ${STATE_DIR}/${READONLY_DIR}/, sola lettura).`);
+  out.info(`${rel}: ${remote.size} file sul server, scaricati ${written.length}, rimossi ${removed} (in ${path.relative(config.projectRoot, base).split(path.sep).join('/')}/, sola lettura).`);
   return EXIT_OK;
 }

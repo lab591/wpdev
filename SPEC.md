@@ -291,6 +291,14 @@ In una rete multisite temi, plugin e file sono condivisi da tutti i siti: Dev Br
 }
 ```
 
+- **Ambienti** (0.5.0): al posto di `site`/`user`/`passwordEnv` si può definire
+  `"environments": { "staging": { "site", "user", "passwordEnv"?, "autoDeploy"? }, "production": {…} }` e
+  `"defaultEnv"`. L'ambiente attivo è `--env <nome>`, altrimenti `WPDEV_ENV`, altrimenti `defaultEnv`, altrimenti il
+  primo. Ogni ambiente ha il proprio stato locale in `.wpdev/env/<nome>/` (`state.json`, `rescue.json`, cache,
+  cartelle scrivibili), mentre i file del progetto sono gli stessi. `autoDeploy: false` = ambiente protetto:
+  l'hook Stop e lo strumento MCP `deploy` non pubblicano mai lì; `wpdev --env <nome> deploy` chiede conferma
+  (o `--yes`). Il primo deploy verso un ambiente mai sincronizzato usa come base gli hash del server per i file
+  presenti in locale (nessun download, nessuna cancellazione di file che esistono solo sul server).
 - `deploy.gitCommit` (0.5.0, default `true`): dopo ogni deploy riuscito, se il progetto è un repository git, il
   companion fa un commit con **solo** i file pubblicati (le altre modifiche, anche già in stage, restano come
   sono), messaggio `wpdev deploy <release>` con sito, conteggi e percorsi. I file ignorati da `.gitignore` e quelli

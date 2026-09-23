@@ -55,7 +55,7 @@ describe('resolveWritable', () => {
     const ctx = ctxFor({});
     await resolveWritable(ctx);
     expect(ctx.config.writable).toEqual(['wp-content/themes/child']);
-    expect(await loadRootsCache(dir)).toEqual(['wp-content/themes/child']);
+    expect(await loadRootsCache(path.join(dir, '.wpdev'))).toEqual(['wp-content/themes/child']);
   });
 
   it('a list in wpdev.json restricts the project and is never replaced', async () => {
@@ -66,7 +66,7 @@ describe('resolveWritable', () => {
   });
 
   it('offline mode uses the cache without network calls (Stop hook without changes)', async () => {
-    await saveRootsCache(dir, ['wp-content/themes/cached']);
+    await saveRootsCache(path.join(dir, '.wpdev'), ['wp-content/themes/cached']);
     const ctx = ctxFor({});
     await resolveWritable(ctx, { offline: true });
     expect(ctx.config.writable).toEqual(['wp-content/themes/cached']);
@@ -74,7 +74,7 @@ describe('resolveWritable', () => {
   });
 
   it('falls back to the cache when the site is off or unreachable', async () => {
-    await saveRootsCache(dir, ['wp-content/themes/cached']);
+    await saveRootsCache(path.join(dir, '.wpdev'), ['wp-content/themes/cached']);
     mock.site.mode = 'off';
     const ctx = ctxFor({});
     await resolveWritable(ctx);

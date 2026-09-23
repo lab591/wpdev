@@ -1,6 +1,5 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { STATE_DIR } from './config.js';
 
 /**
  * `.wpdev/state.json`: for every synchronized file, `h_base` is the hash of the
@@ -26,8 +25,9 @@ export class State {
     private readonly data: StateData,
   ) {}
 
-  static async load(projectRoot: string): Promise<State> {
-    const file = path.join(projectRoot, STATE_DIR, 'state.json');
+  /** `stateDir`: the local state folder of the target (Config.stateDir). */
+  static async load(stateDir: string): Promise<State> {
+    const file = path.join(stateDir, 'state.json');
     let data: StateData = { version: 1, files: {} };
     try {
       const parsed = JSON.parse(await readFile(file, 'utf8')) as Partial<StateData>;
@@ -40,6 +40,10 @@ export class State {
       }
     }
     return new State(file, data);
+  }
+
+  isEmpty(): boolean {
+    return Object.keys(this.data.files).length === 0;
   }
 
   get(p: string): FileState | undefined {

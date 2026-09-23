@@ -21,13 +21,15 @@ export function writableRefusal(config: Pick<Config, 'writable'>, path: string):
   return `${path} is inside the writable folder ${root}: use the local files (Read/Grep/Glob tools) instead of site_* tools, they are the source of truth for deploys.`;
 }
 
-export function formatStatus(st: StatusResponse, config: Pick<Config, 'writable' | 'siteUrl' | 'writableFromSite'>): string {
+export function formatStatus(st: StatusResponse, config: Pick<Config, 'writable' | 'siteUrl' | 'writableFromSite'> & Partial<Pick<Config, 'env' | 'autoDeploy'>>): string {
+  const envLine = config.env ? [`environment: ${config.env}${config.autoDeploy === false ? ' (protected: deploys only by the user from the terminal)' : ''}`] : [];
   if (st.mode === 'off') {
-    return `site ${config.siteUrl}\nmode: off — dev mode is disabled on the server; ask the user to enable it (admin page or \`wp devbridge enable\`).`;
+    return [`site ${config.siteUrl}`, ...envLine, 'mode: off — dev mode is disabled on the server; ask the user to enable it (admin page or `wp devbridge enable`).'].join('\n');
   }
   const expires = new Date(st.expires_at * 1000).toISOString().replace(/\.\d+Z$/, 'Z');
   const lines = [
     `site ${config.siteUrl}`,
+    ...envLine,
     `mode: ${st.mode} (expires ${expires})`,
     `WordPress ${st.wp}, PHP ${st.php}, Dev Bridge ${st.plugin}`,
     ...(st.network

@@ -55,7 +55,7 @@ describe('pull', () => {
     expect(await readFile(local(`${ROOT}/functions.php`), 'utf8')).toBe('<?php\r\n// crlf kept\r\n');
     expect(existsSync(local(`${ROOT}/inc/a.php`))).toBe(true);
     expect(existsSync(local(`${ROOT}/node_modules/x/index.js`))).toBe(false);
-    const state = await State.load(dir);
+    const state = await State.load(path.join(dir, '.wpdev'));
     expect(state.get(`${ROOT}/style.css`)?.h_base).toMatch(/^[0-9a-f]{32}$/);
     expect(out.lines[0]).toContain('Scaricati 3 file');
   });
@@ -113,7 +113,7 @@ describe('pull', () => {
     expect(await pullCommand(ctx, out)).toBe(0);
     const archived = mock.site.requests.filter((r) => r.path === 'archive').at(-1)?.body as { paths: string[] };
     expect(archived.paths).not.toContain(`${ROOT}/style.css`);
-    expect((await State.load(dir)).get(`${ROOT}/style.css`)).toBeDefined();
+    expect((await State.load(path.join(dir, '.wpdev'))).get(`${ROOT}/style.css`)).toBeDefined();
   });
 
   it('pulls a read-only folder into .wpdev/readonly', async () => {
@@ -121,7 +121,7 @@ describe('pull', () => {
     expect(await pullCommand(ctx, out, { path: 'wp-content/plugins/woo' })).toBe(0);
     const ro = path.join(dir, '.wpdev', 'readonly', 'wp-content', 'plugins', 'woo', 'inc', 'b.php');
     expect(await readFile(ro, 'utf8')).toBe('<?php // b\n');
-    expect((await State.load(dir)).get('wp-content/plugins/woo/woo.php')).toBeUndefined();
+    expect((await State.load(path.join(dir, '.wpdev'))).get('wp-content/plugins/woo/woo.php')).toBeUndefined();
     mock.site.files.delete('wp-content/plugins/woo/inc/b.php');
     await pullCommand(ctx, memoryOutput(), { path: 'wp-content\\plugins\\woo' });
     expect(existsSync(ro)).toBe(false);

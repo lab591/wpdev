@@ -16,7 +16,7 @@ export const LABEL: Record<SideStatus, string> = {
 export async function computeDiff(ctx: Context, warn: (m: string) => void): Promise<SyncPlan> {
   const { config, client } = ctx;
   const base = config.projectRoot;
-  const state = await State.load(base);
+  const state = await State.load(config.stateDir);
   const local = new Map<string, LocalFile>();
   for (const root of config.writable) {
     for (const [p, f] of await scanTree(base, root, config.exclude)) local.set(p, f);

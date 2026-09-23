@@ -1,6 +1,5 @@
 import { mkdir, readFile, rename, rm, stat, writeFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { STATE_DIR } from './config.js';
 import { ApiError, type ApiClient, type ReadResponse } from './http.js';
 import { isInside, normalizeRel, toNative } from './paths.js';
 
@@ -96,11 +95,11 @@ export class ReadCache {
   private index: CacheIndex | undefined;
 
   constructor(
-    private readonly projectRoot: string,
+    stateDir: string,
     private readonly client: ApiClient,
     private readonly options: CacheOptions,
   ) {
-    this.dir = path.join(projectRoot, STATE_DIR, CACHE_DIR);
+    this.dir = path.join(stateDir, CACHE_DIR);
     this.now = options.now ?? (() => Math.floor(Date.now() / 1000));
   }
 
@@ -259,9 +258,9 @@ export class ReadCache {
   }
 }
 
-/** Removes `.wpdev/cache/`; returns what was removed. */
-export async function clearCache(projectRoot: string): Promise<{ entries: number; bytes: number }> {
-  const dir = path.join(projectRoot, STATE_DIR, CACHE_DIR);
+/** Removes the read cache of a target (`<stateDir>/cache/`); returns what was removed. */
+export async function clearCache(stateDir: string): Promise<{ entries: number; bytes: number }> {
+  const dir = path.join(stateDir, CACHE_DIR);
   let entries = 0;
   let bytes = 0;
   const walk = async (d: string): Promise<void> => {

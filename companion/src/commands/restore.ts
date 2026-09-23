@@ -31,7 +31,7 @@ export async function restorePaths(ctx: Context, inputs: readonly string[]): Pro
   const roots = config.writable.filter((r) => targets.some((t) => isInside(t, r, false) || t.toLowerCase() === r.toLowerCase()));
 
   const base = config.projectRoot;
-  const state = await State.load(base);
+  const state = await State.load(config.stateDir);
   const remote = await fetchRemote(client, roots, config.exclude);
   const local = new Map<string, LocalFile>();
   for (const root of roots) {

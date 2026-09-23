@@ -24,7 +24,7 @@ export type Confirm = (question: string) => Promise<boolean>;
  * local modifications ready to be fixed and deployed again.
  */
 export async function applyRestored(config: Config, files: readonly RestoredFile[]): Promise<void> {
-  const state = await State.load(config.projectRoot);
+  const state = await State.load(config.stateDir);
   for (const f of files) {
     if (f.h === null) {
       state.delete(f.p);
@@ -48,7 +48,7 @@ function isServerDown(e: unknown): boolean {
 }
 
 export async function rescueRollback(ctx: Context, out: Output): Promise<number> {
-  const info = await loadRescue(ctx.config.projectRoot);
+  const info = await loadRescue(ctx.config.stateDir);
   if (!info) {
     out.warn('Nessun token di rescue salvato in .wpdev/rescue.json: il rescue è disponibile solo per l\'ultimo deploy riuscito da questo progetto.');
     return EXIT_ERROR;
@@ -56,7 +56,7 @@ export async function rescueRollback(ctx: Context, out: Output): Promise<number>
   try {
     const res = await ctx.client.rescue(info.token);
     await applyRestored(ctx.config, res.files);
-    await deleteRescue(ctx.config.projectRoot);
+    await deleteRescue(ctx.config.stateDir);
     out.info(`Rescue eseguito: release ${res.release_id} annullata, ${res.files.length} file ripristinati.`);
     return EXIT_OK;
   } catch (e) {
@@ -76,7 +76,7 @@ export async function rollbackCommand(ctx: Context, out: Output, options: Rollba
   try {
     const res = await ctx.client.rollback(options.releaseId, options.force === true);
     await applyRestored(ctx.config, res.files);
-    await deleteRescue(ctx.config.projectRoot);
+    await deleteRescue(ctx.config.stateDir);
     out.info(`Rollback eseguito: ${res.rolled_back.join(', ') || '(nessuna release)'} — ${res.files.length} file ripristinati.`);
     return EXIT_OK;
   } catch (e) {

@@ -19,6 +19,14 @@ import { formatIntrospect } from './mcp/format.js';
 import { consoleOutput, EXIT_DEPLOY_FAILED, EXIT_ERROR, EXIT_OK } from './output.js';
 import { VERSION } from './version.js';
 
+// Output piped into a command that exits early (e.g. "wpdev status | head -1"): stop quietly.
+for (const stream of [process.stdout, process.stderr]) {
+  stream.on('error', (e: NodeJS.ErrnoException) => {
+    if (e.code === 'EPIPE') process.exit(process.exitCode ?? 0);
+    throw e;
+  });
+}
+
 const program = new Command();
 
 program
@@ -26,11 +34,12 @@ program
   .description('Dev Bridge companion: lavora in locale su un sito WordPress remoto')
   .version(VERSION)
   .option('--insecure-local', 'accetta http:// solo per localhost, *.local, *.test')
+  .option('--env <nome>', 'ambiente di wpdev.json da usare (es. staging, production); default: WPDEV_ENV o defaultEnv')
   .showHelpAfterError();
 
 function globals(): GlobalOptions {
-  const opts = program.opts<{ insecureLocal?: boolean }>();
-  return { insecureLocal: opts.insecureLocal === true };
+  const opts = program.opts<{ insecureLocal?: boolean; env?: string }>();
+  return { insecureLocal: opts.insecureLocal === true, ...(opts.env ? { env: opts.env } : {}) };
 }
 
 async function runWithContext(fn: (ctx: Context) => Promise<number>, offline = false): Promise<void> {
@@ -125,7 +134,8 @@ program
   .option('--dry-run', 'mostra le modifiche ed esegue il lint senza inviare nulla')
   .option('--force', 'sovrascrive i file modificati sul server (ignora i conflitti)')
   .option('--hook', 'modalità hook Stop di Claude Code: non interattiva, exit 2 se il deploy fallisce')
-  .action(async (opts: { dryRun?: boolean; force?: boolean; hook?: boolean }) => {
+  .option('-y, --yes', 'conferma il deploy su un ambiente protetto (autoDeploy: false) senza chiedere')
+  .action(async (opts: { dryRun?: boolean; force?: boolean; hook?: boolean; yes?: boolean }) => {
     if (opts.hook) {
       const input = await readHookInput();
       process.exitCode = await hookDeploy(
@@ -135,7 +145,17 @@ program
       );
       return;
     }
-    await runWithContext((ctx) => deployCommand(ctx, consoleOutput, { dryRun: opts.dryRun === true, force: opts.force === true }), true);
+    await runWithContext(async (ctx) => {
+      if (!ctx.config.autoDeploy && !opts.dryRun && !opts.yes) {
+        const confirm = terminalConfirm();
+        const question = `Pubblicare su "${ctx.config.env}" (${ctx.config.siteUrl}), ambiente protetto? [s/N] `;
+        if (!confirm || !(await confirm(question))) {
+          consoleOutput.warn(`Ambiente protetto "${ctx.config.env}": deploy annullato (conferma interattiva o --yes).`);
+          return EXIT_ERROR;
+        }
+      }
+      return deployCommand(ctx, consoleOutput, { dryRun: opts.dryRun === true, force: opts.force === true });
+    }, true);
   });
 
 program
@@ -162,7 +182,7 @@ program
   .description('svuota .wpdev/cache/')
   .action(async () => {
     try {
-      process.exitCode = await cacheClearCommand(loadConfig(globals()).projectRoot, consoleOutput);
+      process.exitCode = await cacheClearCommand(loadConfig(globals()).stateDir, consoleOutput);
     } catch (e) {
       consoleOutput.warn(describeError(e));
       process.exitCode = EXIT_ERROR;
