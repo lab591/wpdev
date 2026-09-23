@@ -314,6 +314,7 @@ Cartella `.wpdev/` (in `.gitignore`):
 | `wpdev rollback [<id>] [--rescue]` | Rollback normale; con `--rescue` usa il token e il mu-plugin. Senza argomenti, se il rollback normale riceve 5xx, propone il rescue |
 | `wpdev log [-n 200]` | Ultime righe di `debug.log` |
 | `wpdev info <topic> [name]` | Introspezione del sito (`/introspect`), 0.5.0 |
+| `wpdev claude-md [--force]` | Rigenera la sezione di `CLAUDE.md` tra i marcatori `<!-- wpdev:start … -->` / `<!-- wpdev:end -->` (0.5.0): il resto del file non viene toccato; senza marcatori la sezione viene aggiunta in fondo; un `CLAUDE.md` creato da versioni precedenti viene rigenerato solo con `--force` |
 | `wpdev health` | Health check su richiesta |
 | `wpdev mcp` | Avvia il server MCP (stdio) |
 | `wpdev cache clear` | (M3) |
@@ -389,6 +390,10 @@ Regole di output: testo compatto, mai JSON verboso; risultati troncati con indic
 ---
 
 ## 6. Template `CLAUDE.md` per i progetti sito
+
+Dalla 0.5.0 la parte generata sta tra i marcatori `<!-- wpdev:start … -->` e `<!-- wpdev:end -->` ed è
+aggiornabile con `wpdev claude-md`; la sezione "Convenzioni" è scritta una sola volta fuori dai marcatori e
+resta all'utente. `wpdev init` con un `wpdev.json` già presente lo riusa.
 
 ```markdown
 # Sito: <nome> — <url>

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command, InvalidArgumentError } from 'commander';
 import { cacheClearCommand } from './commands/cache.js';
+import { claudeMdCommand } from './commands/claudeMd.js';
 import { deployCommand, hookDeploy, readHookInput } from './commands/deploy.js';
 import { diffCommand } from './commands/diff.js';
 import { initCommand, terminalAsk } from './commands/init.js';
@@ -47,12 +48,12 @@ function collect(value: string, previous: string[] = []): string[] {
 
 program
   .command('init')
-  .description('crea wpdev.json, aggiorna .gitignore e prova la connessione')
+  .description('crea (o riusa) wpdev.json, prepara il progetto per Claude Code e prova la connessione')
   .option('--site <url>', 'URL del sito')
   .option('--user <user>', 'utente WordPress')
   .option('--password-env <name>', 'variabile d\'ambiente con la Application Password')
   .option('--writable <path>', 'limita il progetto a questa cartella scrivibile del sito (ripetibile; di default tutte)', collect)
-  .option('--force', 'sovrascrive wpdev.json esistente')
+  .option('--force', 'ricrea wpdev.json anche se esiste già')
   .option('-y, --yes', 'non interattivo')
   .action(async (opts: { site?: string; user?: string; passwordEnv?: string; writable?: string[]; force?: boolean; yes?: boolean }) => {
     const interactive = !opts.yes && process.stdin.isTTY === true;
@@ -85,6 +86,12 @@ program
   .command('diff')
   .description('file modificati in locale, sul server e in conflitto')
   .action(() => runWithContext((ctx) => diffCommand(ctx, consoleOutput)));
+
+program
+  .command('claude-md')
+  .description('aggiorna la sezione wpdev di CLAUDE.md con i dati attuali del sito (il resto del file non viene toccato)')
+  .option('--force', 'rigenera un CLAUDE.md creato da una versione precedente (senza marcatori)')
+  .action((opts: { force?: boolean }) => runWithContext((ctx) => claudeMdCommand(ctx, consoleOutput, opts.force === true), true));
 
 program
   .command('info <topic> [name]')

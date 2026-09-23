@@ -36,7 +36,11 @@ describe('init', () => {
     expect(await readFile(path.join(dir, '.gitignore'), 'utf8')).toBe('.wpdev/\n.env.local\n');
     expect(out.lines.join('\n')).toContain('Connessione riuscita: modalità read');
 
-    expect(await initCommand(dir, memoryOutput(), { site: mock.url, user: 'x', yes: true, insecureLocal: true })).toBe(1);
+    // Existing wpdev.json: reused (the given options are ignored), everything else is recreated.
+    const again = memoryOutput();
+    expect(await initCommand(dir, again, { site: mock.url, user: 'x', yes: true, insecureLocal: true })).toBe(0);
+    expect(again.lines.join('\n')).toContain('wpdev.json esistente: lo uso');
+    expect((JSON.parse(await readFile(path.join(dir, 'wpdev.json'), 'utf8')) as { user: string }).user).toBe(mock.site.user);
   });
 
   it('asks interactively for missing values, never for the writable folders', async () => {
@@ -127,9 +131,37 @@ describe('init scaffolding for Claude Code', () => {
     expect(Object.keys(mcp.mcpServers)).toEqual(['other', 'wpdev']);
     expect(mcp.mcpServers.wpdev).toEqual({ command: 'wpdev', args: ['mcp'] });
 
-    expect(await writeClaudeMd(dir, { name: 'x', url: 'https://x', writable: [] })).toBe('CLAUDE.wpdev.md');
-    expect(await readFile(path.join(dir, 'CLAUDE.md'), 'utf8')).toBe('# mine\n');
+    expect(await writeClaudeMd(dir, { name: 'x', url: 'https://x', writable: [] })).toBe('appended');
+    const md = await readFile(path.join(dir, 'CLAUDE.md'), 'utf8');
+    expect(md.startsWith('# mine\n\n<!-- wpdev:start')).toBe(true);
+    expect(md.trimEnd().endsWith('<!-- wpdev:end -->')).toBe(true);
     expect(renderClaudeMd({ name: 'x', url: 'https://x', writable: [] })).toContain('Child theme: <nome>');
+  });
+
+  it('updates only the managed section and keeps what the user wrote', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'wpdev-init-'));
+    expect(await writeClaudeMd(dir, { name: 'Old', url: 'https://x', writable: ['wp-content/themes/a'] })).toBe('created');
+    const file = path.join(dir, 'CLAUDE.md');
+    const edited = (await readFile(file, 'utf8')).replace('Page builder: Elementor.', 'Page builder: nessuno.') + '\n## Note mie\nNon toccare il footer.\n';
+    await writeFile(file, edited);
+    expect(await writeClaudeMd(dir, { name: 'New', url: 'https://x', writable: ['wp-content/themes/b'] })).toBe('updated');
+    const md = await readFile(file, 'utf8');
+    expect(md).toContain('# Sito: New');
+    expect(md).not.toContain('# Sito: Old');
+    expect(md).toContain('`wp-content/themes/b`');
+    expect(md).toContain('Page builder: nessuno.');
+    expect(md).toContain('Non toccare il footer.');
+    expect(md.match(/wpdev:start/g)).toHaveLength(1);
+  });
+
+  it('leaves a CLAUDE.md of an older wpdev alone unless forced', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'wpdev-init-'));
+    const legacy = '# Sito: vecchio — https://x\n\n## Come lavori su questo sito\n- vecchie istruzioni\n';
+    await writeFile(path.join(dir, 'CLAUDE.md'), legacy);
+    expect(await writeClaudeMd(dir, { name: 'x', url: 'https://x', writable: [] })).toBe('legacy');
+    expect(await readFile(path.join(dir, 'CLAUDE.md'), 'utf8')).toBe(legacy);
+    expect(await writeClaudeMd(dir, { name: 'x', url: 'https://x', writable: [] }, true)).toBe('created');
+    expect(await readFile(path.join(dir, 'CLAUDE.md'), 'utf8')).toContain('<!-- wpdev:start');
   });
 });
 

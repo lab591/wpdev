@@ -2,14 +2,14 @@ import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
-import { CONFIG_FILE, ENV_LOCAL_FILE, parseConfig, resolvePassword, STATE_DIR, validateSiteUrl, type WpdevJson } from '../config.js';
+import { CONFIG_FILE, ENV_LOCAL_FILE, parseConfig, resolvePassword, STATE_DIR, validateSiteUrl, type Config, type WpdevJson } from '../config.js';
 import { AUTOCRLF_WARNING, autocrlfRisk } from '../git.js';
 import { ApiClient } from '../http.js';
 import { describeError, formatExpiry } from '../messages.js';
 import { EXIT_ERROR, EXIT_OK, type Output } from '../output.js';
 import { normalizeRel } from '../paths.js';
 import { compareRoots, describeRootsMismatch } from '../roots.js';
-import { ensureGitattributes, ensureMcpServer, ensureStopHook, writeClaudeMd } from '../scaffold.js';
+import { describeClaudeMdResult, ensureGitattributes, ensureMcpServer, ensureStopHook, writeClaudeMd } from '../scaffold.js';
 import { NO_WRITABLE_MESSAGE, resolveWritable, sanitizeServerRoots } from '../writable.js';
 
 export interface InitOptions {
@@ -52,10 +52,25 @@ export async function updateGitignore(dir: string): Promise<string[]> {
 
 export async function initCommand(dir: string, out: Output, options: InitOptions, ask?: Ask): Promise<number> {
   const target = path.join(dir, CONFIG_FILE);
+  let config: Config;
   if (existsSync(target) && !options.force) {
-    out.warn(`${CONFIG_FILE} esiste già (usa --force per ricrearlo)`);
-    return EXIT_ERROR;
+    // Reuse the existing configuration and (re)create everything else.
+    try {
+      config = parseConfig(JSON.parse(await readFile(target, 'utf8')), dir, { insecureLocal: options.insecureLocal ?? false });
+    } catch (e) {
+      out.warn(`${CONFIG_FILE} esistente ma non valido: ${(e as Error).message} (correggilo o usa --force per ricrearlo)`);
+      return EXIT_ERROR;
+    }
+    out.info(`${CONFIG_FILE} esistente: lo uso (--force per ricrearlo da zero)`);
+  } else {
+    const created = await createConfig(dir, target, out, options, ask);
+    if (!created) return EXIT_ERROR;
+    config = created;
   }
+  return scaffoldProject(dir, config, out, options);
+}
+
+async function createConfig(dir: string, target: string, out: Output, options: InitOptions, ask?: Ask): Promise<Config | undefined> {
   const prompt: Ask = async (q, def) => {
     if (options.yes || !ask) return def ?? '';
     return ask(q, def);
@@ -66,7 +81,7 @@ export async function initCommand(dir: string, out: Output, options: InitOptions
   const user = options.user ?? (await prompt('Utente WordPress'));
   if (!user) {
     out.warn('Utente mancante');
-    return EXIT_ERROR;
+    return undefined;
   }
   const passwordEnv = options.passwordEnv ?? (await prompt('Variabile d\'ambiente con la Application Password', 'WPDEV_APP_PASSWORD'));
   // Writable folders are decided on the site; --writable only restricts this project to some of them.
@@ -85,7 +100,10 @@ export async function initCommand(dir: string, out: Output, options: InitOptions
   const config = parseConfig(json, dir, { insecureLocal: options.insecureLocal ?? false });
   await writeFile(target, `${JSON.stringify(json, null, 2)}\n`, 'utf8');
   out.info(`Creato ${CONFIG_FILE}`);
+  return config;
+}
 
+async function scaffoldProject(dir: string, config: Config, out: Output, options: InitOptions): Promise<number> {
   const added = await updateGitignore(dir);
   if (added.length) out.info(`Aggiornato .gitignore (${added.join(', ')})`);
   if (await ensureGitattributes(dir)) out.info('Creato .gitattributes (* -text: file identici byte per byte al server)');
@@ -127,13 +145,16 @@ export async function initCommand(dir: string, out: Output, options: InitOptions
     }
   }
 
-  const claudeMd = await writeClaudeMd(dir, {
-    name: siteName,
-    url: config.siteUrl,
-    writable: config.writable,
-    writableFromSite: config.writableFromSite,
-    ...(network ? { network } : {}),
-  });
-  out.info(claudeMd === 'CLAUDE.md' ? 'Creato CLAUDE.md per il sito' : 'CLAUDE.md esiste già: il modello per il sito è in CLAUDE.wpdev.md (integralo a mano)');
+  const claudeMd = describeClaudeMdResult(
+    await writeClaudeMd(dir, {
+      name: siteName,
+      url: config.siteUrl,
+      writable: config.writable,
+      writableFromSite: config.writableFromSite,
+      ...(network ? { network } : {}),
+    }),
+  );
+  if (claudeMd.warn) out.warn(claudeMd.text);
+  else out.info(claudeMd.text);
   return EXIT_OK;
 }

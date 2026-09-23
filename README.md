@@ -114,7 +114,11 @@ progetto lavori su **una parte** di quelle cartelle, indicale in `wpdev.json`
 | `.gitattributes` | `* -text`: i file restano identici byte per byte al server (fondamentale su Windows con `core.autocrlf=true`) |
 | `.claude/settings.json` | hook **Stop** → `wpdev deploy --hook` (deploy automatico a fine turno) |
 | `.mcp.json` | server MCP `wpdev` per Claude Code |
-| `CLAUDE.md` | istruzioni per Claude sul sito (se esiste già: `CLAUDE.wpdev.md`) |
+| `CLAUDE.md` | istruzioni per Claude sul sito, in una sezione tra i marcatori `wpdev:start`/`wpdev:end` (se il file esiste già la sezione viene aggiunta in fondo) |
+
+Se `wpdev.json` esiste già, `wpdev init` lo riusa e ricrea solo il resto (utile dopo un `git clone`);
+`--force` lo ricrea da zero. Quando cambiano le cartelle scrivibili o altro sul sito, `wpdev claude-md`
+aggiorna la sezione di `CLAUDE.md` senza toccare quello che hai scritto fuori dai marcatori.
 
 Per un sito locale in `http://` aggiungi `--insecure-local` (accettato solo per `localhost`,
 `*.local`, `*.test`); viene propagato anche all'hook e al server MCP.
@@ -145,6 +149,7 @@ Comandi utili:
 | `wpdev rollback --rescue` | rollback fuori banda quando WordPress non risponde (token dell'ultimo deploy, monouso, 24 h) |
 | `wpdev health` | health check su richiesta |
 | `wpdev log [-n 200]` | ultime righe di `debug.log` |
+| `wpdev claude-md [--force]` | aggiorna la sezione wpdev di `CLAUDE.md` con i dati attuali del sito |
 | `wpdev info <argomento> [nome]` | informazioni sul sito: `overview`, `post_types`, `taxonomies`, `shortcodes`, `hook <nome>`, `rest_routes [prefisso]`, `cron`, `blocks [prefisso]` |
 | `wpdev cache clear` | svuota la cache di lettura |
 
