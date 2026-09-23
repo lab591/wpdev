@@ -18,6 +18,8 @@ namespace Lab591\DevBridge\Tests\Support {
 		/** @var array<string, mixed> Network (site) options and transients. */
 		public static array $siteOptions = [];
 		public static bool $multisite    = false;
+		/** @var list<array{string, list<mixed>}> Actions fired with do_action(). */
+		public static array $actions = [];
 		/** @var (callable(string): array{code: int}|null)|null Answers wp_remote_get() by URL (null = network error). */
 		public static $http = null;
 
@@ -27,6 +29,7 @@ namespace Lab591\DevBridge\Tests\Support {
 			self::$siteOptions = [];
 			self::$multisite   = false;
 			self::$http        = null;
+			self::$actions     = [];
 		}
 	}
 }
@@ -110,6 +113,12 @@ namespace {
 		function delete_site_transient( string $name ): bool {
 			unset( WpStubs::$siteOptions[ '_t_' . $name ] );
 			return true;
+		}
+		function do_action( string $hook, mixed ...$args ): void {
+			WpStubs::$actions[] = [ $hook, $args ];
+		}
+		function wp_parse_url( string $url, int $component = -1 ): mixed {
+			return parse_url( $url, $component );
 		}
 		function wp_remote_get( string $url, array $args = [] ): mixed {
 			$answer = null === WpStubs::$http ? [ 'code' => 200 ] : ( WpStubs::$http )( $url );

@@ -23,6 +23,7 @@ use Lab591\DevBridge\Security\WritableRootValidator;
 use Lab591\DevBridge\Services\GrepService;
 use Lab591\DevBridge\Services\HashCache;
 use Lab591\DevBridge\Services\HealthService;
+use Lab591\DevBridge\Services\Notifier;
 use Lab591\DevBridge\Services\RipgrepSearcher;
 use Lab591\DevBridge\Services\StatusService;
 use Lab591\DevBridge\Storage\Storage;
@@ -68,6 +69,7 @@ final class Plugin {
 		add_action( 'wp_ajax_nopriv_' . self::PING_ACTION, [ self::class, 'ping' ] );
 		add_action( 'wp_ajax_' . self::PING_ACTION, [ self::class, 'ping' ] );
 		add_action( 'rest_api_init', [ new Api( $this ), 'register' ] );
+		( new Notifier( $this->settings ) )->register();
 		add_action( self::CRON_AUDIT, [ $this, 'cleanupAudit' ] );
 		add_action( 'plugins_loaded', [ $this->audit, 'maybeUpgrade' ] );
 		if ( is_admin() ) {

@@ -72,6 +72,7 @@ final class RollbackService {
 				$done[] = (string) $release['id'];
 			}
 			( new RescueTokens( $this->storage->rescueFile() ) )->revoke();
+			do_action( 'devbridge_rolled_back', $done, array_keys( $files ) );
 
 			return [
 				'status'      => 'ok',

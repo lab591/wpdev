@@ -4,10 +4,16 @@
   "Lab591": "Lab591",
   "You are not allowed to manage Dev Bridge.": "Non hai i permessi per gestire Dev Bridge.",
   "This page has expired: reload it and try again.": "Questa pagina è scaduta: ricaricala e riprova.",
-  "%d authorized user": ["%d utente autorizzato", "%d utenti autorizzati"],
+  "%d authorized user": [
+    "%d utente autorizzato",
+    "%d utenti autorizzati"
+  ],
   "No authorized user": "Nessun utente autorizzato",
   "Nobody can connect until you select at least one user in Settings → Access.": "Nessuno può connettersi finché non selezioni almeno un utente in Impostazioni → Accesso.",
-  "%d writable folder": ["%d cartella scrivibile", "%d cartelle scrivibili"],
+  "%d writable folder": [
+    "%d cartella scrivibile",
+    "%d cartelle scrivibili"
+  ],
   "No writable folder": "Nessuna cartella scrivibile",
   "Claude can read the site but not deploy: choose a theme or plugin in Settings → Writable folders.": "Claude può leggere il sito ma non pubblicare: scegli un tema o un plugin in Impostazioni → Cartelle scrivibili.",
   "HTTPS active": "HTTPS attivo",
@@ -35,8 +41,14 @@
   "Development mode disabled.": "Modalità sviluppo disattivata.",
   "Choose read or write.": "Scegli lettura o scrittura.",
   "Duration must be between 1 and %d hours.": "La durata deve essere tra 1 e %d ore.",
-  "Read and write enabled for %d hour.": ["Lettura e scrittura attive per %d ora.", "Lettura e scrittura attive per %d ore."],
-  "Read-only access enabled for %d hour.": ["Accesso in sola lettura attivo per %d ora.", "Accesso in sola lettura attivo per %d ore."],
+  "Read and write enabled for %d hour.": [
+    "Lettura e scrittura attive per %d ora.",
+    "Lettura e scrittura attive per %d ore."
+  ],
+  "Read-only access enabled for %d hour.": [
+    "Accesso in sola lettura attivo per %d ora.",
+    "Accesso in sola lettura attivo per %d ore."
+  ],
   "Settings saved.": "Impostazioni salvate.",
   "Invalid request: nothing was saved.": "Richiesta non valida: non è stato salvato nulla.",
   "Settings saved, some entries were discarded:": "Impostazioni salvate, alcune voci sono state scartate:",
@@ -46,7 +58,10 @@
   "The admin interface has not been built: run \"npm install && npm run build\" in the plugin folder, or install the release zip.": "L'interfaccia di amministrazione non è stata compilata: esegui \"npm install && npm run build\" nella cartella del plugin, oppure installa lo zip della release.",
   "Dev Bridge settings need JavaScript.": "Le impostazioni di Dev Bridge richiedono JavaScript.",
   "Settings": "Impostazioni",
-  "There is %d Dev Bridge release backup. Deactivating also switches off the rescue; deleting the plugin deletes the backups. Continue?": ["C'è %d backup di release di Dev Bridge. Disattivando si spegne anche il rescue; eliminando il plugin i backup vengono cancellati. Continuare?", "Ci sono %d backup di release di Dev Bridge. Disattivando si spegne anche il rescue; eliminando il plugin i backup vengono cancellati. Continuare?"],
+  "There is %d Dev Bridge release backup. Deactivating also switches off the rescue; deleting the plugin deletes the backups. Continue?": [
+    "C'è %d backup di release di Dev Bridge. Disattivando si spegne anche il rescue; eliminando il plugin i backup vengono cancellati. Continuare?",
+    "Ci sono %d backup di release di Dev Bridge. Disattivando si spegne anche il rescue; eliminando il plugin i backup vengono cancellati. Continuare?"
+  ],
   "Dev Bridge: the rescue mu-plugin is not installed, out-of-band rollback is not available.": "Dev Bridge: il mu-plugin di rescue non è installato, il rollback fuori banda non è disponibile.",
   "Details": "Dettagli",
   "container not allowed": "contenitore non ammesso",
@@ -71,9 +86,15 @@
   "Activation not allowed": "Attivazione non consentita",
   "Dev Bridge is active on this site only, but this is a multisite network: deactivate it and network-activate it from Network Admin. Until then it does nothing.": "Dev Bridge è attivo solo su questo sito ma l'installazione è una rete multisite: disattivalo e attivalo dall'Amministrazione rete. Finché non lo fai è inattivo.",
   "The request failed (HTTP %d). Reload the page and try again.": "La richiesta non è riuscita (HTTP %d). Ricarica la pagina e riprova.",
-  "%d minute": ["%d minuto", "%d minuti"],
+  "%d minute": [
+    "%d minuto",
+    "%d minuti"
+  ],
   "%1$d h %2$d min": "%1$d h %2$d min",
-  "%d hour": ["%d ora", "%d ore"],
+  "%d hour": [
+    "%d ora",
+    "%d ore"
+  ],
   "Read": "Lettura",
   "Write": "Scrittura",
   "Off": "Spenta",
@@ -103,7 +124,10 @@
   "Time": "Durata",
   "Release": "Release",
   "No entries.": "Nessuna voce.",
-  "%d entry": ["%d voce", "%d voci"],
+  "%d entry": [
+    "%d voce",
+    "%d voci"
+  ],
   "Previous": "Precedente",
   "Page %1$d of %2$d": "Pagina %1$d di %2$d",
   "Next": "Successiva",
@@ -173,7 +197,10 @@
   "my-plugin or my-theme/blocks": "mio-plugin oppure mio-tema/blocks",
   "Create and select": "Crea e seleziona",
   "Setup checks": "Controlli di configurazione",
-  "%d item needs attention.": ["%d voce richiede attenzione.", "%d voci richiedono attenzione."],
+  "%d item needs attention.": [
+    "%d voce richiede attenzione.",
+    "%d voci richiedono attenzione."
+  ],
   "Everything is ready.": "È tutto pronto.",
   "Check again": "Verifica di nuovo",
   "Checks updated.": "Controlli aggiornati.",
@@ -207,5 +234,26 @@
   "Status": "Stato",
   "Claude Code ↔ WordPress%1$s · v%2$s": "Claude Code ↔ WordPress%1$s · v%2$s",
   "whole network": "intera rete",
-  "Dev Bridge sections": "Sezioni di Dev Bridge"
+  "Dev Bridge sections": "Sezioni di Dev Bridge",
+  "Email address \"%s\" is not valid": "L'indirizzo email \"%s\" non è valido",
+  "Webhook \"%s\" rejected: use an https:// URL (http:// only for local hosts)": "Webhook \"%s\" rifiutato: usa un URL https:// (http:// solo per host locali)",
+  "Test sent. Email: %1$s. Webhook: %2$s.": "Prova inviata. Email: %1$s. Webhook: %2$s.",
+  "[%1$s] Deploy %2$s by %3$s rolled back automatically: the health check failed.": "[%1$s] Deploy %2$s di %3$s annullato automaticamente: l'health check è fallito.",
+  "[%1$s] Deploy %2$s by %3$s: %4$d written, %5$d deleted, health check %6$s.": "[%1$s] Deploy %2$s di %3$s: %4$d scritti, %5$d cancellati, health check %6$s.",
+  "[%1$s] Rollback by %2$s: %3$s.": "[%1$s] Rollback di %2$s: %3$s.",
+  "[%1$s] Write mode enabled by %2$s until %3$s: Claude can publish changes.": "[%1$s] Modalità scrittura attivata da %2$s fino a %3$s: Claude può pubblicare modifiche.",
+  "[%s] Dev Bridge test notification: notifications work.": "[%s] Notifica di prova di Dev Bridge: le notifiche funzionano.",
+  "… and %d more": "… e altri %d",
+  "Email addresses": "Indirizzi email",
+  "Empty = no emails.": "Vuoto = nessuna email.",
+  "Deploys (and automatic rollbacks)": "Deploy (e rollback automatici)",
+  "Manual rollbacks": "Rollback manuali",
+  "Write mode enabled": "Attivazione della modalità scrittura",
+  "Save the settings first: the test uses the saved ones.": "Salva prima le impostazioni: la prova usa quelle salvate.",
+  "Notifications": "Notifiche",
+  "Know when something changes: email and/or a webhook (Slack, Discord or any service accepting JSON). Messages contain site, user, release, result and file paths, never file contents.": "Sappi quando cambia qualcosa: email e/o un webhook (Slack, Discord o qualsiasi servizio che accetta JSON). I messaggi contengono sito, utente, release, esito e percorsi dei file, mai il contenuto dei file.",
+  "Send test": "Invia una prova",
+  "Webhook URL": "URL del webhook",
+  "https only. Receives a JSON with \"text\" (Slack), \"content\" (Discord) and the structured fields.": "Solo https. Riceve un JSON con \"text\" (Slack), \"content\" (Discord) e i campi strutturati.",
+  "Notify": "Notifica"
 }

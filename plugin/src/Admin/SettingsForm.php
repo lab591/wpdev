@@ -148,6 +148,29 @@ final class SettingsForm {
 			$out['health_urls'][] = $url;
 		}
 
+		$out['notify_emails'] = [];
+		foreach ( self::lines( $input['notify_emails'] ?? '', true ) as $email ) {
+			if ( false === filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
+				/* translators: %s: email address. */
+				$this->errors[] = sprintf( __( 'Email address "%s" is not valid', 'lab591-dev-bridge' ), $email );
+				continue;
+			}
+			$out['notify_emails'][] = strtolower( $email );
+		}
+		$out['notify_emails'] = array_values( array_unique( $out['notify_emails'] ) );
+
+		$webhook               = trim( (string) ( $input['notify_webhook'] ?? '' ) );
+		$out['notify_webhook'] = '';
+		if ( '' !== $webhook ) {
+			if ( self::isWebhookUrl( $webhook ) ) {
+				$out['notify_webhook'] = $webhook;
+			} else {
+				/* translators: %s: URL. */
+				$this->errors[] = sprintf( __( 'Webhook "%s" rejected: use an https:// URL (http:// only for local hosts)', 'lab591-dev-bridge' ), $webhook );
+			}
+		}
+		$out['notify_events'] = array_values( array_intersect( \Lab591\DevBridge\Services\Notifier::EVENTS, array_map( 'strval', (array) ( $input['notify_events'] ?? [] ) ) ) );
+
 		$out['retention_releases']   = self::intIn( $input['retention_releases'] ?? null, 1, 100, (int) $out['retention_releases'] );
 		$out['audit_retention_days'] = self::intIn( $input['audit_retention_days'] ?? null, 1, 3650, (int) $out['audit_retention_days'] );
 		$out['max_read_hours']       = self::intIn( $input['max_read_hours'] ?? null, 1, Mode::HARD_MAX_HOURS[ Mode::READ ], (int) $out['max_read_hours'] );
@@ -160,6 +183,21 @@ final class SettingsForm {
 		$out['limits'] = $limits;
 
 		return $out;
+	}
+
+	/**
+	 * Webhook destination: https, or http only for local development hosts; no credentials in the URL.
+	 */
+	public static function isWebhookUrl( string $url ): bool {
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) || empty( $parts['host'] ) || isset( $parts['user'] ) || isset( $parts['pass'] ) || strlen( $url ) > 500 ) {
+			return false;
+		}
+		$scheme = strtolower( (string) ( $parts['scheme'] ?? '' ) );
+		if ( 'https' === $scheme ) {
+			return true;
+		}
+		return 'http' === $scheme && 1 === preg_match( '/^(localhost|127\.0\.0\.1|[a-z0-9-]+\.(local|test))$/i', (string) $parts['host'] );
 	}
 
 	/**

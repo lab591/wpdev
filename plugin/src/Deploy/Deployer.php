@@ -107,6 +107,13 @@ final class Deployer {
 			$release['health'] = $health['status'];
 			$store->save( $release );
 			$store->rotate( $this->retention );
+			// Extension point (notifications): metadata and paths only, never the rescue token.
+			do_action(
+				'devbridge_deployed',
+				array_diff_key( $response, [ 'rescue_token' => true ] ),
+				array_map( static fn ( PlannedOp $op ): string => $op->action . ' ' . $op->target->relative, $plan->ops ),
+				$userId
+			);
 			return $response;
 		} finally {
 			if ( null !== $plan ) {

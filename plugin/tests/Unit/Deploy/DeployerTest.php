@@ -289,6 +289,18 @@ final class DeployerTest extends TestCase {
 		$this->assertSame( 1, $out['health']['other_warnings'] );
 	}
 
+	public function test_deploy_fires_an_action_without_the_rescue_token(): void {
+		\Lab591\DevBridge\Tests\Support\WpStubs::$actions = [];
+		$out    = $this->standardDeploy();
+		$fired  = array_values( array_filter( \Lab591\DevBridge\Tests\Support\WpStubs::$actions, static fn ( array $a ): bool => 'devbridge_deployed' === $a[0] ) );
+		$this->assertCount( 1, $fired );
+		[ $response, $paths, $user ] = $fired[0][1];
+		$this->assertSame( $out['release_id'], $response['release_id'] );
+		$this->assertArrayNotHasKey( 'rescue_token', $response );
+		$this->assertContains( 'delete wp-content/themes/child/inc/helpers.php', $paths );
+		$this->assertSame( 1, $user );
+	}
+
 	public function test_release_rotation(): void {
 		for ( $i = 0; $i < 3; $i++ ) {
 			$content  = "a$i";

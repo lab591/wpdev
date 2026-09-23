@@ -92,6 +92,13 @@ Distribuzione privata (non WordPress.org).
   Sempre vietati in scrittura: `.htaccess`, `.user.ini`, `php.ini`, `.phar`, `.phtml`, `.php3-8`, `.pht`, file senza estensione, nomi che iniziano con `.` (eccetto `.gitkeep`).
 - Limiti (default): lettura 512 KB per chiamata; grep 200 risultati, 5 s; deploy 20 MB zip, 500 file, 5 MB per file.
 - `health_urls`: URL da controllare dopo il deploy (default: home). Solo URL dello stesso host.
+- **Notifiche** (0.5.0): `notify_emails` (indirizzi validati), `notify_webhook` (solo `https://`; `http://` solo per
+  host locali; niente credenziali nell'URL), `notify_events` ⊆ `deploy`, `rollback`, `write`. Il contenuto è solo
+  metadati: sito, utente, release, esito, percorsi (max 50), mai contenuti, token o password. Il webhook riceve
+  JSON con `text` (Slack), `content` (Discord) e campi strutturati; invio con `wp_safe_remote_post` (in ambiente
+  `local` anche verso localhost), non bloccante. Gli eventi sono anche azioni WordPress riusabili da altri
+  plugin: `devbridge_deployed( $response_senza_token, $percorsi, $user_id )`,
+  `devbridge_rolled_back( $release, $percorsi )`, `devbridge_mode_enabled( $stato )`.
 - `retention_releases`: backup conservati (default 10). `audit_retention_days` (default 90).
 
 ### 2.5 PathGuard (componente critico)

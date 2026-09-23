@@ -10,6 +10,7 @@ import {
 } from '@wordpress/components';
 import { useEffect, useMemo, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
+import type { ReactNode } from 'react';
 import type { Notify } from './App';
 import { boot, errorMessage, get, post } from './api';
 import { NumberField, Section } from './components';
@@ -23,6 +24,7 @@ interface Props {
 }
 
 type ListKey =
+	| 'notify_emails'
 	| 'read_roots'
 	| 'deny_patterns'
 	| 'write_extensions'
@@ -450,6 +452,18 @@ export default function SettingsTab( { notify, onSaved }: Props ) {
 				</div>
 			</Section>
 
+			<NotificationsSection
+				draft={ draft }
+				set={ set }
+				dirty={ dirty }
+				notify={ notify }
+				emails={ list(
+					'notify_emails',
+					__( 'Email addresses', 'lab591-dev-bridge' ),
+					__( 'Empty = no emails.', 'lab591-dev-bridge' )
+				) }
+			/>
+
 			<Section
 				title={ __( 'Durations and limits', 'lab591-dev-bridge' ) }
 				description={ __(
@@ -607,5 +621,127 @@ function NewFolder( {
 			</form>
 			{ error && <p className="devbridge-field__warning">{ error }</p> }
 		</div>
+	);
+}
+
+function NotificationsSection( {
+	draft,
+	set,
+	dirty,
+	notify,
+	emails,
+}: {
+	draft: Settings;
+	set: < K extends keyof Settings >( key: K, value: Settings[ K ] ) => void;
+	dirty: boolean;
+	notify: Notify;
+	emails: ReactNode;
+} ) {
+	const [ testing, setTesting ] = useState( false );
+	const events: { value: string; label: string }[] = [
+		{
+			value: 'deploy',
+			label: __(
+				'Deploys (and automatic rollbacks)',
+				'lab591-dev-bridge'
+			),
+		},
+		{
+			value: 'rollback',
+			label: __( 'Manual rollbacks', 'lab591-dev-bridge' ),
+		},
+		{
+			value: 'write',
+			label: __( 'Write mode enabled', 'lab591-dev-bridge' ),
+		},
+	];
+	const test = async () => {
+		if ( dirty ) {
+			notify(
+				__(
+					'Save the settings first: the test uses the saved ones.',
+					'lab591-dev-bridge'
+				)
+			);
+			return;
+		}
+		setTesting( true );
+		try {
+			const result = await post< { message: string } >(
+				'devbridge_notify',
+				{}
+			);
+			notify( result.message );
+		} catch ( e ) {
+			notify( errorMessage( e ) );
+		} finally {
+			setTesting( false );
+		}
+	};
+	return (
+		<Section
+			title={ __( 'Notifications', 'lab591-dev-bridge' ) }
+			description={ __(
+				'Know when something changes: email and/or a webhook (Slack, Discord or any service accepting JSON). Messages contain site, user, release, result and file paths, never file contents.',
+				'lab591-dev-bridge'
+			) }
+			actions={
+				<Button
+					variant="secondary"
+					size="compact"
+					isBusy={ testing }
+					disabled={
+						testing ||
+						( ! draft.notify_emails.length &&
+							! draft.notify_webhook )
+					}
+					onClick={ test }
+				>
+					{ __( 'Send test', 'lab591-dev-bridge' ) }
+				</Button>
+			}
+		>
+			<div className="devbridge-two-columns">
+				{ emails }
+				<TextControl
+					__next40pxDefaultSize
+					__nextHasNoMarginBottom
+					type="url"
+					label={ __( 'Webhook URL', 'lab591-dev-bridge' ) }
+					value={ draft.notify_webhook }
+					placeholder="https://hooks.slack.com/services/…"
+					onChange={ ( v: string ) =>
+						set( 'notify_webhook', v.trim() )
+					}
+					help={ __(
+						'https only. Receives a JSON with "text" (Slack), "content" (Discord) and the structured fields.',
+						'lab591-dev-bridge'
+					) }
+				/>
+			</div>
+			<fieldset className="devbridge-field devbridge-events">
+				<legend className="devbridge-field__label">
+					{ __( 'Notify', 'lab591-dev-bridge' ) }
+				</legend>
+				{ events.map( ( e ) => (
+					<CheckboxControl
+						__nextHasNoMarginBottom
+						key={ e.value }
+						label={ e.label }
+						checked={ draft.notify_events.includes( e.value ) }
+						onChange={ ( on: boolean ) =>
+							set(
+								'notify_events',
+								on
+									? [ ...draft.notify_events, e.value ]
+									: draft.notify_events.filter(
+											( x ) => x !== e.value
+										)
+							)
+						}
+					/>
+				) ) }
+			</fieldset>
+		</Section>
 	);
 }

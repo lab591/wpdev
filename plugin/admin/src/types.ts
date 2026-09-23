@@ -66,6 +66,9 @@ export interface Settings {
 	grep_rg: string;
 	health_urls: string[];
 	health_backend: boolean;
+	notify_emails: string[];
+	notify_webhook: string;
+	notify_events: string[];
 	retention_releases: number;
 	audit_retention_days: number;
 	max_read_hours: number;

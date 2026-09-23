@@ -50,7 +50,9 @@ Requisiti: WordPress ≥ 6.6, PHP ≥ 8.1 con estensione `zip`, HTTPS (in locale
      la cartella viene creata vuota e resa scrivibile. Dopo `wpdev pull` puoi chiedere a Claude, ad esempio,
      "inizializza in wp-content/plugins/mio-plugin un plugin che fa…" o "crea un tema figlio di X in
      wp-content/themes/mio-child";
-   - facoltativi: allowlist IP, proxy fidati, URL di health check, limiti, deny list aggiuntiva.
+   - facoltativi: allowlist IP, proxy fidati, URL di health check, limiti, deny list aggiuntiva;
+   - **Notifiche** (facoltative): email e/o un webhook (es. Slack o Discord) quando Claude pubblica, quando c'è
+     un rollback o quando viene attivata la scrittura, con il pulsante *Invia una prova*.
      `wp-config*.php`, `.env*`, `.git`, `.htpasswd` e lo storage sono sempre esclusi.
 5. Crea una **Application Password** per quell'utente (*Utenti → Profilo → Password applicazione*).
 

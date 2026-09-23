@@ -11,7 +11,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-23T19:51:51+00:00\n"
+"POT-Creation-Date: 2026-09-23T20:11:11+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: lab591-dev-bridge\n"
@@ -31,150 +31,150 @@ msgstr "Ponte sicuro tra un progetto Claude Code in locale e questo sito: esplor
 msgid "Lab591"
 msgstr "Lab591"
 
-#: src/Admin/AdminController.php:88
+#: src/Admin/AdminController.php:89
 msgid "You are not allowed to manage Dev Bridge."
 msgstr "Non hai i permessi per gestire Dev Bridge."
 
-#: src/Admin/AdminController.php:91
+#: src/Admin/AdminController.php:92
 msgid "This page has expired: reload it and try again."
 msgstr "Questa pagina è scaduta: ricaricala e riprova."
 
 #. translators: %d: number of authorized users.
-#: src/Admin/AdminController.php:189
+#: src/Admin/AdminController.php:190
 #, php-format
 msgid "%d authorized user"
 msgid_plural "%d authorized users"
 msgstr[0] "%d utente autorizzato"
 msgstr[1] "%d utenti autorizzati"
 
-#: src/Admin/AdminController.php:191
+#: src/Admin/AdminController.php:192
 msgid "No authorized user"
 msgstr "Nessun utente autorizzato"
 
-#: src/Admin/AdminController.php:191
+#: src/Admin/AdminController.php:192
 msgid "Nobody can connect until you select at least one user in Settings → Access."
 msgstr "Nessuno può connettersi finché non selezioni almeno un utente in Impostazioni → Accesso."
 
 #. translators: %d: number of writable folders.
-#: src/Admin/AdminController.php:197
+#: src/Admin/AdminController.php:198
 #, php-format
 msgid "%d writable folder"
 msgid_plural "%d writable folders"
 msgstr[0] "%d cartella scrivibile"
 msgstr[1] "%d cartelle scrivibili"
 
-#: src/Admin/AdminController.php:199
+#: src/Admin/AdminController.php:200
 msgid "No writable folder"
 msgstr "Nessuna cartella scrivibile"
 
-#: src/Admin/AdminController.php:199
+#: src/Admin/AdminController.php:200
 msgid "Claude can read the site but not deploy: choose a theme or plugin in Settings → Writable folders."
 msgstr "Claude può leggere il sito ma non pubblicare: scegli un tema o un plugin in Impostazioni → Cartelle scrivibili."
 
-#: src/Admin/AdminController.php:203
+#: src/Admin/AdminController.php:204
 msgid "HTTPS active"
 msgstr "HTTPS attivo"
 
-#: src/Admin/AdminController.php:205
+#: src/Admin/AdminController.php:206
 msgid "Local environment: HTTP allowed"
 msgstr "Ambiente locale: HTTP consentito"
 
-#: src/Admin/AdminController.php:205
+#: src/Admin/AdminController.php:206
 msgid "On a real site HTTPS is mandatory."
 msgstr "Su un sito reale l'HTTPS è obbligatorio."
 
-#: src/Admin/AdminController.php:207
+#: src/Admin/AdminController.php:208
 msgid "The site is not on HTTPS"
 msgstr "Il sito non è in HTTPS"
 
-#: src/Admin/AdminController.php:207
+#: src/Admin/AdminController.php:208
 msgid "Requests will be rejected until the site uses HTTPS."
 msgstr "Le richieste verranno rifiutate finché il sito non usa HTTPS."
 
-#: src/Admin/AdminController.php:211
+#: src/Admin/AdminController.php:212
 msgid "Application Passwords available"
 msgstr "Application Password disponibili"
 
-#: src/Admin/AdminController.php:213
+#: src/Admin/AdminController.php:214
 msgid "Application Passwords are disabled"
 msgstr "Le Application Password sono disattivate"
 
-#: src/Admin/AdminController.php:213
+#: src/Admin/AdminController.php:214
 msgid "They are required to connect: check plugins or code that disable them."
 msgstr "Servono per connettersi: controlla plugin o codice che le disattivano."
 
-#: src/Admin/AdminController.php:218
+#: src/Admin/AdminController.php:219
 msgid "Out-of-band rescue installed"
 msgstr "Rescue fuori banda installato"
 
-#: src/Admin/AdminController.php:220
+#: src/Admin/AdminController.php:221
 msgid "Out-of-band rescue not installed yet"
 msgstr "Rescue fuori banda non ancora installato"
 
-#: src/Admin/AdminController.php:220
+#: src/Admin/AdminController.php:221
 msgid "It will be installed automatically on the next admin page load."
 msgstr "Verrà installato automaticamente al prossimo caricamento di una pagina di amministrazione."
 
-#: src/Admin/AdminController.php:225
+#: src/Admin/AdminController.php:226
 msgid "Out-of-band rescue not installed"
 msgstr "Rescue fuori banda non installato"
 
-#: src/Admin/AdminController.php:226
+#: src/Admin/AdminController.php:227
 msgid "The mu-plugins folder is not directly writable. Copy the file below into wp-content/mu-plugins/ (permissions 0644)."
 msgstr "La cartella mu-plugins non è scrivibile direttamente. Copia il file qui sotto in wp-content/mu-plugins/ (permessi 0644)."
 
-#: src/Admin/AdminController.php:236
+#: src/Admin/AdminController.php:237
 msgid "Private storage inside wp-content"
 msgstr "Storage privato dentro wp-content"
 
-#: src/Admin/AdminController.php:237
+#: src/Admin/AdminController.php:238
 msgid "It has a random name and is protected by .htaccess. Recommended: move it outside the web root in wp-config.php; on Nginx add the rule below."
 msgstr "Ha un nome casuale ed è protetto da .htaccess. Consigliato: spostarlo fuori dalla document root in wp-config.php; su Nginx aggiungi la regola qui sotto."
 
-#: src/Admin/AdminController.php:241
+#: src/Admin/AdminController.php:242
 msgid "Private storage outside the web root"
 msgstr "Storage privato fuori dalla document root"
 
-#: src/Admin/AdminController.php:246
+#: src/Admin/AdminController.php:247
 msgid "Fast search active, regular expressions included (PCRE2)."
 msgstr "Ricerca veloce attiva, espressioni regolari incluse (PCRE2)."
 
-#: src/Admin/AdminController.php:246
+#: src/Admin/AdminController.php:247
 msgid "Fast search active for text; regular expressions use the PHP search (no PCRE2)."
 msgstr "Ricerca veloce attiva per il testo; le espressioni regolari usano la ricerca PHP (niente PCRE2)."
 
-#: src/Admin/AdminController.php:248
+#: src/Admin/AdminController.php:249
 msgid "ripgrep configured but not executable"
 msgstr "ripgrep configurato ma non eseguibile"
 
-#: src/Admin/AdminController.php:248
+#: src/Admin/AdminController.php:249
 msgid "Search keeps working with the PHP engine. Check the path in Settings → Search."
 msgstr "La ricerca continua a funzionare con il motore PHP. Controlla il percorso in Impostazioni → Lettura e ricerca."
 
-#: src/Admin/AdminController.php:250
+#: src/Admin/AdminController.php:251
 msgid "ripgrep not configured"
 msgstr "ripgrep non configurato"
 
-#: src/Admin/AdminController.php:250
+#: src/Admin/AdminController.php:251
 msgid "Optional: search uses the PHP engine."
 msgstr "Facoltativo: la ricerca usa il motore PHP."
 
-#: src/Admin/AdminController.php:265
+#: src/Admin/AdminController.php:266
 msgid "Development mode disabled."
 msgstr "Modalità sviluppo disattivata."
 
-#: src/Admin/AdminController.php:270
+#: src/Admin/AdminController.php:271
 msgid "Choose read or write."
 msgstr "Scegli lettura o scrittura."
 
 #. translators: %d: maximum number of hours.
-#: src/Admin/AdminController.php:275
+#: src/Admin/AdminController.php:276
 #, php-format
 msgid "Duration must be between 1 and %d hours."
 msgstr "La durata deve essere tra 1 e %d ore."
 
 #. translators: %d: hours.
-#: src/Admin/AdminController.php:280
+#: src/Admin/AdminController.php:281
 #, php-format
 msgid "Read and write enabled for %d hour."
 msgid_plural "Read and write enabled for %d hours."
@@ -182,39 +182,45 @@ msgstr[0] "Lettura e scrittura attive per %d ora."
 msgstr[1] "Lettura e scrittura attive per %d ore."
 
 #. translators: %d: hours.
-#: src/Admin/AdminController.php:282
+#: src/Admin/AdminController.php:283
 #, php-format
 msgid "Read-only access enabled for %d hour."
 msgid_plural "Read-only access enabled for %d hours."
 msgstr[0] "Accesso in sola lettura attivo per %d ora."
 msgstr[1] "Accesso in sola lettura attivo per %d ore."
 
-#: src/Admin/AdminController.php:307
+#: src/Admin/AdminController.php:308
 msgid "Invalid request: nothing was saved."
 msgstr "Richiesta non valida: non è stato salvato nulla."
 
-#: src/Admin/AdminController.php:319
+#: src/Admin/AdminController.php:320
 msgid "Settings saved."
 msgstr "Impostazioni salvate."
 
-#: src/Admin/AdminController.php:319
+#: src/Admin/AdminController.php:320
 #: build/index.js:8
 msgid "Settings saved, some entries were discarded:"
 msgstr "Impostazioni salvate, alcune voci sono state scartate:"
 
-#: src/Admin/AdminController.php:403
+#: src/Admin/AdminController.php:404
 msgid "This folder cannot be listed."
 msgstr "Questa cartella non può essere elencata."
 
 #. translators: %s: folder path.
-#: src/Admin/AdminController.php:432
+#: src/Admin/AdminController.php:433
 #, php-format
 msgid "Folder %s created and made writable. Run \"wpdev pull\" in the local project."
 msgstr "Cartella %s creata e resa scrivibile. Esegui \"wpdev pull\" nel progetto locale."
 
-#: src/Admin/AdminController.php:457
+#: src/Admin/AdminController.php:458
 msgid "active theme"
 msgstr "tema attivo"
+
+#. translators: 1: email result, 2: webhook result.
+#: src/Admin/AdminController.php:475
+#, php-format
+msgid "Test sent. Email: %1$s. Webhook: %2$s."
+msgstr "Prova inviata. Email: %1$s. Webhook: %2$s."
 
 #: src/Admin/AdminPage.php:106
 msgid "The admin interface has not been built: run \"npm install && npm run build\" in the plugin folder, or install the release zip."
@@ -340,17 +346,65 @@ msgstr "ripgrep \"%s\" rifiutato: indica \"rg\" oppure il percorso assoluto di r
 msgid "Health check URL \"%s\" rejected: it must be on the same host as the site"
 msgstr "URL di health check \"%s\" rifiutato: deve essere sullo stesso host del sito"
 
-#: src/Plugin.php:88
+#. translators: %s: email address.
+#: src/Admin/SettingsForm.php:155
+#, php-format
+msgid "Email address \"%s\" is not valid"
+msgstr "L'indirizzo email \"%s\" non è valido"
+
+#. translators: %s: URL.
+#: src/Admin/SettingsForm.php:169
+#, php-format
+msgid "Webhook \"%s\" rejected: use an https:// URL (http:// only for local hosts)"
+msgstr "Webhook \"%s\" rifiutato: usa un URL https:// (http:// solo per host locali)"
+
+#: src/Plugin.php:90
 msgid "On a multisite network Dev Bridge can only be network-activated (Network Admin → Plugins → Network Activate), because themes and plugins are shared by all sites."
 msgstr "In una rete multisite Dev Bridge si attiva solo a livello di rete (Amministrazione rete → Plugin → Attiva sulla rete), perché temi e plugin sono condivisi da tutti i siti."
 
-#: src/Plugin.php:89
+#: src/Plugin.php:91
 msgid "Activation not allowed"
 msgstr "Attivazione non consentita"
 
-#: src/Plugin.php:141
+#: src/Plugin.php:143
 msgid "Dev Bridge is active on this site only, but this is a multisite network: deactivate it and network-activate it from Network Admin. Until then it does nothing."
 msgstr "Dev Bridge è attivo solo su questo sito ma l'installazione è una rete multisite: disattivalo e attivalo dall'Amministrazione rete. Finché non lo fai è inattivo."
+
+#. translators: 1: site name, 2: release id, 3: user.
+#: src/Services/Notifier.php:152
+#, php-format
+msgid "[%1$s] Deploy %2$s by %3$s rolled back automatically: the health check failed."
+msgstr "[%1$s] Deploy %2$s di %3$s annullato automaticamente: l'health check è fallito."
+
+#. translators: 1: site name, 2: release id, 3: user, 4: files written, 5: files deleted, 6: health status.
+#: src/Services/Notifier.php:154
+#, php-format
+msgid "[%1$s] Deploy %2$s by %3$s: %4$d written, %5$d deleted, health check %6$s."
+msgstr "[%1$s] Deploy %2$s di %3$s: %4$d scritti, %5$d cancellati, health check %6$s."
+
+#. translators: 1: site name, 2: user, 3: release ids.
+#: src/Services/Notifier.php:158
+#, php-format
+msgid "[%1$s] Rollback by %2$s: %3$s."
+msgstr "[%1$s] Rollback di %2$s: %3$s."
+
+#. translators: 1: site name, 2: user, 3: date and time.
+#: src/Services/Notifier.php:162
+#, php-format
+msgid "[%1$s] Write mode enabled by %2$s until %3$s: Claude can publish changes."
+msgstr "[%1$s] Modalità scrittura attivata da %2$s fino a %3$s: Claude può pubblicare modifiche."
+
+#. translators: %s: site name.
+#: src/Services/Notifier.php:166
+#, php-format
+msgid "[%s] Dev Bridge test notification: notifications work."
+msgstr "[%s] Notifica di prova di Dev Bridge: le notifiche funzionano."
+
+#. translators: %d: number of other files.
+#: src/Services/Notifier.php:174
+#, php-format
+msgid "… and %d more"
+msgstr "… e altri %d"
 
 #. translators: %d: HTTP status code.
 #: build/index.js:2
@@ -734,6 +788,14 @@ msgid "Audit log days"
 msgstr "Giorni di audit log"
 
 #: build/index.js:9
+msgid "Email addresses"
+msgstr "Indirizzi email"
+
+#: build/index.js:9
+msgid "Empty = no emails."
+msgstr "Vuoto = nessuna email."
+
+#: build/index.js:9
 msgid "Durations and limits"
 msgstr "Durate e limiti"
 
@@ -788,6 +850,46 @@ msgstr "mio-plugin oppure mio-tema/blocks"
 #: build/index.js:9
 msgid "Create and select"
 msgstr "Crea e seleziona"
+
+#: build/index.js:9
+msgid "Deploys (and automatic rollbacks)"
+msgstr "Deploy (e rollback automatici)"
+
+#: build/index.js:9
+msgid "Manual rollbacks"
+msgstr "Rollback manuali"
+
+#: build/index.js:9
+msgid "Write mode enabled"
+msgstr "Attivazione della modalità scrittura"
+
+#: build/index.js:9
+msgid "Notifications"
+msgstr "Notifiche"
+
+#: build/index.js:9
+msgid "Know when something changes: email and/or a webhook (Slack, Discord or any service accepting JSON). Messages contain site, user, release, result and file paths, never file contents."
+msgstr "Sappi quando cambia qualcosa: email e/o un webhook (Slack, Discord o qualsiasi servizio che accetta JSON). I messaggi contengono sito, utente, release, esito e percorsi dei file, mai il contenuto dei file."
+
+#: build/index.js:9
+msgid "Save the settings first: the test uses the saved ones."
+msgstr "Salva prima le impostazioni: la prova usa quelle salvate."
+
+#: build/index.js:9
+msgid "Send test"
+msgstr "Invia una prova"
+
+#: build/index.js:9
+msgid "Webhook URL"
+msgstr "URL del webhook"
+
+#: build/index.js:9
+msgid "https only. Receives a JSON with \"text\" (Slack), \"content\" (Discord) and the structured fields."
+msgstr "Solo https. Riceve un JSON con \"text\" (Slack), \"content\" (Discord) e i campi strutturati."
+
+#: build/index.js:9
+msgid "Notify"
+msgstr "Notifica"
 
 #: build/index.js:9
 msgid "Setup checks"

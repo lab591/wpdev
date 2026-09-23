@@ -13,7 +13,7 @@ Gli invarianti di sicurezza di `CLAUDE.md` valgono per tutte.
 | 4 | **Introspezione del sito** (sola lettura) — endpoint `/introspect` e strumento MCP `site_info`: plugin e temi attivi, tipi di contenuto, tassonomie, shortcode, callback di un hook con file e riga, rotte REST, cron | Claude capisce il sito con una chiamata invece di tanti grep | fatto (0.5.0) |
 | 5 | **Warning e notice del deploy** — l'health check riporta anche i nuovi warning/notice/deprecated (senza rollback) | problemi visti prima che diventino fatali | fatto (0.5.0) |
 | 6 | **`wpdev claude-md`** e `init` che riusa un `wpdev.json` esistente — sezione di `CLAUDE.md` tra marcatori, aggiornabile senza toccare il resto | istruzioni per Claude sempre attuali | fatto (0.5.0) |
-| 7 | **Notifiche** — email e/o webhook (es. Slack) per deploy, rollback e attivazione della scrittura; solo percorsi e metadati, mai contenuti | sicurezza: l'amministratore sa cosa succede | |
+| 7 | **Notifiche** — email e/o webhook (es. Slack) per deploy, rollback e attivazione della scrittura; solo percorsi e metadati, mai contenuti | sicurezza: l'amministratore sa cosa succede | fatto (0.5.0) |
 | 8 | **Commit git automatico** dopo ogni deploy riuscito (solo i file pubblicati, messaggio con la release) | cronologia locale allineata alle release | |
 | 9 | **Ambienti multipli** — `environments` in `wpdev.json` (es. staging e produzione), `--env`, stato separato per ambiente; l'hook pubblica solo sull'ambiente predefinito | sicurezza: la produzione non si tocca per sbaglio | |
 | 10 | **CI GitHub Actions** — test e lint a ogni push, zip del plugin allegato alle release | progetto pubblico affidabile | |

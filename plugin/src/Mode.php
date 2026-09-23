@@ -106,6 +106,7 @@ final class Mode {
 			'since'      => $now,
 		];
 		Options::update( self::OPTION, $state, true );
+		do_action( 'devbridge_mode_enabled', $state );
 		return $state;
 	}
 

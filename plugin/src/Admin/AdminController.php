@@ -45,6 +45,7 @@ final class AdminController {
 		'devbridge_folders'  => [ 'folders', 'GET' ],
 		'devbridge_mkdir'    => [ 'mkdir', 'POST' ],
 		'devbridge_audit'    => [ 'audit', 'GET' ],
+		'devbridge_notify'   => [ 'notifyTest', 'POST' ],
 	];
 
 	public function __construct( private readonly Plugin $plugin ) {
@@ -338,7 +339,7 @@ final class AdminController {
 		$s                     = $this->plugin->settings()->all();
 		$s['read_roots']       = array_map( static fn ( $r ): string => '' === $r ? '.' : (string) $r, (array) $s['read_roots'] );
 		$s['allowed_user_ids'] = array_map( 'intval', (array) $s['allowed_user_ids'] );
-		foreach ( [ 'writable_roots', 'deny_patterns', 'write_extensions', 'ip_allowlist', 'trusted_proxies', 'grep_skip_dirs', 'health_urls' ] as $key ) {
+		foreach ( [ 'writable_roots', 'deny_patterns', 'write_extensions', 'ip_allowlist', 'trusted_proxies', 'grep_skip_dirs', 'health_urls', 'notify_emails', 'notify_events' ] as $key ) {
 			$s[ $key ] = array_values( array_map( 'strval', (array) $s[ $key ] ) );
 		}
 		$s['invalid_roots'] = array_values( array_diff( $s['writable_roots'], $this->plugin->validWritableRoots() ) );
@@ -458,6 +459,21 @@ final class AdminController {
 			}
 		}
 		return $labels;
+	}
+
+	// ------------------------------------------------------------------ notifications
+
+	/**
+	 * Sends a test notification with the saved settings.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function notifyTest(): array {
+		$result = ( new \Lab591\DevBridge\Services\Notifier( $this->plugin->settings() ) )->test( get_current_user_id() );
+		return $result + [
+			/* translators: 1: email result, 2: webhook result. */
+			'message' => sprintf( __( 'Test sent. Email: %1$s. Webhook: %2$s.', 'lab591-dev-bridge' ), $result['email'], $result['webhook'] ),
+		];
 	}
 
 	// ------------------------------------------------------------------ audit
