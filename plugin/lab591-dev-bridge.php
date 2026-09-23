@@ -9,6 +9,7 @@
  * Author:            Lab591
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * Update URI:        https://github.com/lab591/wpdev
  * Text Domain:       lab591-dev-bridge
  *
  * Copyright (C) 2026 Lab591

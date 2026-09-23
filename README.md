@@ -28,7 +28,9 @@ Requisiti: WordPress ≥ 6.6, PHP ≥ 8.1 con estensione `zip`, HTTPS (in locale
 
 1. Crea lo zip: `cd plugin && npm install && npm run package` → `dist/lab591-dev-bridge-<versione>.zip`
    (compila l'interfaccia di amministrazione e impacchetta; servono Node 20+ e Composer).
-2. Caricalo da *Plugin → Aggiungi nuovo → Carica plugin* e attivalo.
+2. Caricalo da *Plugin → Aggiungi nuovo → Carica plugin* e attivalo. Gli **aggiornamenti** successivi arrivano
+   da soli: il plugin controlla le [release su GitHub](https://github.com/lab591/wpdev/releases) e WordPress li
+   propone come per qualsiasi altro plugin (per disattivarli: `define( 'DEVBRIDGE_DISABLE_UPDATES', true );`).
    All'attivazione viene copiato il mu-plugin di rescue in `wp-content/mu-plugins/`.
 3. **Consigliato:** sposta lo storage privato (backup delle release, token) fuori dalla document root,
    in `wp-config.php`:

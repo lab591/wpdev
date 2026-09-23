@@ -28,6 +28,7 @@ use Lab591\DevBridge\Services\RipgrepSearcher;
 use Lab591\DevBridge\Services\StatusService;
 use Lab591\DevBridge\Storage\Storage;
 use Lab591\DevBridge\Support\Options;
+use Lab591\DevBridge\Support\Updater;
 
 final class Plugin {
 
@@ -70,6 +71,7 @@ final class Plugin {
 		add_action( 'wp_ajax_' . self::PING_ACTION, [ self::class, 'ping' ] );
 		add_action( 'rest_api_init', [ new Api( $this ), 'register' ] );
 		( new Notifier( $this->settings ) )->register();
+		( new Updater() )->register();
 		add_action( self::CRON_AUDIT, [ $this, 'cleanupAudit' ] );
 		add_action( 'plugins_loaded', [ $this->audit, 'maybeUpgrade' ] );
 		if ( is_admin() ) {

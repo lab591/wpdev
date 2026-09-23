@@ -235,6 +235,14 @@ Pagina admin con filtri. Pulizia via cron oltre `audit_retention_days`. I conten
 
 `uninstall.php`: rimuove opzioni, tabella audit, mu-plugin rescue (se ancora presente), storage (chiedendo conferma nella pagina admin prima della disattivazione se ci sono release).
 
+### 2.13b Aggiornamenti (0.5.0)
+
+Intestazione `Update URI: https://github.com/lab591/wpdev`: WordPress chiede gli aggiornamenti al plugin (filtro
+`update_plugins_github.com`) invece che a wordpress.org. Il plugin legge l'ultima release dall'API di GitHub
+(cache 12 ore, 1 ora in caso di errore) e propone l'aggiornamento solo se la versione è maggiore, la release non è
+bozza né pre-release e ha come asset lo zip `lab591-dev-bridge-*.zip` scaricabile da
+`https://github.com/lab591/wpdev/releases/download/…`. `DEVBRIDGE_DISABLE_UPDATES` li disattiva.
+
 ### 2.14 Multisite (M4)
 
 In una rete multisite temi, plugin e file sono condivisi da tutti i siti: Dev Bridge è quindi

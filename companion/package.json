@@ -3,13 +3,32 @@
   "version": "0.3.0",
   "license": "GPL-2.0-or-later",
   "description": "Dev Bridge companion: CLI and MCP server to work on a remote WordPress site from Claude Code",
-  "private": true,
+  "keywords": [
+    "wordpress",
+    "claude",
+    "claude-code",
+    "mcp",
+    "deploy",
+    "cli"
+  ],
+  "homepage": "https://github.com/lab591/wpdev#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lab591/wpdev.git",
+    "directory": "companion"
+  },
+  "bugs": {
+    "url": "https://github.com/lab591/wpdev/issues"
+  },
+  "author": "Lab591",
   "type": "module",
   "bin": {
     "wpdev": "dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=20"
@@ -18,7 +37,8 @@
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
-    "lint": "eslint . && tsc --noEmit"
+    "lint": "eslint . && tsc --noEmit",
+    "prepublishOnly": "npm run lint && npm test && npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

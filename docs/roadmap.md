@@ -19,5 +19,5 @@ Gli invarianti di sicurezza di `CLAUDE.md` valgono per tutte.
 | 9 | **Ambienti multipli** — `environments` in `wpdev.json` (es. staging e produzione), `--env`, stato separato per ambiente; l'hook pubblica solo sull'ambiente predefinito | sicurezza: la produzione non si tocca per sbaglio | fatto (0.5.0) |
 | 10 | **CI GitHub Actions** — test e lint a ogni push, zip del plugin allegato alle release | progetto pubblico affidabile | fatto (0.5.0) |
 | 11 | **Test end-to-end automatici** — WordPress in container (`wp-env`) + scenari del companion | le prove manuali diventano ripetibili | fatto (0.5.0) |
-| 12 | **Distribuzione** — `wpdev` pronto per npm; aggiornamenti del plugin da GitHub Releases | installazione e aggiornamenti semplici | |
+| 12 | **Distribuzione** — `wpdev` pronto per npm; aggiornamenti del plugin da GitHub Releases | installazione e aggiornamenti semplici | fatto (0.5.0): pacchetto npm pronto (pubblicazione a cura del manutentore), aggiornamenti del plugin dalle release GitHub |
 | 13 | **Anteprima prima della pubblicazione** — i file nuovi serviti solo a chi ha un cookie firmato, poi "pubblica" o "scarta" | quasi zero rischio sui siti reali | |
