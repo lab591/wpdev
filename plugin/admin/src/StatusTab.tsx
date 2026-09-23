@@ -2,7 +2,7 @@ import { Button, ExternalLink, Notice } from '@wordpress/components';
 import { useState } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import type { Notify } from './App';
-import { boot, errorMessage, post } from './api';
+import { boot, errorMessage, get, post } from './api';
 import {
 	CopyableCode,
 	modeLabel,
@@ -28,6 +28,20 @@ export default function StatusTab( {
 	notify,
 	openSettings,
 }: Props ) {
+	const [ checking, setChecking ] = useState( false );
+	const checkAgain = async () => {
+		setChecking( true );
+		try {
+			setStatus(
+				await get< StatusData >( 'devbridge_status', { refresh: 1 } )
+			);
+			notify( __( 'Checks updated.', 'lab591-dev-bridge' ) );
+		} catch ( e ) {
+			notify( errorMessage( e ) );
+		} finally {
+			setChecking( false );
+		}
+	};
 	const problems = status.checks.filter(
 		( c ) => c.status === 'error' || c.status === 'warning'
 	).length;
@@ -53,6 +67,18 @@ export default function StatusTab( {
 								problems
 							)
 						: __( 'Everything is ready.', 'lab591-dev-bridge' )
+				}
+				actions={
+					<Button
+						variant="secondary"
+						size="compact"
+						icon="update"
+						isBusy={ checking }
+						disabled={ checking }
+						onClick={ checkAgain }
+					>
+						{ __( 'Check again', 'lab591-dev-bridge' ) }
+					</Button>
 				}
 			>
 				<ul className="devbridge-checks">

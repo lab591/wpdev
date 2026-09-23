@@ -173,6 +173,8 @@
   "Setup checks": "Controlli di configurazione",
   "%d item needs attention.": ["%d voce richiede attenzione.", "%d voci richiedono attenzione."],
   "Everything is ready.": "È tutto pronto.",
+  "Check again": "Verifica di nuovo",
+  "Checks updated.": "Controlli aggiornati.",
   "The only folders Claude can change. The companion reads this list from the site.": "Le sole cartelle che Claude può modificare. Il companion legge questo elenco dal sito.",
   "Change": "Modifica",
   "None yet: Claude can read the site but not deploy.": "Nessuna per ora: Claude può leggere il sito ma non pubblicare.",

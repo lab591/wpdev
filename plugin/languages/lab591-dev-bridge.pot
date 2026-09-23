@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-23T18:25:41+00:00\n"
+"POT-Creation-Date: 2026-09-23T19:25:56+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: lab591-dev-bridge\n"
@@ -38,141 +38,141 @@ msgid "This page has expired: reload it and try again."
 msgstr ""
 
 #. translators: %d: number of authorized users.
-#: src/Admin/AdminController.php:181
+#: src/Admin/AdminController.php:189
 #, php-format
 msgid "%d authorized user"
 msgid_plural "%d authorized users"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Admin/AdminController.php:183
+#: src/Admin/AdminController.php:191
 msgid "No authorized user"
 msgstr ""
 
-#: src/Admin/AdminController.php:183
+#: src/Admin/AdminController.php:191
 msgid "Nobody can connect until you select at least one user in Settings → Access."
 msgstr ""
 
 #. translators: %d: number of writable folders.
-#: src/Admin/AdminController.php:189
+#: src/Admin/AdminController.php:197
 #, php-format
 msgid "%d writable folder"
 msgid_plural "%d writable folders"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Admin/AdminController.php:191
+#: src/Admin/AdminController.php:199
 msgid "No writable folder"
 msgstr ""
 
-#: src/Admin/AdminController.php:191
+#: src/Admin/AdminController.php:199
 msgid "Claude can read the site but not deploy: choose a theme or plugin in Settings → Writable folders."
 msgstr ""
 
-#: src/Admin/AdminController.php:195
+#: src/Admin/AdminController.php:203
 msgid "HTTPS active"
 msgstr ""
 
-#: src/Admin/AdminController.php:197
+#: src/Admin/AdminController.php:205
 msgid "Local environment: HTTP allowed"
 msgstr ""
 
-#: src/Admin/AdminController.php:197
+#: src/Admin/AdminController.php:205
 msgid "On a real site HTTPS is mandatory."
 msgstr ""
 
-#: src/Admin/AdminController.php:199
+#: src/Admin/AdminController.php:207
 msgid "The site is not on HTTPS"
 msgstr ""
 
-#: src/Admin/AdminController.php:199
+#: src/Admin/AdminController.php:207
 msgid "Requests will be rejected until the site uses HTTPS."
 msgstr ""
 
-#: src/Admin/AdminController.php:203
+#: src/Admin/AdminController.php:211
 msgid "Application Passwords available"
 msgstr ""
 
-#: src/Admin/AdminController.php:205
+#: src/Admin/AdminController.php:213
 msgid "Application Passwords are disabled"
 msgstr ""
 
-#: src/Admin/AdminController.php:205
+#: src/Admin/AdminController.php:213
 msgid "They are required to connect: check plugins or code that disable them."
 msgstr ""
 
-#: src/Admin/AdminController.php:210
+#: src/Admin/AdminController.php:218
 msgid "Out-of-band rescue installed"
 msgstr ""
 
-#: src/Admin/AdminController.php:212
+#: src/Admin/AdminController.php:220
 msgid "Out-of-band rescue not installed yet"
 msgstr ""
 
-#: src/Admin/AdminController.php:212
+#: src/Admin/AdminController.php:220
 msgid "It will be installed automatically on the next admin page load."
 msgstr ""
 
-#: src/Admin/AdminController.php:217
+#: src/Admin/AdminController.php:225
 msgid "Out-of-band rescue not installed"
 msgstr ""
 
-#: src/Admin/AdminController.php:218
+#: src/Admin/AdminController.php:226
 msgid "The mu-plugins folder is not directly writable. Copy the file below into wp-content/mu-plugins/ (permissions 0644)."
 msgstr ""
 
-#: src/Admin/AdminController.php:228
+#: src/Admin/AdminController.php:236
 msgid "Private storage inside wp-content"
 msgstr ""
 
-#: src/Admin/AdminController.php:229
+#: src/Admin/AdminController.php:237
 msgid "It has a random name and is protected by .htaccess. Recommended: move it outside the web root in wp-config.php; on Nginx add the rule below."
 msgstr ""
 
-#: src/Admin/AdminController.php:233
+#: src/Admin/AdminController.php:241
 msgid "Private storage outside the web root"
 msgstr ""
 
-#: src/Admin/AdminController.php:238
+#: src/Admin/AdminController.php:246
 msgid "Fast search active, regular expressions included (PCRE2)."
 msgstr ""
 
-#: src/Admin/AdminController.php:238
+#: src/Admin/AdminController.php:246
 msgid "Fast search active for text; regular expressions use the PHP search (no PCRE2)."
 msgstr ""
 
-#: src/Admin/AdminController.php:240
+#: src/Admin/AdminController.php:248
 msgid "ripgrep configured but not executable"
 msgstr ""
 
-#: src/Admin/AdminController.php:240
+#: src/Admin/AdminController.php:248
 msgid "Search keeps working with the PHP engine. Check the path in Settings → Search."
 msgstr ""
 
-#: src/Admin/AdminController.php:242
+#: src/Admin/AdminController.php:250
 msgid "ripgrep not configured"
 msgstr ""
 
-#: src/Admin/AdminController.php:242
+#: src/Admin/AdminController.php:250
 msgid "Optional: search uses the PHP engine."
 msgstr ""
 
-#: src/Admin/AdminController.php:257
+#: src/Admin/AdminController.php:265
 msgid "Development mode disabled."
 msgstr ""
 
-#: src/Admin/AdminController.php:262
+#: src/Admin/AdminController.php:270
 msgid "Choose read or write."
 msgstr ""
 
 #. translators: %d: maximum number of hours.
-#: src/Admin/AdminController.php:267
+#: src/Admin/AdminController.php:275
 #, php-format
 msgid "Duration must be between 1 and %d hours."
 msgstr ""
 
 #. translators: %d: hours.
-#: src/Admin/AdminController.php:272
+#: src/Admin/AdminController.php:280
 #, php-format
 msgid "Read and write enabled for %d hour."
 msgid_plural "Read and write enabled for %d hours."
@@ -180,37 +180,37 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: hours.
-#: src/Admin/AdminController.php:274
+#: src/Admin/AdminController.php:282
 #, php-format
 msgid "Read-only access enabled for %d hour."
 msgid_plural "Read-only access enabled for %d hours."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Admin/AdminController.php:299
+#: src/Admin/AdminController.php:307
 msgid "Invalid request: nothing was saved."
 msgstr ""
 
-#: src/Admin/AdminController.php:311
+#: src/Admin/AdminController.php:319
 msgid "Settings saved."
 msgstr ""
 
-#: src/Admin/AdminController.php:311
+#: src/Admin/AdminController.php:319
 #: build/index.js:8
 msgid "Settings saved, some entries were discarded:"
 msgstr ""
 
-#: src/Admin/AdminController.php:395
+#: src/Admin/AdminController.php:403
 msgid "This folder cannot be listed."
 msgstr ""
 
 #. translators: %s: folder path.
-#: src/Admin/AdminController.php:424
+#: src/Admin/AdminController.php:432
 #, php-format
 msgid "Folder %s created and made writable. Run \"wpdev pull\" in the local project."
 msgstr ""
 
-#: src/Admin/AdminController.php:449
+#: src/Admin/AdminController.php:457
 msgid "active theme"
 msgstr ""
 
@@ -793,6 +793,14 @@ msgstr[1] ""
 
 #: build/index.js:10
 msgid "Everything is ready."
+msgstr ""
+
+#: build/index.js:10
+msgid "Checks updated."
+msgstr ""
+
+#: build/index.js:10
+msgid "Check again"
 msgstr ""
 
 #: build/index.js:10

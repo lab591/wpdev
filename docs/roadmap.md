@@ -8,7 +8,7 @@ Gli invarianti di sicurezza di `CLAUDE.md` valgono per tutte.
 | # | Voce | Perché | Stato |
 |---|---|---|---|
 | 1 | **Lint PHP senza PHP locale** — il companion include un parser PHP in JavaScript; usa `php -l` se c'è, altrimenti il parser | evita deploy rotti su PC senza PHP | fatto (0.5.0) |
-| 2 | **"Verifica di nuovo"** nella scheda Stato — rifà subito i controlli (ripgrep, rescue) ignorando la cache | esperienza d'uso | |
+| 2 | **"Verifica di nuovo"** nella scheda Stato — rifà subito i controlli (ripgrep, rescue) ignorando la cache | esperienza d'uso | fatto (0.5.0) |
 | 3 | **Health check del backend** — dopo il deploy si controllano anche `wp-login.php` e una richiesta admin-ajax (carica `admin_init`), senza autenticazione | un fatale solo in admin non deve chiuderti fuori | |
 | 4 | **Introspezione del sito** (sola lettura) — endpoint `/introspect` e strumento MCP `site_info`: plugin e temi attivi, tipi di contenuto, tassonomie, shortcode, callback di un hook con file e riga, rotte REST, cron | Claude capisce il sito con una chiamata invece di tanti grep | |
 | 5 | **Warning e notice del deploy** — l'health check riporta anche i nuovi warning/notice/deprecated (senza rollback) | problemi visti prima che diventino fatali | |

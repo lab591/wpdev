@@ -119,6 +119,14 @@ final class AdminController {
 	 * @return array<string, mixed>
 	 */
 	public function status(): array {
+		if ( '1' === self::query( 'refresh' ) ) {
+			// "Check again": bypass the cached results (ripgrep detection) and retry the rescue install.
+			$this->plugin->ripgrepStatus( true );
+			$installer = $this->plugin->rescueInstaller();
+			if ( RescueInstaller::INSTALLED !== $installer->state() ) {
+				$installer->install();
+			}
+		}
 		$mode     = $this->plugin->mode();
 		$state    = $mode->state();
 		$releases = array_slice( ( new ReleaseStore( $this->plugin->storage()->releasesDir() ) )->all(), 0, 20 );
