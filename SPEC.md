@@ -327,6 +327,7 @@ Cartella `.wpdev/` (in `.gitignore`):
 | `wpdev rollback [<id>] [--rescue]` | Rollback normale; con `--rescue` usa il token e il mu-plugin. Senza argomenti, se il rollback normale riceve 5xx, propone il rescue |
 | `wpdev log [-n 200]` | Ultime righe di `debug.log` |
 | `wpdev info <topic> [name]` | Introspezione del sito (`/introspect`), 0.5.0 |
+| `wpdev restore <paths...>` | (0.5.0) File o cartelle delle `writable` tornano alla versione del server: i modificati vengono riscaricati, quelli presenti solo in locale rimossi; `state.json` aggiornato. Nessuna scrittura sul sito |
 | `wpdev claude-md [--force]` | Rigenera la sezione di `CLAUDE.md` tra i marcatori `<!-- wpdev:start … -->` / `<!-- wpdev:end -->` (0.5.0): il resto del file non viene toccato; senza marcatori la sezione viene aggiunta in fondo; un `CLAUDE.md` creato da versioni precedenti viene rigenerato solo con `--force` |
 | `wpdev health` | Health check su richiesta |
 | `wpdev mcp` | Avvia il server MCP (stdio) |
@@ -354,6 +355,7 @@ Strumenti (nomi e schemi stabili, descrizioni brevi e precise):
 | `site_read` | `path, from?, to?` | output con numeri di riga; usa la cache (M3) |
 | `site_grep` | `pattern, path, glob?, regex?, case_sensitive?, max_results?, context?` | |
 | `site_log` | `lines?` | |
+| `restore_local` | `paths` | (0.5.0) Come `wpdev restore`: scarta modifiche locali riportando i file alla versione del sito |
 | `site_info` | `topic`, `name?` | Introspezione (0.5.0): una riga per voce, callback con `file:riga` |
 | `deploy` | `dry_run?` | **nessun contenuto negli argomenti**: legge dal disco |
 | `rollback` | `release_id?` | |

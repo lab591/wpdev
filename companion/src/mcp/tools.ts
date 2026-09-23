@@ -7,6 +7,7 @@ import { runDeploy, type DeployDeps } from '../deploy.js';
 import { ApiError, INTROSPECT_TOPICS, type CacheTarget } from '../http.js';
 import { describeError } from '../messages.js';
 import { normalizeRel, normalizeRelOrRoot } from '../paths.js';
+import { restorePaths } from '../commands/restore.js';
 import { deleteRescue } from '../rescue.js';
 import { resolveWritable } from '../writable.js';
 import {
@@ -140,6 +141,23 @@ export function buildTools(getContext: () => Context | Promise<Context>, deps: D
         run(async (ctx) =>
           formatIntrospect(await ctx.client.introspect(args.topic as (typeof INTROSPECT_TOPICS)[number], typeof args.name === 'string' ? args.name : '')),
         ),
+    },
+    {
+      name: 'restore_local',
+      description:
+        'Discard local changes: bring local files or folders of the writable roots back to the version on the site (modified files are downloaded again, files that exist only locally are removed). Nothing is sent to the site.',
+      inputSchema: {
+        paths: z.array(pathArg).min(1).max(50),
+      },
+      handler: (args) =>
+        run(async (ctx) => {
+          const r = await restorePaths(ctx, (args.paths as string[]) ?? []);
+          return [
+            `restored ${r.restored.length}, removed ${r.removed.length}, already equal ${r.unchanged}`,
+            ...r.restored.map((p) => `  restored ${p}`),
+            ...r.removed.map((p) => `  removed ${p} (local only)`),
+          ].join('\n');
+        }),
     },
     {
       name: 'site_log',

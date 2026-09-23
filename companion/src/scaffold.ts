@@ -109,6 +109,8 @@ export function renderManagedSection(input: ClaudeMdInput): string {
   eseguire \`wpdev pull\`. Non suggerire mai \`wp-content/themes/\` o \`wp-content/plugins/\` interi:
   il server non lo consente.
 - Se il deploy fallisce, leggi gli errori riportati, controlla \`site_log\` e correggi.
+- Per annullare le tue modifiche locali a un file o a una cartella (tornare alla versione del sito) usa
+  \`restore_local\`.
 - Dopo modifiche visibili, verifica la pagina nel browser (Chrome).
 - Contenuti e pagine Elementor si gestiscono con l'MCP del sito (WSP), non via file.
 

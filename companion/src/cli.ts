@@ -2,6 +2,7 @@
 import { Command, InvalidArgumentError } from 'commander';
 import { cacheClearCommand } from './commands/cache.js';
 import { claudeMdCommand } from './commands/claudeMd.js';
+import { restoreCommand } from './commands/restore.js';
 import { deployCommand, hookDeploy, readHookInput } from './commands/deploy.js';
 import { diffCommand } from './commands/diff.js';
 import { initCommand, terminalAsk } from './commands/init.js';
@@ -86,6 +87,11 @@ program
   .command('diff')
   .description('file modificati in locale, sul server e in conflitto')
   .action(() => runWithContext((ctx) => diffCommand(ctx, consoleOutput)));
+
+program
+  .command('restore <paths...>')
+  .description('riporta file o cartelle locali alla versione del server (scarta le modifiche locali)')
+  .action((paths: string[]) => runWithContext((ctx) => restoreCommand(ctx, consoleOutput, paths)));
 
 program
   .command('claude-md')

@@ -155,6 +155,7 @@ Comandi utili:
 | `wpdev rollback --rescue` | rollback fuori banda quando WordPress non risponde (token dell'ultimo deploy, monouso, 24 h) |
 | `wpdev health` | health check su richiesta |
 | `wpdev log [-n 200]` | ultime righe di `debug.log` |
+| `wpdev restore <percorsi...>` | riporta file o cartelle locali alla versione del server, scartando le modifiche locali (niente viene inviato al sito) |
 | `wpdev claude-md [--force]` | aggiorna la sezione wpdev di `CLAUDE.md` con i dati attuali del sito |
 | `wpdev info <argomento> [nome]` | informazioni sul sito: `overview`, `post_types`, `taxonomies`, `shortcodes`, `hook <nome>`, `rest_routes [prefisso]`, `cron`, `blocks [prefisso]` |
 | `wpdev cache clear` | svuota la cache di lettura |

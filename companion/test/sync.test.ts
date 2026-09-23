@@ -5,6 +5,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { diffCommand } from '../src/commands/diff.js';
 import { pullCommand } from '../src/commands/pull.js';
+import { restorePaths } from '../src/commands/restore.js';
 import { statusCommand } from '../src/commands/status.js';
 import { parseConfig } from '../src/config.js';
 import type { Context } from '../src/context.js';
@@ -183,5 +184,35 @@ describe('status', () => {
     const out = memoryOutput();
     await statusCommand(ctx, out);
     expect(out.lines.join('\n')).toContain('Modalità: off');
+  });
+});
+
+describe('restore', () => {
+  it('brings a folder back to the server version and removes local-only files', async () => {
+    expect(await pullCommand(ctx, memoryOutput())).toBe(0);
+    await writeLocal(`${ROOT}/inc/a.php`, '<?php // broken local edit\n');
+    await writeLocal(`${ROOT}/inc/extra.php`, '<?php // only local\n');
+    await writeLocal(`${ROOT}/style.css`, 'kept: outside the restored folder');
+    const r = await restorePaths(ctx, [`${ROOT}/inc`]);
+    expect(r.restored).toEqual([`${ROOT}/inc/a.php`]);
+    expect(r.removed).toEqual([`${ROOT}/inc/extra.php`]);
+    expect(await readFile(local(`${ROOT}/inc/a.php`), 'utf8')).toBe('<?php // a\n');
+    expect(existsSync(local(`${ROOT}/inc/extra.php`))).toBe(false);
+    expect(await readFile(local(`${ROOT}/style.css`), 'utf8')).toBe('kept: outside the restored folder');
+    // The state follows: nothing left to deploy in the restored folder.
+    const again = await restorePaths(ctx, [`${ROOT}/inc`]);
+    expect(again).toEqual({ restored: [], removed: [], unchanged: 1 });
+  });
+
+  it('restores a single file with Windows separators', async () => {
+    expect(await pullCommand(ctx, memoryOutput())).toBe(0);
+    await writeLocal(`${ROOT}/functions.php`, 'changed');
+    const r = await restorePaths(ctx, [`${ROOT}\\functions.php`.replace(/\//g, '\\')]);
+    expect(r.restored).toEqual([`${ROOT}/functions.php`]);
+    expect(await readFile(local(`${ROOT}/functions.php`), 'utf8')).toBe('<?php\r\n// crlf kept\r\n');
+  });
+
+  it('refuses paths outside the writable folders', async () => {
+    await expect(restorePaths(ctx, ['wp-content/plugins/woo/woo.php'])).rejects.toThrow('non è dentro una cartella scrivibile');
   });
 });
