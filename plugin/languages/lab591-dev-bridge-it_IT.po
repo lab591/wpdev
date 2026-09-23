@@ -11,7 +11,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-23T19:25:56+00:00\n"
+"POT-Creation-Date: 2026-09-23T19:33:47+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: lab591-dev-bridge\n"
@@ -299,56 +299,56 @@ msgid "not allowed (deny list or invalid name)"
 msgstr "non consentita (deny list o nome non valido)"
 
 #. translators: 1: folder, 2: reason.
-#: src/Admin/SettingsForm.php:67
+#: src/Admin/SettingsForm.php:68
 #, php-format
 msgid "Writable folder \"%1$s\" rejected: %2$s"
 msgstr "Cartella scrivibile \"%1$s\" rifiutata: %2$s"
 
 #. translators: 1: folder, 2: reason.
-#: src/Admin/SettingsForm.php:87
+#: src/Admin/SettingsForm.php:88
 #, php-format
 msgid "Readable folder \"%1$s\" rejected: %2$s"
 msgstr "Cartella leggibile \"%1$s\" rifiutata: %2$s"
 
 #. translators: %s: file extension.
-#: src/Admin/SettingsForm.php:99
+#: src/Admin/SettingsForm.php:100
 #, php-format
 msgid "Extension \"%s\" is not valid"
 msgstr "L'estensione \"%s\" non è valida"
 
 #. translators: %s: file extension.
-#: src/Admin/SettingsForm.php:104
+#: src/Admin/SettingsForm.php:105
 #, php-format
 msgid "Extension \"%s\" is never writable"
 msgstr "L'estensione \"%s\" non è mai scrivibile"
 
 #. translators: %s: IP address or CIDR range.
-#: src/Admin/SettingsForm.php:118
+#: src/Admin/SettingsForm.php:119
 #, php-format
 msgid "IP address/CIDR \"%s\" is not valid"
 msgstr "L'indirizzo IP/CIDR \"%s\" non è valido"
 
 #. translators: %s: configured ripgrep binary.
-#: src/Admin/SettingsForm.php:136
+#: src/Admin/SettingsForm.php:137
 #, php-format
 msgid "ripgrep \"%s\" rejected: use \"rg\" or the absolute path of rg/rg.exe"
 msgstr "ripgrep \"%s\" rifiutato: indica \"rg\" oppure il percorso assoluto di rg/rg.exe"
 
 #. translators: %s: URL.
-#: src/Admin/SettingsForm.php:144
+#: src/Admin/SettingsForm.php:145
 #, php-format
 msgid "Health check URL \"%s\" rejected: it must be on the same host as the site"
 msgstr "URL di health check \"%s\" rifiutato: deve essere sullo stesso host del sito"
 
-#: src/Plugin.php:83
+#: src/Plugin.php:88
 msgid "On a multisite network Dev Bridge can only be network-activated (Network Admin → Plugins → Network Activate), because themes and plugins are shared by all sites."
 msgstr "In una rete multisite Dev Bridge si attiva solo a livello di rete (Amministrazione rete → Plugin → Attiva sulla rete), perché temi e plugin sono condivisi da tutti i siti."
 
-#: src/Plugin.php:84
+#: src/Plugin.php:89
 msgid "Activation not allowed"
 msgstr "Attivazione non consentita"
 
-#: src/Plugin.php:117
+#: src/Plugin.php:141
 msgid "Dev Bridge is active on this site only, but this is a multisite network: deactivate it and network-activate it from Network Admin. Until then it does nothing."
 msgstr "Dev Bridge è attivo solo su questo sito ma l'installazione è una rete multisite: disattivalo e attivalo dall'Amministrazione rete. Finché non lo fai è inattivo."
 
@@ -712,6 +712,14 @@ msgstr "URL di health check"
 #: build/index.js:9
 msgid "Checked after every deploy. Empty = home page. Only URLs of this site (or network)."
 msgstr "Controllati dopo ogni deploy. Vuoto = home page. Solo URL di questo sito (o della rete)."
+
+#: build/index.js:9
+msgid "Also check the back end after each deploy"
+msgstr "Controlla anche il backend dopo ogni deploy"
+
+#: build/index.js:9
+msgid "Login page and an admin-ajax request (which runs admin_init): a fatal error that only breaks wp-admin triggers the rollback too."
+msgstr "Pagina di login e una richiesta admin-ajax (che esegue admin_init): anche un errore fatale che rompe solo wp-admin attiva il rollback."
 
 #: build/index.js:9
 msgid "Releases kept"

@@ -49,6 +49,7 @@ final class Settings {
 			'grep_rg'              => '',
 			'limits'               => self::DEFAULT_LIMITS,
 			'health_urls'          => [],
+			'health_backend'       => true,
 			'retention_releases'   => 10,
 			'audit_retention_days' => 90,
 			'max_read_hours'       => 72,

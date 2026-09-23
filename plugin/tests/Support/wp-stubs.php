@@ -18,12 +18,15 @@ namespace Lab591\DevBridge\Tests\Support {
 		/** @var array<string, mixed> Network (site) options and transients. */
 		public static array $siteOptions = [];
 		public static bool $multisite    = false;
+		/** @var (callable(string): array{code: int}|null)|null Answers wp_remote_get() by URL (null = network error). */
+		public static $http = null;
 
 		public static function reset(): void {
 			self::$options     = [];
 			self::$transients  = [];
 			self::$siteOptions = [];
 			self::$multisite   = false;
+			self::$http        = null;
 		}
 	}
 }
@@ -31,6 +34,20 @@ namespace Lab591\DevBridge\Tests\Support {
 namespace {
 
 	use Lab591\DevBridge\Tests\Support\WpStubs;
+
+	if ( ! class_exists( 'WP_Error' ) ) {
+		// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound, Generic.Classes.OpeningBraceSameLine.ContentAfterBrace -- minimal stand-in.
+		final class WP_Error {
+			public function __construct( private string $code = '', private string $message = '' ) {
+			}
+			public function get_error_message(): string {
+				return $this->message;
+			}
+			public function get_error_code(): string {
+				return $this->code;
+			}
+		}
+	}
 
 	if ( ! function_exists( '__' ) ) {
 		// phpcs:disable WordPress.WP.I18n -- stand-ins of the i18n functions (tests use the English source strings).
@@ -93,6 +110,19 @@ namespace {
 		function delete_site_transient( string $name ): bool {
 			unset( WpStubs::$siteOptions[ '_t_' . $name ] );
 			return true;
+		}
+		function wp_remote_get( string $url, array $args = [] ): mixed {
+			$answer = null === WpStubs::$http ? [ 'code' => 200 ] : ( WpStubs::$http )( $url );
+			return null === $answer ? new \WP_Error( 'http_request_failed', 'Connection refused' ) : [ 'response' => [ 'code' => $answer['code'] ] ];
+		}
+		function wp_remote_retrieve_response_code( mixed $response ): int {
+			return (int) ( $response['response']['code'] ?? 0 );
+		}
+		function is_wp_error( mixed $thing ): bool {
+			return $thing instanceof \WP_Error;
+		}
+		function add_query_arg( string $key, string $value, string $url ): string {
+			return $url . ( str_contains( $url, '?' ) ? '&' : '?' ) . $key . '=' . $value;
 		}
 		function home_url( string $path = '' ): string {
 			return 'https://example.test' . $path;

@@ -26,7 +26,7 @@ function lintLines(errors: readonly LintError[]): string[] {
 
 export function healthLine(h: HealthResult): string {
   const checks = h.checks
-    .map((c) => `${c.url}${c.source === 'agent' ? ' [wpdev.json]' : ''} ${c.code ?? c.error ?? '?'}${c.ms !== undefined ? ` (${c.ms} ms)` : ''}`)
+    .map((c) => `${c.url}${c.source === 'agent' ? ' [wpdev.json]' : c.source === 'backend' ? ' [backend]' : ''} ${c.code ?? c.error ?? '?'}${c.ms !== undefined ? ` (${c.ms} ms)` : ''}`)
     .join(', ');
   const label = h.status === 'ok' ? 'ok' : h.status === 'fail' ? 'FALLITO' : 'sconosciuto';
   return `Health check: ${label}${checks ? ` — ${checks}` : ''}${h.message ? ` — ${h.message}` : ''}`;

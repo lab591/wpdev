@@ -32,6 +32,8 @@ final class Plugin {
 
 	public const CRON_AUDIT = 'devbridge_audit_cleanup';
 
+	public const PING_ACTION = 'devbridge_ping';
+
 	private static ?self $instance = null;
 
 	private Settings $settings;
@@ -62,6 +64,9 @@ final class Plugin {
 			return;
 		}
 		add_action( 'init', [ self::class, 'loadTextdomain' ] );
+		// Health check of the back end: admin-ajax loads plugins and runs admin_init (no login needed).
+		add_action( 'wp_ajax_nopriv_' . self::PING_ACTION, [ self::class, 'ping' ] );
+		add_action( 'wp_ajax_' . self::PING_ACTION, [ self::class, 'ping' ] );
 		add_action( 'rest_api_init', [ new Api( $this ), 'register' ] );
 		add_action( self::CRON_AUDIT, [ $this, 'cleanupAudit' ] );
 		add_action( 'plugins_loaded', [ $this->audit, 'maybeUpgrade' ] );
@@ -104,6 +109,25 @@ final class Plugin {
 	public static function isNetworkActive(): bool {
 		$active = get_site_option( 'active_sitewide_plugins', [] );
 		return is_array( $active ) && isset( $active[ plugin_basename( PLUGIN_FILE ) ] );
+	}
+
+	/**
+	 * Answer of the back-end health check: reaching it means admin-ajax (with admin_init) ran fine.
+	 */
+	public static function ping(): void {
+		wp_send_json_success( 'pong' );
+	}
+
+	/**
+	 * Back-end URLs checked after each deploy (unless disabled in the settings).
+	 *
+	 * @return string[]
+	 */
+	public function backendHealthUrls(): array {
+		if ( ! (bool) $this->settings->get( 'health_backend' ) ) {
+			return [];
+		}
+		return [ wp_login_url(), admin_url( 'admin-ajax.php?action=' . self::PING_ACTION ) ];
 	}
 
 	public static function loadTextdomain(): void {
@@ -195,7 +219,7 @@ final class Plugin {
 	}
 
 	public function health(): HealthService {
-		return new HealthService( $this->settings->healthUrls(), StatusService::debugLogPath(), ABSPATH );
+		return new HealthService( $this->settings->healthUrls(), StatusService::debugLogPath(), ABSPATH, $this->backendHealthUrls() );
 	}
 
 	/**

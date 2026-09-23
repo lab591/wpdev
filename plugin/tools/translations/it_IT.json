@@ -152,6 +152,8 @@
   "Writable file extensions": "Estensioni scrivibili",
   ".htaccess, .user.ini, .phar and alternative PHP extensions are never writable.": ".htaccess, .user.ini, .phar e le estensioni PHP alternative non sono mai scrivibili.",
   "Health check URLs": "URL di health check",
+  "Also check the back end after each deploy": "Controlla anche il backend dopo ogni deploy",
+  "Login page and an admin-ajax request (which runs admin_init): a fatal error that only breaks wp-admin triggers the rollback too.": "Pagina di login e una richiesta admin-ajax (che esegue admin_init): anche un errore fatale che rompe solo wp-admin attiva il rollback.",
   "Checked after every deploy. Empty = home page. Only URLs of this site (or network).": "Controllati dopo ogni deploy. Vuoto = home page. Solo URL di questo sito (o della rete).",
   "Releases kept": "Release conservate",
   "Older backups are deleted.": "I backup più vecchi vengono cancellati.",

@@ -145,7 +145,7 @@ Risposta `200`:
 - `status`: `ok` | `rolled_back` (health check fallito, file ripristinati) | `health_unknown`
   (loopback non raggiungibile: nessun rollback, `health.message` spiega il motivo).
 - `health.status`: `ok` | `fail` | `unknown`; `checks[].error` presente per errori di rete;
-  `checks[].source`: `admin` (impostazioni) o `agent` (`health_paths`).
+  `checks[].source`: `admin` (impostazioni), `agent` (`health_paths`) o `backend` (login e admin-ajax, 0.5.0).
 - `errors`: righe `PHP Fatal error` / `PHP Parse error` comparse in `debug.log` durante il deploy (max 20).
 - `rescue_token`: presente solo con `ok` e `health_unknown`; monouso, valido 24 h per questa release.
 - Se tutti i file del manifest hanno già sul server il contenuto indicato (`h` uguale all'hash attuale)

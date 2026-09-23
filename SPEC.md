@@ -177,6 +177,11 @@ Le cancellazioni sono ammesse solo dentro `writable_roots`; le cartelle rimaste 
 - Per ogni URL in `health_urls`: `wp_remote_get` con `timeout 10`, `sslverify` attivo, cache-buster in query.
 - Fallimento se: status ≥ 500, oppure nuove righe `PHP Fatal error` / `PHP Parse error` in `debug.log` scritte dopo l'inizio del deploy (se il log è attivo).
 - Se il loopback non è raggiungibile (errore di rete, bloccato dall'hosting) → `health_unknown`: **nessun rollback automatico**, ma avviso esplicito nella risposta.
+- **Backend** (0.5.0, impostazione `health_backend`, attiva di default): si controllano anche la pagina di login
+  (`wp_login_url()`) e `admin-ajax.php?action=devbridge_ping`, che carica plugin ed esegue `admin_init` e risponde
+  `pong` senza autenticazione (nessun dato esposto). Un fatale che rompe solo `wp-admin` provoca il rollback.
+  Solo i 5xx contano come errore: una pagina di login rinominata da un plugin di sicurezza (404/403/redirect) non
+  fa fallire il deploy.
 
 ### 2.9 Rete di sicurezza fuori banda (mu-plugin rescue)
 

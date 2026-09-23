@@ -56,6 +56,7 @@ final class SettingsForm {
 
 		$out['allowed_user_ids'] = array_values( array_unique( array_filter( array_map( 'intval', (array) ( $input['allowed_user_ids'] ?? [] ) ), static fn ( int $id ): bool => $id > 0 ) ) );
 		$out['allow_mu_plugins'] = ! empty( $input['allow_mu_plugins'] );
+		$out['health_backend']   = ! empty( $input['health_backend'] );
 
 		$validator             = ( $this->validatorFactory )( $out['allow_mu_plugins'] );
 		$out['writable_roots'] = [];

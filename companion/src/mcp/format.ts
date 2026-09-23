@@ -124,7 +124,7 @@ export function formatLog(res: LogResponse): string {
 // ---------------------------------------------------------------- M2: deploy & co.
 
 function healthText(h: HealthResult): string {
-  const checks = h.checks.map((c) => `${c.url}${c.source === 'agent' ? ' (agent)' : ''} ${c.code ?? c.error ?? '?'}`).join(', ');
+  const checks = h.checks.map((c) => `${c.url}${c.source === 'agent' ? ' (agent)' : c.source === 'backend' ? ' (backend)' : ''} ${c.code ?? c.error ?? '?'}`).join(', ');
   return `health: ${h.status}${checks ? ` (${checks})` : ''}${h.message ? ` — ${h.message}` : ''}`;
 }
 

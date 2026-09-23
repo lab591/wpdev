@@ -423,6 +423,21 @@ export default function SettingsTab( { notify, onSaved }: Props ) {
 						),
 						'https://…'
 					) }
+					<ToggleControl
+						__nextHasNoMarginBottom
+						label={ __(
+							'Also check the back end after each deploy',
+							'lab591-dev-bridge'
+						) }
+						help={ __(
+							'Login page and an admin-ajax request (which runs admin_init): a fatal error that only breaks wp-admin triggers the rollback too.',
+							'lab591-dev-bridge'
+						) }
+						checked={ draft.health_backend }
+						onChange={ ( on: boolean ) =>
+							set( 'health_backend', on )
+						}
+					/>
 					{ number(
 						'retention_releases',
 						__( 'Releases kept', 'lab591-dev-bridge' ),

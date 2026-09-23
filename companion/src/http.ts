@@ -131,7 +131,7 @@ export interface DeployManifest {
 export interface HealthCheck {
   url: string;
   /** "admin": configured on the server; "agent": declared in wpdev.json health.paths. */
-  source?: 'admin' | 'agent';
+  source?: 'admin' | 'agent' | 'backend';
   code?: number;
   ms?: number;
   error?: string;

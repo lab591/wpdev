@@ -65,6 +65,7 @@ export interface Settings {
 	grep_skip_dirs: string[];
 	grep_rg: string;
 	health_urls: string[];
+	health_backend: boolean;
 	retention_releases: number;
 	audit_retention_days: number;
 	max_read_hours: number;

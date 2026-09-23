@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-23T19:25:56+00:00\n"
+"POT-Creation-Date: 2026-09-23T19:33:47+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: lab591-dev-bridge\n"
@@ -297,56 +297,56 @@ msgid "not allowed (deny list or invalid name)"
 msgstr ""
 
 #. translators: 1: folder, 2: reason.
-#: src/Admin/SettingsForm.php:67
+#: src/Admin/SettingsForm.php:68
 #, php-format
 msgid "Writable folder \"%1$s\" rejected: %2$s"
 msgstr ""
 
 #. translators: 1: folder, 2: reason.
-#: src/Admin/SettingsForm.php:87
+#: src/Admin/SettingsForm.php:88
 #, php-format
 msgid "Readable folder \"%1$s\" rejected: %2$s"
 msgstr ""
 
 #. translators: %s: file extension.
-#: src/Admin/SettingsForm.php:99
+#: src/Admin/SettingsForm.php:100
 #, php-format
 msgid "Extension \"%s\" is not valid"
 msgstr ""
 
 #. translators: %s: file extension.
-#: src/Admin/SettingsForm.php:104
+#: src/Admin/SettingsForm.php:105
 #, php-format
 msgid "Extension \"%s\" is never writable"
 msgstr ""
 
 #. translators: %s: IP address or CIDR range.
-#: src/Admin/SettingsForm.php:118
+#: src/Admin/SettingsForm.php:119
 #, php-format
 msgid "IP address/CIDR \"%s\" is not valid"
 msgstr ""
 
 #. translators: %s: configured ripgrep binary.
-#: src/Admin/SettingsForm.php:136
+#: src/Admin/SettingsForm.php:137
 #, php-format
 msgid "ripgrep \"%s\" rejected: use \"rg\" or the absolute path of rg/rg.exe"
 msgstr ""
 
 #. translators: %s: URL.
-#: src/Admin/SettingsForm.php:144
+#: src/Admin/SettingsForm.php:145
 #, php-format
 msgid "Health check URL \"%s\" rejected: it must be on the same host as the site"
 msgstr ""
 
-#: src/Plugin.php:83
+#: src/Plugin.php:88
 msgid "On a multisite network Dev Bridge can only be network-activated (Network Admin → Plugins → Network Activate), because themes and plugins are shared by all sites."
 msgstr ""
 
-#: src/Plugin.php:84
+#: src/Plugin.php:89
 msgid "Activation not allowed"
 msgstr ""
 
-#: src/Plugin.php:117
+#: src/Plugin.php:141
 msgid "Dev Bridge is active on this site only, but this is a multisite network: deactivate it and network-activate it from Network Admin. Until then it does nothing."
 msgstr ""
 
@@ -709,6 +709,14 @@ msgstr ""
 
 #: build/index.js:9
 msgid "Checked after every deploy. Empty = home page. Only URLs of this site (or network)."
+msgstr ""
+
+#: build/index.js:9
+msgid "Also check the back end after each deploy"
+msgstr ""
+
+#: build/index.js:9
+msgid "Login page and an admin-ajax request (which runs admin_init): a fatal error that only breaks wp-admin triggers the rollback too."
 msgstr ""
 
 #: build/index.js:9

@@ -18,12 +18,15 @@ final class HealthService implements HealthChecker {
 	public const FATAL_PATTERN = '/PHP (Fatal|Parse) error/';
 
 	/**
-	 * @param string[] $urls Same-host URLs to request.
+	 * @param string[] $urls        Same-host URLs to request.
+	 * @param string[] $backendUrls Back-end URLs (login page, admin-ajax ping): a fatal error that only
+	 *                              hits the admin must not lock the administrator out.
 	 */
 	public function __construct(
 		private readonly array $urls,
 		private readonly ?string $logFile,
 		private readonly ?string $stripPrefix = null,
+		private readonly array $backendUrls = [],
 	) {
 	}
 
@@ -42,6 +45,9 @@ final class HealthService implements HealthChecker {
 		$targets = [];
 		foreach ( $this->urls as $url ) {
 			$targets[ $url ] = 'admin';
+		}
+		foreach ( $this->backendUrls as $url ) {
+			$targets[ $url ] = $targets[ $url ] ?? 'backend';
 		}
 		foreach ( $extraPaths as $path ) {
 			// Full URLs were already restricted to sites of the network by HealthPaths.
