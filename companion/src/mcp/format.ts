@@ -3,7 +3,7 @@ import { countChanges, type DeployOutcome } from '../deploy.js';
 import { ApiError, type CacheFlushResponse, type GrepResponse, type HealthResult, type ListResponse, type LogResponse, type ReadResponse, type RollbackResponse, type StatusResponse } from '../http.js';
 import { describeError, formatSize } from '../messages.js';
 import { isInside, relativeTo } from '../paths.js';
-import { compareRoots, describeRootsMismatch } from '../roots.js';
+import { compareRoots } from '../roots.js';
 
 /** Compact, model-facing text formatting for MCP tool results. */
 
@@ -21,7 +21,7 @@ export function writableRefusal(config: Pick<Config, 'writable'>, path: string):
   return `${path} is inside the writable folder ${root}: use the local files (Read/Grep/Glob tools) instead of site_* tools, they are the source of truth for deploys.`;
 }
 
-export function formatStatus(st: StatusResponse, config: Pick<Config, 'writable' | 'siteUrl'>): string {
+export function formatStatus(st: StatusResponse, config: Pick<Config, 'writable' | 'siteUrl' | 'writableFromSite'>): string {
   if (st.mode === 'off') {
     return `site ${config.siteUrl}\nmode: off — dev mode is disabled on the server; ask the user to enable it (admin page or \`wp devbridge enable\`).`;
   }
@@ -34,11 +34,17 @@ export function formatStatus(st: StatusResponse, config: Pick<Config, 'writable'
       ? [`multisite network: ${st.network.sites} sites, main ${st.network.main_site}; themes/plugins are shared by all sites, health.paths may list full URLs of network sites`]
       : []),
     `theme: ${st.theme.stylesheet}${st.theme.template && st.theme.template !== st.theme.stylesheet ? ` (parent ${st.theme.template})` : ''}`,
-    `writable (edit locally): ${st.writable_roots.join(', ') || '(none)'}`,
+    config.writable.length
+      ? `writable (edit locally): ${config.writable.join(', ')}${config.writableFromSite ? '' : ' (restricted by wpdev.json)'}`
+      : 'writable: none — ask the site administrator to add the specific folder (e.g. wp-content/themes/<theme>) in Dev Bridge settings; never the whole themes/ or plugins/ folder',
     `debug.log: ${st.debug_log ? 'enabled' : 'disabled'}`,
   ];
-  const mismatch = describeRootsMismatch(compareRoots(config.writable, st.writable_roots));
-  if (mismatch.length) lines.push(`warning: wpdev.json and server writable roots differ (${mismatch.join('; ')})`);
+  if (!config.writableFromSite) {
+    const cmp = compareRoots(config.writable, st.writable_roots);
+    if (cmp.localOnly.length) {
+      lines.push(`warning: in wpdev.json but not writable on the site (deploy will be refused): ${cmp.localOnly.join(', ')}`);
+    }
+  }
   if (st.rescue !== undefined && st.rescue !== 'installed') lines.push(`warning: rescue mu-plugin ${st.rescue} (out-of-band rollback may be unavailable)`);
   return lines.join('\n');
 }

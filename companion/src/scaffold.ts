@@ -79,6 +79,8 @@ export interface ClaudeMdInput {
   name: string;
   url: string;
   writable: readonly string[];
+  /** The folders come from the site settings (wpdev.json does not restrict them). */
+  writableFromSite?: boolean;
   /** Multisite network: themes and plugins are shared by every site. */
   network?: { mainSite: string; sites: number };
 }
@@ -89,20 +91,24 @@ export function renderClaudeMd(input: ClaudeMdInput): string {
     input.writable.filter((w) => w.toLowerCase().startsWith(prefix)).map((w) => w.slice(prefix.length).split('/')[0] ?? w);
   const themes = base('wp-content/themes/');
   const plugins = base('wp-content/plugins/');
-  const list = input.writable.map((w) => `\`${w}\``).join(', ') || '(nessuna: configura `writable` in wpdev.json)';
+  const list = input.writable.map((w) => `\`${w}\``).join(', ') || "(nessuna per ora: le abilita l'amministratore nel pannello Dev Bridge del sito)";
+  const source =
+    input.writableFromSite === false
+      ? '(limitate da `writable` in `wpdev.json`)'
+      : "(decise dall'amministratore nelle impostazioni Dev Bridge del sito; l'elenco aggiornato è in `site_status`)";
   return `# Sito: ${input.name} — ${input.url}
 
 ## Come lavori su questo sito
-- Puoi modificare SOLO i file in: ${list}. Le modifiche vengono pubblicate
-  automaticamente alla fine di ogni turno (hook), con health check e rollback.
+- Puoi modificare SOLO i file in: ${list} ${source}. Le modifiche vengono
+  pubblicate automaticamente alla fine di ogni turno (hook), con health check e rollback.
 - Per leggere qualsiasi altro file del sito (core, plugin, tema padre) usa gli strumenti
   MCP \`site_list\`, \`site_read\`, \`site_grep\`. Preferisci \`site_grep\` per trovare hook,
   filtri e classi; poi leggi solo le righe che servono con \`site_read\`.
 - Non cercare di scrivere fuori dalle cartelle consentite: il server lo rifiuta.
-- Se il server rifiuta una cartella, chiedi all'amministratore di aggiungere quella cartella
-  specifica (es. \`wp-content/themes/nome-tema\`) nelle impostazioni Dev Bridge e in
-  \`wpdev.json\` → \`writable\`. Non suggerire mai \`wp-content/themes/\` o \`wp-content/plugins/\`
-  interi: il server non lo consente.
+- Se ti serve una cartella non scrivibile, chiedi all'amministratore di aggiungere quella cartella
+  specifica (es. \`wp-content/themes/nome-tema\`) nelle impostazioni Dev Bridge del sito e poi di
+  eseguire \`wpdev pull\`. Non suggerire mai \`wp-content/themes/\` o \`wp-content/plugins/\` interi:
+  il server non lo consente.
 - Se il deploy fallisce, leggi gli errori riportati, controlla \`site_log\` e correggi.
 - Dopo modifiche visibili, verifica la pagina nel browser (Chrome).
 - Contenuti e pagine Elementor si gestiscono con l'MCP del sito (WSP), non via file.

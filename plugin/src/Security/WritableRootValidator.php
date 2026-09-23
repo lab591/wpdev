@@ -31,15 +31,59 @@ final class WritableRootValidator {
 	 * @throws PathException When the root is not acceptable.
 	 */
 	public function validate( string $root ): string {
+		return $this->resolve( $root )->relative;
+	}
+
+	/**
+	 * Containers where writable folders can live: themes, plugins and, if enabled, mu-plugins.
+	 *
+	 * @return string[]
+	 */
+	public function containers(): array {
+		$containers = [ 'wp-content/themes', 'wp-content/plugins' ];
+		if ( $this->allowMuPlugins ) {
+			$containers[] = 'wp-content/mu-plugins';
+		}
+		return $containers;
+	}
+
+	/**
+	 * Resolves one of {@see containers()} through PathGuard (to list its folders).
+	 *
+	 * @throws PathException When it is not a known container or cannot be resolved.
+	 */
+	public function resolveContainer( string $container ): ResolvedPath {
+		if ( ! in_array( $container, $this->containers(), true ) ) {
+			throw PathException::denied( 'unknown container' );
+		}
+		$guard    = new PathGuard(
+			new PathPolicy(
+				abspath: $this->abspath,
+				readRoots: [ 'wp-content' ],
+				writableRoots: [],
+				denyPatterns: $this->denyPatterns,
+				protectedPaths: [],
+			)
+		);
+		$resolved = $guard->resolve( $container, Access::Read );
+		if ( ! $resolved->isDir || 0 !== strcasecmp( $resolved->relative, $container ) ) {
+			throw PathException::notADirectory();
+		}
+		return $resolved;
+	}
+
+	/**
+	 * Like {@see validate()}, returning the full PathGuard resolution.
+	 *
+	 * @throws PathException When the root is not acceptable.
+	 */
+	public function resolve( string $root ): ResolvedPath {
 		$root = trim( str_replace( '\\', '/', trim( $root ) ), '/' );
 		if ( '' === $root ) {
 			throw PathException::invalid( 'empty folder' );
 		}
 
-		$containers = [ 'wp-content/themes', 'wp-content/plugins' ];
-		if ( $this->allowMuPlugins ) {
-			$containers[] = 'wp-content/mu-plugins';
-		}
+		$containers = $this->containers();
 
 		// Everything below a container must be a sub-folder, never the container itself.
 		$container = null;
@@ -86,6 +130,6 @@ final class WritableRootValidator {
 				throw PathException::denied( 'folder contains Dev Bridge files' );
 			}
 		}
-		return $resolved->relative;
+		return $resolved;
 	}
 }

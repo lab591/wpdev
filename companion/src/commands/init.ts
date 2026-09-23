@@ -10,6 +10,7 @@ import { EXIT_ERROR, EXIT_OK, type Output } from '../output.js';
 import { normalizeRel } from '../paths.js';
 import { compareRoots, describeRootsMismatch } from '../roots.js';
 import { ensureGitattributes, ensureMcpServer, ensureStopHook, writeClaudeMd } from '../scaffold.js';
+import { NO_WRITABLE_MESSAGE, resolveWritable, sanitizeServerRoots } from '../writable.js';
 
 export interface InitOptions {
   site?: string;
@@ -68,16 +69,13 @@ export async function initCommand(dir: string, out: Output, options: InitOptions
     return EXIT_ERROR;
   }
   const passwordEnv = options.passwordEnv ?? (await prompt('Variabile d\'ambiente con la Application Password', 'WPDEV_APP_PASSWORD'));
-  let writable = options.writable;
-  if (!writable) {
-    const answer = await prompt('Cartelle scrivibili (separate da virgola, es. wp-content/themes/mio-child)');
-    writable = answer.split(',').map((s) => s.trim()).filter(Boolean);
-  }
-  const json: WpdevJson = {
+  // Writable folders are decided on the site; --writable only restricts this project to some of them.
+  const writable = (options.writable ?? []).map((w) => normalizeRel(w));
+  const json: Omit<WpdevJson, 'writable'> & { writable?: string[] } = {
     site: siteUrl,
     user,
     passwordEnv: passwordEnv || 'WPDEV_APP_PASSWORD',
-    writable: writable.map((w) => normalizeRel(w)),
+    ...(writable.length ? { writable } : {}),
     exclude: ['**/node_modules/**', '**/.git/**', '**/*.map'],
     php: 'php',
     cache: { enabled: true, trustWindowSec: 60 },
@@ -112,7 +110,15 @@ export async function initCommand(dir: string, out: Output, options: InitOptions
         out.info('Server raggiungibile, modalità sviluppo off: le credenziali si verificano dopo averla attivata dal pannello Dev Bridge.');
       } else {
         out.info(`Connessione riuscita: modalità ${st.mode}, ${formatExpiry(st.expires_at)}`);
-        describeRootsMismatch(compareRoots(config.writable, st.writable_roots)).forEach((m) => out.warn(m));
+        await resolveWritable({ config, client }, { status: st });
+        if (config.writableFromSite) {
+          if (config.writable.length) out.info(`Cartelle scrivibili (dal sito): ${config.writable.join(', ')}`);
+          else out.warn(NO_WRITABLE_MESSAGE);
+        } else {
+          const { warnings, notes } = describeRootsMismatch(compareRoots(config.writable, sanitizeServerRoots(st.writable_roots)));
+          warnings.forEach((m) => out.warn(m));
+          notes.forEach((m) => out.info(m));
+        }
         if (st.name) siteName = st.name;
         if (st.network) network = { mainSite: st.network.main_site, sites: st.network.sites };
       }
@@ -121,7 +127,13 @@ export async function initCommand(dir: string, out: Output, options: InitOptions
     }
   }
 
-  const claudeMd = await writeClaudeMd(dir, { name: siteName, url: config.siteUrl, writable: config.writable, ...(network ? { network } : {}) });
+  const claudeMd = await writeClaudeMd(dir, {
+    name: siteName,
+    url: config.siteUrl,
+    writable: config.writable,
+    writableFromSite: config.writableFromSite,
+    ...(network ? { network } : {}),
+  });
   out.info(claudeMd === 'CLAUDE.md' ? 'Creato CLAUDE.md per il sito' : 'CLAUDE.md esiste già: il modello per il sito è in CLAUDE.wpdev.md (integralo a mano)');
   return EXIT_OK;
 }

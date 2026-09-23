@@ -9,7 +9,7 @@ import { pullCommand } from './commands/pull.js';
 import { healthCommand, rollbackCommand, type Confirm } from './commands/rollback.js';
 import { statusCommand } from './commands/status.js';
 import { loadConfig } from './config.js';
-import { createContext, type GlobalOptions } from './context.js';
+import { createReadyContext, type Context, type GlobalOptions } from './context.js';
 import { startMcpServer } from './mcp/server.js';
 import { describeError } from './messages.js';
 import { consoleOutput, EXIT_DEPLOY_FAILED, EXIT_ERROR } from './output.js';
@@ -29,8 +29,8 @@ function globals(): GlobalOptions {
   return { insecureLocal: opts.insecureLocal === true };
 }
 
-async function runWithContext(fn: (ctx: ReturnType<typeof createContext>) => Promise<number>): Promise<void> {
-  process.exitCode = await fn(createContext(globals()));
+async function runWithContext(fn: (ctx: Context) => Promise<number>, offline = false): Promise<void> {
+  process.exitCode = await fn(await createReadyContext(globals(), offline));
 }
 
 function positiveInt(value: string): number {
@@ -49,7 +49,7 @@ program
   .option('--site <url>', 'URL del sito')
   .option('--user <user>', 'utente WordPress')
   .option('--password-env <name>', 'variabile d\'ambiente con la Application Password')
-  .option('--writable <path>', 'cartella scrivibile (ripetibile)', collect)
+  .option('--writable <path>', 'limita il progetto a questa cartella scrivibile del sito (ripetibile; di default tutte)', collect)
   .option('--force', 'sovrascrive wpdev.json esistente')
   .option('-y, --yes', 'non interattivo')
   .action(async (opts: { site?: string; user?: string; passwordEnv?: string; writable?: string[]; force?: boolean; yes?: boolean }) => {
@@ -69,8 +69,8 @@ program
 
 program
   .command('status')
-  .description('modalità e scadenza sul server, coerenza delle root')
-  .action(() => runWithContext((ctx) => statusCommand(ctx, consoleOutput)));
+  .description('modalità e scadenza sul server, cartelle scrivibili')
+  .action(() => runWithContext((ctx) => statusCommand(ctx, consoleOutput), true)); // refreshes the list itself
 
 program
   .command('pull')
@@ -88,7 +88,7 @@ program
   .command('log')
   .description('ultime righe di debug.log')
   .option('-n, --lines <n>', 'numero di righe (max 1000)', positiveInt, 200)
-  .action((opts: { lines: number }) => runWithContext((ctx) => logCommand(ctx, consoleOutput, opts.lines)));
+  .action((opts: { lines: number }) => runWithContext((ctx) => logCommand(ctx, consoleOutput, opts.lines), true));
 
 program
   .command('deploy')
@@ -100,13 +100,13 @@ program
     if (opts.hook) {
       const input = await readHookInput();
       process.exitCode = await hookDeploy(
-        () => createContext({ ...globals(), ...(input.cwd ? { cwd: input.cwd } : {}) }),
+        () => createReadyContext({ ...globals(), ...(input.cwd ? { cwd: input.cwd } : {}) }, true),
         input,
         { stdout: (l) => process.stdout.write(`${l}\n`), stderr: (l) => process.stderr.write(`${l}\n`) },
       );
       return;
     }
-    await runWithContext((ctx) => deployCommand(ctx, consoleOutput, { dryRun: opts.dryRun === true, force: opts.force === true }));
+    await runWithContext((ctx) => deployCommand(ctx, consoleOutput, { dryRun: opts.dryRun === true, force: opts.force === true }), true);
   });
 
 program
@@ -117,13 +117,14 @@ program
   .action((releaseId: string | undefined, opts: { rescue?: boolean; force?: boolean }) =>
     runWithContext((ctx) =>
       rollbackCommand(ctx, consoleOutput, { ...(releaseId ? { releaseId } : {}), rescue: opts.rescue === true, force: opts.force === true }, terminalConfirm()),
+      true, // the site may be broken: no extra request before the rollback
     ),
   );
 
 program
   .command('health')
   .description('health check del sito su richiesta')
-  .action(() => runWithContext((ctx) => healthCommand(ctx, consoleOutput)));
+  .action(() => runWithContext((ctx) => healthCommand(ctx, consoleOutput), true));
 
 program
   .command('cache')

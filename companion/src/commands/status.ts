@@ -2,9 +2,11 @@ import type { Context } from '../context.js';
 import { formatExpiry } from '../messages.js';
 import { EXIT_OK, type Output } from '../output.js';
 import { compareRoots, describeRootsMismatch } from '../roots.js';
+import { NO_WRITABLE_MESSAGE, resolveWritable, sanitizeServerRoots } from '../writable.js';
 
 export async function statusCommand(ctx: Context, out: Output): Promise<number> {
   const st = await ctx.client.status();
+  await resolveWritable(ctx, { status: st });
   out.info(`Sito: ${ctx.config.siteUrl}`);
   if (st.mode === 'off') {
     out.info('Modalità: off — attivala dal pannello Dev Bridge o con `wp devbridge enable --mode=read --hours=N`');
@@ -16,12 +18,17 @@ export async function statusCommand(ctx: Context, out: Output): Promise<number> 
   if (st.network) {
     out.info(`Rete multisite: ${st.network.sites} siti, principale ${st.network.main_site} (impostazioni e deploy valgono per tutta la rete)`);
   }
-  const cmp = compareRoots(ctx.config.writable, st.writable_roots);
-  const mismatch = describeRootsMismatch(cmp);
-  if (mismatch.length === 0) {
-    out.info(`Root scrivibili: ${st.writable_roots.length ? st.writable_roots.join(', ') : '(nessuna)'} — coerenti con wpdev.json`);
+  if (ctx.config.writableFromSite) {
+    if (ctx.config.writable.length) {
+      out.info(`Cartelle scrivibili (dal sito): ${ctx.config.writable.join(', ')}`);
+    } else {
+      out.warn(NO_WRITABLE_MESSAGE);
+    }
   } else {
-    mismatch.forEach((m) => out.warn(m));
+    out.info(`Cartelle scrivibili (limitate da wpdev.json): ${ctx.config.writable.join(', ')}`);
+    const { warnings, notes } = describeRootsMismatch(compareRoots(ctx.config.writable, sanitizeServerRoots(st.writable_roots)));
+    warnings.forEach((m) => out.warn(m));
+    notes.forEach((m) => out.info(m));
   }
   if (st.rescue !== undefined && st.rescue !== 'installed') {
     out.warn(`mu-plugin rescue ${st.rescue === 'outdated' ? 'non aggiornato' : 'non installato'} sul server: il rollback fuori banda (wpdev rollback --rescue) potrebbe non essere disponibile`);

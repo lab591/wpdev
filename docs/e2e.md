@@ -151,3 +151,20 @@ Problemi trovati e corretti durante la prova:
 - se `debug.log` non esisteva ancora prima del deploy, l'health check non riportava la riga del primo
   errore fatale (il rollback avveniva comunque per il 500): ora usa il percorso configurato del log;
 - la disinstallazione non rimuoveva `hash-cache.json` (introdotto in M3), quindi la cartella di storage restava.
+
+## 0.3.0 — Cartelle scrivibili decise dal sito, scelta con caselle, nuova cartella
+
+Sito locale `lab591_wpdev_site`, progetto nuovo senza `writable` in `wpdev.json`.
+
+| # | Passo | Esito atteso | Esito |
+|---|---|---|---|
+| 1 | Zip caricato da *Plugin → Aggiungi → Carica* su WordPress pulito | "Attiva" punta a `lab591-dev-bridge.php` (prima: "intestazione non valida") | ok |
+| 2 | Pagina Impostazioni | caselle per temi/plugin con nome; Dev Bridge bloccato con motivo | ok |
+| 3 | *sottocartelle* (admin-ajax) | elenco caricato; `uploads`, Dev Bridge, nonce errato, utente non loggato rifiutati | ok |
+| 4 | Selezione di `twentytwentyfive/assets` e di `twentytwentyfour` + `twentytwentyfour/parts` | salvate `…/assets` (genitore espanso alla riapertura) e solo `twentytwentyfour` | ok |
+| 5 | Nuova cartella `../uploads/x` | rifiutata, nulla creato | ok |
+| 6 | Nuova cartella `plugins/e2e-nuovo` | creata vuota e selezionata | ok |
+| 7 | `wpdev init` senza `--writable` | nessuna domanda sulle cartelle; `wpdev.json` senza `writable`; cartelle "dal sito" in output e in `CLAUDE.md` | ok |
+| 8 | `wpdev status` / `wpdev pull` | elenco dal sito; la cartella vuota viene creata in locale | ok |
+| 9 | File del nuovo plugin creato in locale + `wpdev deploy` | plugin visibile in WordPress | ok |
+| 10 | `wpdev deploy --hook` senza modifiche | exit 0, usa l'elenco in cache (nessuna chiamata) | ok |

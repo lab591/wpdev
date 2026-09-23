@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { STATE_DIR } from '../config.js';
 import type { Context } from '../context.js';
@@ -8,6 +9,7 @@ import { isAncestor, isInside, normalizeRel, toNative } from '../paths.js';
 import { scanTree, type LocalFile } from '../scan.js';
 import { State } from '../state.js';
 import { buildPlan, deleteLocalFile, downloadFiles, fetchRemote, localHasher } from '../sync.js';
+import { NO_WRITABLE_MESSAGE } from '../writable.js';
 import { LABEL } from './diff.js';
 
 export interface PullOptions {
@@ -23,7 +25,7 @@ export async function pullCommand(ctx: Context, out: Output, options: PullOption
   }
   const { config, client } = ctx;
   if (config.writable.length === 0) {
-    out.warn('Nessuna cartella scrivibile in wpdev.json');
+    out.warn(NO_WRITABLE_MESSAGE);
     return EXIT_ERROR;
   }
   const base = config.projectRoot;
@@ -66,6 +68,10 @@ export async function pullCommand(ctx: Context, out: Output, options: PullOption
   }
   plan.forget.forEach((p) => state.delete(p));
   await state.save();
+  // Writable folders that are still empty on the site (e.g. a new plugin): create them locally too.
+  for (const root of config.writable) {
+    await mkdir(toNative(base, root), { recursive: true });
+  }
 
   out.info(`Scaricati ${written.length} file, rimossi ${toDelete.length} in locale.`);
   if (plan.localModified.length) {

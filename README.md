@@ -39,8 +39,15 @@ Requisiti: WordPress ≥ 6.4, PHP ≥ 8.1 con estensione `zip`, HTTPS (in locale
    `location ~ ^/wp-content/devbridge-<suffisso>/ { deny all; return 404; }`.
 4. In *Impostazioni → Dev Bridge → Impostazioni*:
    - **Utenti autorizzati**: spunta il tuo utente amministratore (di default nessuno può accedere);
-   - **Cartelle scrivibili**: es. `wp-content/themes/mio-child` e `wp-content/plugins/mio-plugin`
-     (solo sotto `themes/` o `plugins/`, mai la cartella stessa di `themes/`/`plugins/`, mai Dev Bridge);
+   - **Cartelle scrivibili**: spunta il tema e/o il plugin su cui lavorare (es. `mio-child`, `mio-plugin`);
+     con *sottocartelle* puoi scegliere anche solo una parte. L'elenco mostra solo ciò che è ammesso: le
+     cartelle intere `themes/`/`plugins/` e Dev Bridge non sono selezionabili. **Sono l'unico posto dove
+     si decidono**: il companion le legge dal sito;
+   - **Nuova cartella**: per un plugin o tema che non esiste ancora, scegli `plugins/` o `themes/`, scrivi il
+     nome (es. `mio-plugin`, oppure `mio-tema/blocks` per una sottocartella) e premi *Crea e seleziona*:
+     la cartella viene creata vuota e resa scrivibile. Dopo `wpdev pull` puoi chiedere a Claude, ad esempio,
+     "inizializza in wp-content/plugins/mio-plugin un plugin che fa…" o "crea un tema figlio di X in
+     wp-content/themes/mio-child";
    - facoltativi: allowlist IP, proxy fidati, URL di health check, limiti, deny list aggiuntiva.
      `wp-config*.php`, `.env*`, `.git`, `.htpasswd` e lo storage sono sempre esclusi.
 5. Crea una **Application Password** per quell'utente (*Utenti → Profilo → Password applicazione*).
@@ -86,10 +93,14 @@ In una cartella vuota (il progetto locale del sito):
 
 ```bash
 echo "WPDEV_APP_PASSWORD=xxxx xxxx xxxx xxxx xxxx xxxx" > .env.local
-wpdev init --site https://www.esempio.it --user mioutente \
-  --writable wp-content/themes/mio-child --writable wp-content/plugins/mio-plugin
+wpdev init --site https://www.esempio.it --user mioutente
 wpdev pull
 ```
+
+Le cartelle scrivibili non vanno indicate: `wpdev` usa quelle scelte nel pannello del sito (`wpdev status`
+le mostra). Se ne aggiungi una nel pannello, basta un `wpdev pull` per scaricarla. Solo se vuoi che questo
+progetto lavori su **una parte** di quelle cartelle, indicale in `wpdev.json`
+(`"writable": ["wp-content/themes/mio-child"]`) o con `wpdev init --writable ...`.
 
 `wpdev init` crea:
 

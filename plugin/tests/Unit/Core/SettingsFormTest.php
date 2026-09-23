@@ -107,4 +107,14 @@ final class SettingsFormTest extends TestCase {
 		);
 		$this->assertSame( [ 'wp-content/mu-plugins/tools' ], $on['writable_roots'] );
 	}
+
+	public function test_checkbox_selection_drops_folders_covered_by_a_selected_parent(): void {
+		$form = $this->form();
+		$out  = $form->sanitize(
+			[ 'writable_roots' => [ 'wp-content/themes/child/inc', 'wp-content/themes/child', 'wp-content/themes/parent', 'wp-content/plugins/myplug' ] ],
+			Settings::defaults()
+		);
+		$this->assertSame( [ 'wp-content/themes/child', 'wp-content/themes/parent', 'wp-content/plugins/myplug' ], $out['writable_roots'] );
+		$this->assertSame( [], $form->errors() );
+	}
 }

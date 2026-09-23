@@ -153,14 +153,29 @@ describe('diff', () => {
 });
 
 describe('status', () => {
-  it('reports mode and root coherence', async () => {
+  it('reports mode and the folders restricted by wpdev.json', async () => {
     const out = memoryOutput();
     await statusCommand(ctx, out);
-    expect(out.lines.join('\n')).toContain('coerenti con wpdev.json');
+    expect(out.lines.join('\n')).toContain(`Cartelle scrivibili (limitate da wpdev.json): ${ROOT}`);
+    expect(out.warnings).toEqual([]);
     mock.site.writableRoots = ['wp-content/plugins/other'];
     const out2 = memoryOutput();
     await statusCommand(ctx, out2);
-    expect(out2.warnings.join('\n')).toContain('wp-content/plugins/other');
+    expect(out2.warnings.join('\n')).toContain(`non abilitate sul sito: ${ROOT}`);
+    expect(out2.lines.join('\n')).toContain('escluse da questo progetto (wpdev.json → writable): wp-content/plugins/other');
+  });
+
+  it('uses the folders of the site when wpdev.json does not list them', async () => {
+    const config = parseConfig({ site: mock.url, user: mock.site.user }, dir, { insecureLocal: true });
+    const siteCtx: Context = { config, client: ctx.client };
+    expect(config.writableFromSite).toBe(true);
+    const out = memoryOutput();
+    await statusCommand(siteCtx, out);
+    expect(out.lines.join('\n')).toContain(`Cartelle scrivibili (dal sito): ${ROOT}`);
+    mock.site.writableRoots = [];
+    const out2 = memoryOutput();
+    await statusCommand(siteCtx, out2);
+    expect(out2.warnings.join('\n')).toContain('Nessuna cartella scrivibile abilitata sul sito');
   });
 
   it('reports mode off', async () => {

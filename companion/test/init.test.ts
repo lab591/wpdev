@@ -39,18 +39,33 @@ describe('init', () => {
     expect(await initCommand(dir, memoryOutput(), { site: mock.url, user: 'x', yes: true, insecureLocal: true })).toBe(1);
   });
 
-  it('asks interactively for missing values', async () => {
+  it('asks interactively for missing values, never for the writable folders', async () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'wpdev-init-'));
-    const answers: Record<string, string> = { URL: 'https://example.com', Utente: 'claudio', Cartelle: 'wp-content/themes/a, wp-content/plugins/b' };
+    const asked: string[] = [];
+    const answers: Record<string, string> = { URL: 'https://example.com', Utente: 'claudio' };
     const ask = async (q: string, def?: string): Promise<string> => {
+      asked.push(q);
       const key = Object.keys(answers).find((k) => q.startsWith(k));
       return key ? (answers[key] as string) : (def ?? '');
     };
     const out = memoryOutput();
     expect(await initCommand(dir, out, {}, ask)).toBe(0);
-    const json = JSON.parse(await readFile(path.join(dir, 'wpdev.json'), 'utf8')) as { writable: string[]; passwordEnv: string };
-    expect(json.writable).toEqual(['wp-content/themes/a', 'wp-content/plugins/b']);
+    const json = JSON.parse(await readFile(path.join(dir, 'wpdev.json'), 'utf8')) as { writable?: string[]; passwordEnv: string };
+    expect(json).not.toHaveProperty('writable'); // decided on the site
     expect(json.passwordEnv).toBe('WPDEV_APP_PASSWORD');
+    expect(asked.some((q) => /cartell/i.test(q))).toBe(false);
+  });
+
+  it('takes the writable folders from the site when none are given', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'wpdev-init-'));
+    await writeFile(path.join(dir, '.env.local'), `WPDEV_APP_PASSWORD="${mock.site.password}"\n`);
+    const out = memoryOutput();
+    expect(await initCommand(dir, out, { site: mock.url, user: mock.site.user, insecureLocal: true, yes: true })).toBe(0);
+    expect(out.lines.join('\n')).toContain('Cartelle scrivibili (dal sito): wp-content/themes/child');
+    const md = await readFile(path.join(dir, 'CLAUDE.md'), 'utf8');
+    expect(md).toContain("`wp-content/themes/child` (decise dall'amministratore");
+    const cached = JSON.parse(await readFile(path.join(dir, '.wpdev', 'writable-roots.json'), 'utf8')) as { roots: string[] };
+    expect(cached.roots).toEqual(['wp-content/themes/child']);
   });
 
   it('updates .gitignore idempotently', async () => {

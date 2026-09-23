@@ -70,6 +70,19 @@ Distribuzione privata (non WordPress.org).
   - devono stare sotto `wp-content/themes/` o `wp-content/plugins/` (o `wp-content/mu-plugins/` solo se abilitato esplicitamente);
   - non possono essere né contenere il plugin Dev Bridge né la cartella di storage;
   - non possono essere la radice di `themes/` o `plugins/`.
+
+  Nella pagina admin si scelgono con caselle di spunta (0.3.0): l'elenco mostra le cartelle di `themes/`,
+  `plugins/` (e `mu-plugins/` se abilitato) con il nome del tema/plugin; le sottocartelle si caricano
+  espandendo (admin-ajax di sola lettura, capability + nonce, ogni cartella validata con gli stessi
+  controlli del salvataggio). Le cartelle non ammesse (Dev Bridge, deny list, symlink verso fuori) sono
+  visibili ma non selezionabili; una sottocartella di una cartella già selezionata viene scartata.
+
+  **Nuova cartella** (0.3.0): dalla stessa pagina l'amministratore può creare una cartella vuota (anche
+  annidata, max 4 livelli) sotto un contenitore ammesso, per esempio per un nuovo plugin o tema figlio; viene
+  aggiunta alle `writable_roots`. Solo da admin (mai via REST, invariante 2): il genitore esistente è risolto
+  da PathGuard, i nuovi segmenti sono validati (`[A-Za-z0-9][A-Za-z0-9._-]*`), la cartella creata deve passare
+  la stessa validazione delle `writable_roots`, altrimenti viene rimossa. `wpdev pull` crea in locale le
+  cartelle scrivibili ancora vuote.
 - `read_roots`: default `ABSPATH`.
 - `deny_patterns` (glob, applicati dopo la risoluzione del percorso), default:
   `wp-config.php`, `wp-config-*.php`, `**/.env*`, `**/.git/**`, `**/*.sql`, `**/*.sql.gz`, `**/*.log`, `**/*.key`, `**/*.pem`, `wp-content/uploads/**`, `wp-content/devbridge-*/**`, `**/.htpasswd`.
@@ -250,10 +263,6 @@ In una rete multisite temi, plugin e file sono condivisi da tutti i siti: Dev Br
   "site": "https://example.com",
   "user": "claudio",
   "passwordEnv": "WPDEV_APP_PASSWORD",
-  "writable": [
-    "wp-content/themes/mio-child",
-    "wp-content/plugins/mio-widgets"
-  ],
   "exclude": ["**/node_modules/**", "**/.git/**", "**/*.map"],
   "php": "php",
   "cache": { "enabled": true, "trustWindowSec": 60 },
@@ -262,7 +271,14 @@ In una rete multisite temi, plugin e file sono condivisi da tutti i siti: Dev Br
 ```
 
 - La password **non sta mai** in `wpdev.json`: variabile d'ambiente, oppure `.env.local` (escluso da git) caricato dal companion.
-- `writable` deve coincidere con le `writable_roots` del server: al primo contatto (`/status`) il companion verifica e avvisa se divergono.
+- Le cartelle scrivibili le decide **solo il sito** (`writable_roots`, impostate dall'amministratore): il companion
+  le legge da `/status` e salva l'ultimo elenco ricevuto in `.wpdev/writable-roots.json` (usato quando il sito
+  non è raggiungibile o la modalità è off, e dal deploy, che senza modifiche non fa chiamate di rete).
+  L'elenco ricevuto viene validato come ogni percorso esterno (solo cartelle sotto `themes/`, `plugins/`,
+  `mu-plugins/`, niente `..` o percorsi assoluti).
+- `writable` (facoltativo, 0.3.0) serve solo a **restringere** il progetto ad alcune di quelle cartelle,
+  es. `"writable": ["wp-content/themes/mio-child"]`. Vuoto o assente = tutte quelle del sito. Una cartella
+  elencata ma non abilitata sul sito viene segnalata (il server rifiuterebbe il deploy).
 - `php` è opzionale: default `php` cercato nel PATH; si può indicare un percorso assoluto (qualsiasi installazione: Homebrew, apt, XAMPP/WAMP/MAMP, Laragon, LocalWP, container). Se PHP non è disponibile, il lint viene saltato con un avviso, senza bloccare il deploy.
 - HTTPS obbligatorio; `http://` accettato solo con `--insecure-local` e host `localhost`/`*.local`/`*.test`. Verifica TLS sempre attiva.
 
@@ -271,14 +287,15 @@ In una rete multisite temi, plugin e file sono condivisi da tutti i siti: Dev Br
 Cartella `.wpdev/` (in `.gitignore`):
 - `state.json`: per ogni file sincronizzato `{p, h_base, s, m}`, cioè l'hash del file sul server all'ultimo pull/deploy riuscito. È la base del rilevamento modifiche e conflitti.
 - `rescue.json`: ultimo token di rescue e `release_id`.
+- `writable-roots.json`: ultimo elenco delle cartelle scrivibili ricevuto dal sito (vedi 3.2).
 - `cache/` (M3).
 
 ### 3.4 Comandi CLI
 
 | Comando | Descrizione |
 |---|---|
-| `wpdev init` | Crea `wpdev.json` guidato, aggiorna `.gitignore`, crea `.gitattributes` (vedi 3.7), testa `/status` |
-| `wpdev status` | Modalità e scadenza sul server, verifica coerenza delle root |
+| `wpdev init` | Crea `wpdev.json` guidato (sito, utente, variabile della password; le cartelle scrivibili vengono dal sito, `--writable` solo per restringere), aggiorna `.gitignore`, crea `.gitattributes` (vedi 3.7), testa `/status` |
+| `wpdev status` | Modalità e scadenza sul server, cartelle scrivibili (dal sito o ristrette da `wpdev.json`) |
 | `wpdev pull [--path <p>] [--force]` | Scarica le cartelle scrivibili. Incrementale: `/manifest` → confronto con file locali → `/archive` solo dei file diversi. Se un file locale è stato modificato rispetto a `state.json` e anche il server è cambiato, **non sovrascrive**: segnala il conflitto (salvo `--force`). Con `--path` scarica una cartella di sola lettura in `.wpdev/readonly/` (mai deployata) |
 | `wpdev diff` | Tre elenchi: modificati in locale, modificati sul server, in conflitto |
 | `wpdev deploy [--dry-run] [--force] [--hook]` | Vedi 3.5 |
@@ -292,7 +309,7 @@ Exit code: `0` ok, `1` errore, `2` deploy fallito/rollback eseguito (usato dall'
 
 ### 3.5 Deploy lato companion
 
-1. Calcola l'insieme delle modifiche confrontando i file locali in `writable` con `state.json`: nuovi, modificati, cancellati (se `allowDelete`). Nessuna modifica → esce subito con `0`, senza chiamate di rete.
+1. Calcola l'insieme delle modifiche confrontando i file locali delle cartelle scrivibili (elenco in cache, vedi 3.2) con `state.json`: nuovi, modificati, cancellati (se `allowDelete`). Nessuna modifica → esce subito con `0`, senza chiamate di rete.
 2. Se `lintPhp` è attivo e PHP è disponibile: `php -l` su ogni `.php` modificato. Errore di sintassi → blocca il deploy prima dell'upload, riporta file e riga.
 3. Costruisce manifest (`h`, `base_h`) e zip in memoria.
 4. `POST /deploy`. Gestisce 409 conflitto (mostra i file), 403 modalità non attiva (messaggio chiaro: "attiva la modalità write dal pannello o con `wp devbridge enable`").
@@ -363,7 +380,8 @@ Regole di output: testo compatto, mai JSON verboso; risultati troncati con indic
 # Sito: <nome> — <url>
 
 ## Come lavori su questo sito
-- Puoi modificare SOLO i file in: <elenco writable>. Le modifiche vengono pubblicate
+- Puoi modificare SOLO i file in: <elenco cartelle scrivibili> (decise dall'amministratore nelle impostazioni
+  Dev Bridge del sito; l'elenco aggiornato è in `site_status`). Le modifiche vengono pubblicate
   automaticamente alla fine di ogni turno (hook), con health check e rollback.
 - Per leggere qualsiasi altro file del sito (core, plugin, tema padre) usa gli strumenti
   MCP `site_list`, `site_read`, `site_grep`. Preferisci `site_grep` per trovare hook,

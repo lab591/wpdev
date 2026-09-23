@@ -180,7 +180,7 @@ export interface HookStreams {
  * If the hook already blocked once (`stop_hook_active`), a new failure exits 0 to avoid loops.
  */
 export async function hookDeploy(
-  getContext: () => Context,
+  getContext: () => Context | Promise<Context>,
   input: HookInput,
   streams: HookStreams,
   deps: DeployDeps = {},
@@ -188,7 +188,7 @@ export async function hookDeploy(
   let report: Report;
   let outcome: DeployOutcome | undefined;
   try {
-    outcome = await runDeploy(getContext(), {}, deps);
+    outcome = await runDeploy(await getContext(), {}, deps);
     report = reportDeploy(outcome);
   } catch (e) {
     report = { code: EXIT_ERROR, stdout: [], stderr: [`Deploy non eseguito: ${describeError(e)}`] };

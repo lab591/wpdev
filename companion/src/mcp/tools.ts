@@ -8,6 +8,7 @@ import { ApiError, type CacheTarget } from '../http.js';
 import { describeError } from '../messages.js';
 import { normalizeRel, normalizeRelOrRoot } from '../paths.js';
 import { deleteRescue } from '../rescue.js';
+import { resolveWritable } from '../writable.js';
 import {
   formatCacheFlush,
   formatDeployOutcome,
@@ -40,10 +41,10 @@ function refuse(text: string): ToolResult {
 }
 
 /** Tool definitions. `getContext` is lazy so config errors surface per call. */
-export function buildTools(getContext: () => Context, deps: DeployDeps = {}): ToolDef[] {
+export function buildTools(getContext: () => Context | Promise<Context>, deps: DeployDeps = {}): ToolDef[] {
   const run = async (fn: (ctx: Context) => Promise<string>): Promise<ToolResult> => {
     try {
-      return { text: await fn(getContext()) };
+      return { text: await fn(await getContext()) };
     } catch (e) {
       return refuse(`error: ${describeError(e)}`);
     }
@@ -54,7 +55,12 @@ export function buildTools(getContext: () => Context, deps: DeployDeps = {}): To
       name: 'site_status',
       description: 'Dev mode, expiry, WordPress/PHP versions, active theme and writable roots of the remote site.',
       inputSchema: {},
-      handler: () => run(async (ctx) => formatStatus(await ctx.client.status(), ctx.config)),
+      handler: () =>
+        run(async (ctx) => {
+          const st = await ctx.client.status();
+          await resolveWritable(ctx, { status: st });
+          return formatStatus(st, ctx.config);
+        }),
     },
     {
       name: 'site_list',
@@ -139,7 +145,7 @@ export function buildTools(getContext: () => Context, deps: DeployDeps = {}): To
       },
       handler: async (args) => {
         try {
-          const outcome = await runDeploy(getContext(), { dryRun: args.dry_run === true }, deps);
+          const outcome = await runDeploy(await getContext(), { dryRun: args.dry_run === true }, deps);
           const res = formatDeployOutcome(outcome);
           return res.isError ? refuse(res.text) : { text: res.text };
         } catch (e) {
@@ -155,7 +161,7 @@ export function buildTools(getContext: () => Context, deps: DeployDeps = {}): To
       },
       handler: async (args) => {
         try {
-          const ctx = getContext();
+          const ctx = await getContext();
           const res = await ctx.client.rollback(typeof args.release_id === 'string' ? args.release_id : undefined);
           await applyRestored(ctx.config, res.files);
           await deleteRescue(ctx.config.projectRoot);

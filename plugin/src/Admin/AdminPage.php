@@ -13,6 +13,7 @@ use Lab591\DevBridge\Deploy\ReleaseStore;
 use Lab591\DevBridge\Mode;
 use Lab591\DevBridge\Plugin;
 use Lab591\DevBridge\Rescue\RescueInstaller;
+use Lab591\DevBridge\Security\PathException;
 use Lab591\DevBridge\Settings;
 use Lab591\DevBridge\Support\Options;
 use const Lab591\DevBridge\PLUGIN_FILE;
@@ -30,6 +31,7 @@ final class AdminPage {
 		add_action( Options::network() ? 'network_admin_menu' : 'admin_menu', [ $this, 'menu' ] );
 		add_action( 'admin_post_devbridge_mode', [ $this, 'handleMode' ] );
 		add_action( 'admin_post_devbridge_settings', [ $this, 'handleSettings' ] );
+		add_action( 'wp_ajax_devbridge_folders', [ $this, 'ajaxFolders' ] );
 		add_action( Options::network() ? 'network_admin_notices' : 'admin_notices', [ $this, 'pluginsScreenNotices' ] );
 		add_filter( ( Options::network() ? 'network_admin_plugin_action_links_' : 'plugin_action_links_' ) . plugin_basename( PLUGIN_FILE ), [ $this, 'confirmDeactivation' ] );
 	}
@@ -125,13 +127,28 @@ final class AdminPage {
 		$form                      = $this->form();
 		$clean                     = $form->sanitize( $input, $this->plugin->settings()->all() );
 		$clean['allowed_user_ids'] = array_values( array_filter( $clean['allowed_user_ids'], static fn ( int $id ): bool => user_can( $id, Options::capability() ) ) );
+		$errors                    = $form->errors();
+
+		// Optional new empty folder, created and selected together with the save.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated segment by segment in FolderCreator.
+		$new     = isset( $_POST['devbridge_new_folder'] ) && is_array( $_POST['devbridge_new_folder'] ) ? wp_unslash( $_POST['devbridge_new_folder'] ) : [];
+		$created = '';
+		if ( '' !== trim( (string) ( $new['path'] ?? '' ) ) ) {
+			try {
+				$created                 = ( new FolderCreator( $this->plugin->rootValidator() ) )->create( (string) ( $new['container'] ?? '' ), (string) $new['path'] );
+				$clean['writable_roots'] = SettingsForm::withoutNested( array_values( array_unique( [ ...$clean['writable_roots'], $created ] ) ) );
+			} catch ( PathException $e ) {
+				$errors[] = sprintf( 'Nuova cartella non creata: %s', $e->getMessage() );
+			}
+		}
+
 		$this->plugin->settings()->save( $clean );
 		$this->plugin->reset();
-		if ( [] !== $form->errors() ) {
-			$this->notice( 'warning', "Impostazioni salvate con alcune voci scartate:\n" . implode( "\n", $form->errors() ) );
-		} else {
-			$this->notice( 'success', 'Impostazioni salvate.' );
+		$message = [] !== $errors ? "Impostazioni salvate con alcune voci scartate:\n" . implode( "\n", $errors ) : 'Impostazioni salvate.';
+		if ( '' !== $created ) {
+			$message .= "\n" . sprintf( 'Cartella %s pronta e aggiunta alle cartelle scrivibili: esegui "wpdev pull" nel progetto locale.', $created );
 		}
+		$this->notice( [] !== $errors ? 'warning' : 'success', $message );
 		$this->redirect( 'settings' );
 	}
 
@@ -391,9 +408,9 @@ final class AdminPage {
 		}
 		echo '<p class="description">' . esc_html( Options::network() ? 'Solo super admin della rete, autenticati con Application Password.' : 'Solo amministratori, autenticati con Application Password.' ) . '</p></td></tr>';
 
-		$this->textarea( 'writable_roots', 'Cartelle scrivibili', (array) $s['writable_roots'], 'Una per riga, relative ad ABSPATH, sotto wp-content/themes/ o wp-content/plugins/ (es. wp-content/themes/mio-child).' );
+		$this->renderFolderPicker( array_map( 'strval', (array) $s['writable_roots'] ) );
 		printf(
-			'<tr><th>mu-plugins</th><td><label><input type="checkbox" name="devbridge[allow_mu_plugins]" value="1"%s> Consenti cartelle scrivibili sotto wp-content/mu-plugins/</label></td></tr>',
+			'<tr><th>mu-plugins</th><td><label><input type="checkbox" name="devbridge[allow_mu_plugins]" value="1"%s> Consenti cartelle scrivibili sotto wp-content/mu-plugins/</label><p class="description">Dopo averla attivata, salva per vedere le cartelle di mu-plugins nell\'elenco.</p></td></tr>',
 			checked( (bool) $s['allow_mu_plugins'], true, false )
 		);
 		$this->textarea( 'read_roots', 'Cartelle leggibili', array_map( static fn ( $r ) => '' === $r ? '.' : $r, (array) $s['read_roots'] ), '"." indica l\'intero sito (ABSPATH).' );
@@ -420,6 +437,189 @@ final class AdminPage {
 		echo '</tbody></table>';
 		submit_button( 'Salva impostazioni' );
 		echo '</form>';
+	}
+
+	// ------------------------------------------------------------------ writable folders picker
+
+	private function folderPicker(): FolderPicker {
+		return new FolderPicker( $this->plugin->rootValidator(), [ 'wp-content/plugins/' . dirname( plugin_basename( PLUGIN_FILE ) ) ] );
+	}
+
+	/**
+	 * Admin-ajax: sub-folders of a container or of a selectable folder (read-only listing).
+	 */
+	public function ajaxFolders(): void {
+		if ( ! current_user_can( Options::capability() ) ) {
+			wp_send_json_error( null, 403 );
+		}
+		check_ajax_referer( 'devbridge_folders' );
+		$path = isset( $_GET['path'] ) ? sanitize_text_field( wp_unslash( $_GET['path'] ) ) : '';
+		try {
+			wp_send_json_success( $this->folderPicker()->children( $path ) );
+		} catch ( PathException ) {
+			wp_send_json_error( null, 400 );
+		}
+	}
+
+	/**
+	 * Theme and plugin names by folder, shown next to the folder names.
+	 *
+	 * @return array<string, string>
+	 */
+	private function folderLabels(): array {
+		$labels = [];
+		foreach ( wp_get_themes() as $slug => $theme ) {
+			$labels[ 'wp-content/themes/' . $slug ] = (string) $theme->get( 'Name' );
+		}
+		if ( ! function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		foreach ( get_plugins() as $file => $data ) {
+			if ( str_contains( $file, '/' ) ) {
+				$labels[ 'wp-content/plugins/' . dirname( $file ) ] = (string) $data['Name'];
+			}
+		}
+		if ( ! Options::network() ) {
+			foreach ( array_unique( [ get_stylesheet(), get_template() ] ) as $active ) {
+				$key            = 'wp-content/themes/' . $active;
+				$labels[ $key ] = trim( ( $labels[ $key ] ?? '' ) . ' · tema attivo', ' ·' );
+			}
+		}
+		return $labels;
+	}
+
+	/**
+	 * @param string[] $selected Saved writable roots.
+	 */
+	private function renderFolderPicker( array $selected ): void {
+		$picker = $this->folderPicker();
+		$labels = $this->folderLabels();
+		echo '<tr><th>Cartelle scrivibili</th><td>';
+		echo '<style>#devbridge-folders{max-height:30em;overflow:auto;border:1px solid #dcdcde;background:#fff;padding:.4em 1em}#devbridge-folders ul{margin:.2em 0 .2em 1.8em}#devbridge-folders>ul{margin-left:0}#devbridge-folders li{margin:.2em 0}#devbridge-folders .devbridge-container{margin:.6em 0 .2em;font-weight:600}</style>';
+		printf(
+			'<div id="devbridge-folders" data-ajax="%s" data-nonce="%s">',
+			esc_url( admin_url( 'admin-ajax.php' ) ),
+			esc_attr( wp_create_nonce( 'devbridge_folders' ) )
+		);
+		foreach ( $picker->containers() as $container ) {
+			printf( '<p class="devbridge-container">%s/</p>', esc_html( $container ) );
+			try {
+				$this->renderFolderItems( $picker, $container, $selected, $labels );
+			} catch ( PathException ) {
+				echo '<p class="description">Cartella non disponibile.</p>';
+			}
+		}
+		echo '</div>';
+		$valid   = array_map( 'strtolower', $this->plugin->validWritableRoots() );
+		$invalid = array_filter( $selected, static fn ( string $root ): bool => ! in_array( strtolower( $root ), $valid, true ) );
+		if ( [] !== $invalid ) {
+			printf( '<p class="description"><strong>Cartelle salvate non più valide, verranno rimosse al salvataggio:</strong> %s</p>', esc_html( implode( ', ', $invalid ) ) );
+		}
+		echo '<p class="description">Scegli il tema o plugin su cui lavorare (o solo alcune sue sottocartelle). Le cartelle intere themes/ e plugins/ e quella di Dev Bridge non sono selezionabili. Se selezioni una cartella, le sue sottocartelle sono già incluse.</p>';
+
+		echo '<p style="margin-top:1em"><label for="devbridge-new-folder"><strong>Nuova cartella</strong></label><br><select name="devbridge_new_folder[container]" aria-label="Dove">';
+		foreach ( $picker->containers() as $container ) {
+			printf( '<option value="%1$s">%1$s/</option>', esc_attr( $container ) );
+		}
+		echo '</select> <input type="text" id="devbridge-new-folder" name="devbridge_new_folder[path]" class="regular-text code" placeholder="mio-plugin oppure mio-tema/blocks"> ';
+		echo '<button type="submit" class="button">Crea e seleziona</button></p>';
+		echo '<p class="description">Crea una cartella vuota (anche annidata) e la aggiunge alle cartelle scrivibili; salva anche le altre impostazioni. Dopo un <code>wpdev pull</code> puoi chiedere a Claude, per esempio, di inizializzare lì un nuovo plugin o un tema figlio.</p>';
+		wp_print_inline_script_tag( self::folderPickerScript() );
+		echo '</td></tr>';
+	}
+
+	/**
+	 * @param string[]              $selected
+	 * @param array<string, string> $labels
+	 * @throws PathException When the parent cannot be listed.
+	 */
+	private function renderFolderItems( FolderPicker $picker, string $folder, array $selected, array $labels ): void {
+		$list  = $picker->children( $folder );
+		$lower = array_map( 'strtolower', $selected );
+		echo '<ul>';
+		foreach ( $list['items'] as $item ) {
+			$path = strtolower( $item['path'] );
+			$open = false;
+			foreach ( $lower as $root ) {
+				$open = $open || str_starts_with( $root, $path . '/' );
+			}
+			$note = '' !== $item['reason'] ? $item['reason'] : ( $labels[ $item['path'] ] ?? '' );
+			printf(
+				'<li><label><input type="checkbox" name="devbridge[writable_roots][]" value="%s"%s%s> <code>%s</code>%s</label>',
+				esc_attr( $item['path'] ),
+				checked( in_array( $path, $lower, true ), true, false ),
+				disabled( ! $item['selectable'], true, false ),
+				esc_html( $item['name'] ),
+				'' === $note ? '' : ' <span class="description">— ' . esc_html( $note ) . '</span>'
+			);
+			if ( $item['expandable'] ) {
+				printf(
+					' <button type="button" class="button-link devbridge-expand" aria-expanded="%s" data-path="%s">%s</button>',
+					$open ? 'true' : 'false',
+					esc_attr( $item['path'] ),
+					esc_html( $open ? 'nascondi sottocartelle' : 'sottocartelle' )
+				);
+				if ( $open ) {
+					$this->renderFolderItems( $picker, $item['path'], $selected, $labels );
+				} else {
+					echo '<ul hidden data-lazy="1"></ul>';
+				}
+			}
+			echo '</li>';
+		}
+		if ( $list['truncated'] ) {
+			echo '<li class="description">… elenco troncato</li>';
+		}
+		echo '</ul>';
+	}
+
+	/**
+	 * Lazy expansion of sub-folders; DOM built with textContent only.
+	 */
+	private static function folderPickerScript(): string {
+		return <<<'JS'
+(function () {
+	var box = document.getElementById('devbridge-folders');
+	if (!box) { return; }
+	function item(it) {
+		var li = document.createElement('li'), label = document.createElement('label'), cb = document.createElement('input'), code = document.createElement('code');
+		cb.type = 'checkbox'; cb.name = 'devbridge[writable_roots][]'; cb.value = it.path; cb.disabled = !it.selectable;
+		code.textContent = it.name;
+		label.appendChild(cb); label.appendChild(document.createTextNode(' ')); label.appendChild(code);
+		if (it.reason) { var s = document.createElement('span'); s.className = 'description'; s.textContent = ' — ' + it.reason; label.appendChild(s); }
+		li.appendChild(label);
+		if (it.expandable) {
+			var b = document.createElement('button'), ul = document.createElement('ul');
+			b.type = 'button'; b.className = 'button-link devbridge-expand'; b.dataset.path = it.path; b.setAttribute('aria-expanded', 'false'); b.textContent = 'sottocartelle';
+			ul.hidden = true; ul.dataset.lazy = '1';
+			li.appendChild(document.createTextNode(' ')); li.appendChild(b); li.appendChild(ul);
+		}
+		return li;
+	}
+	box.addEventListener('click', function (e) {
+		var b = e.target.closest('.devbridge-expand');
+		if (!b) { return; }
+		e.preventDefault();
+		var ul = b.nextElementSibling;
+		function set(open) { ul.hidden = !open; b.setAttribute('aria-expanded', open ? 'true' : 'false'); b.textContent = open ? 'nascondi sottocartelle' : 'sottocartelle'; }
+		if (b.getAttribute('aria-expanded') === 'true') { set(false); return; }
+		if (!ul.dataset.lazy) { set(true); return; }
+		b.disabled = true;
+		var url = box.dataset.ajax + '?action=devbridge_folders&_ajax_nonce=' + encodeURIComponent(box.dataset.nonce) + '&path=' + encodeURIComponent(b.dataset.path);
+		fetch(url, { credentials: 'same-origin' })
+			.then(function (r) { return r.json(); })
+			.then(function (res) {
+				if (!res || !res.success) { throw new Error('load'); }
+				res.data.items.forEach(function (it) { ul.appendChild(item(it)); });
+				if (res.data.truncated) { var li = document.createElement('li'); li.className = 'description'; li.textContent = '… elenco troncato'; ul.appendChild(li); }
+				delete ul.dataset.lazy;
+				set(true);
+			})
+			.catch(function () { b.textContent = 'errore nel caricamento, riprova'; })
+			.finally(function () { b.disabled = false; });
+	});
+})();
+JS;
 	}
 
 	/**

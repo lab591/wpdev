@@ -88,6 +88,11 @@ export interface Config extends WpdevJson {
   projectRoot: string;
   /** Normalized site URL without trailing slash. */
   siteUrl: string;
+  /**
+   * True when wpdev.json does not list writable folders: `writable` is then filled with the
+   * site's list (see writable.ts). Otherwise wpdev.json restricts the project to its folders.
+   */
+  writableFromSite: boolean;
 }
 
 export interface LoadOptions {
@@ -157,7 +162,7 @@ export function parseConfig(raw: unknown, projectRoot: string, options: LoadOpti
     }
     seen.add(key);
   }
-  return { ...data, projectRoot, siteUrl };
+  return { ...data, projectRoot, siteUrl, writableFromSite: data.writable.length === 0 };
 }
 
 export function loadConfig(options: LoadOptions & { cwd?: string } = {}): Config {

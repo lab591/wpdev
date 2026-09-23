@@ -66,7 +66,7 @@ final class SettingsForm {
 				$this->errors[] = sprintf( 'Cartella scrivibile "%s" rifiutata: %s', $root, $e->getMessage() );
 			}
 		}
-		$out['writable_roots'] = array_values( array_unique( $out['writable_roots'] ) );
+		$out['writable_roots'] = self::withoutNested( array_values( array_unique( $out['writable_roots'] ) ) );
 
 		$out['read_roots'] = [];
 		$guard             = new PathGuard( new PathPolicy( $this->abspath, [ '' ], [] ) );
@@ -152,6 +152,28 @@ final class SettingsForm {
 		$out['limits'] = $limits;
 
 		return $out;
+	}
+
+	/**
+	 * Drops folders already covered by a selected parent (e.g. a theme and one of its subfolders).
+	 *
+	 * @param string[] $roots
+	 * @return string[]
+	 */
+	public static function withoutNested( array $roots ): array {
+		return array_values(
+			array_filter(
+				$roots,
+				static function ( string $root ) use ( $roots ): bool {
+					foreach ( $roots as $other ) {
+						if ( $other !== $root && 0 === strncasecmp( $root, $other . '/', strlen( $other ) + 1 ) ) {
+							return false;
+						}
+					}
+					return true;
+				}
+			)
+		);
 	}
 
 	/**
