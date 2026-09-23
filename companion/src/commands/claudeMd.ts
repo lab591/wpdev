@@ -26,7 +26,7 @@ export async function claudeMdCommand(ctx: Context, out: Output, force = false):
   const result = describeClaudeMdResult(
     await writeClaudeMd(
       ctx.config.projectRoot,
-      { name, url: ctx.config.siteUrl, writable: ctx.config.writable, writableFromSite: ctx.config.writableFromSite, ...(network ? { network } : {}) },
+      { name, url: ctx.config.siteUrl, writable: ctx.config.writable, writableFromSite: ctx.config.writableFromSite, previewTarget: ctx.config.deploy.target === 'preview', ...(network ? { network } : {}) },
       force,
     ),
   );

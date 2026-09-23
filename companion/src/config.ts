@@ -90,8 +90,10 @@ const configSchema = z.object({
       lintPhp: z.boolean().default(true),
       /** Commit the published files to the local git repository after each successful deploy. */
       gitCommit: z.boolean().default(true),
+      /** "preview": the Stop hook publishes to a preview (seen only with the preview link) instead of live. */
+      target: z.enum(['live', 'preview']).default('live'),
     })
-    .default({ allowDelete: true, lintPhp: true, gitCommit: true }),
+    .default({ allowDelete: true, lintPhp: true, gitCommit: true, target: 'live' }),
   health: z
     .object({
       /** Pages the agent wants checked after each deploy, on top of the admin-configured URLs. */

@@ -99,6 +99,13 @@ export default function StatusTab( {
 					) ) }
 				</ul>
 			</Section>
+			{ status.preview.active && (
+				<PreviewCard
+					status={ status }
+					setStatus={ setStatus }
+					notify={ notify }
+				/>
+			) }
 			<ConnectCard />
 			<Section
 				title={ __( 'Writable folders', 'lab591-dev-bridge' ) }
@@ -384,6 +391,92 @@ function ConnectCard() {
 				{ __( 'REST endpoint:', 'lab591-dev-bridge' ) }{ ' ' }
 				<code>{ boot.restUrl }</code>
 			</p>
+		</Section>
+	);
+}
+
+function PreviewCard( {
+	status,
+	setStatus,
+	notify,
+}: Omit< Props, 'openSettings' > ) {
+	const [ busy, setBusy ] = useState( false );
+	const preview = status.preview;
+	if ( ! preview.active ) {
+		return null;
+	}
+	const act = async ( op: 'publish' | 'discard' ) => {
+		setBusy( true );
+		try {
+			const result = await post< StatusData >( 'devbridge_preview', {
+				op,
+			} );
+			setStatus( result );
+			if ( result.message ) {
+				notify( result.message );
+			}
+		} catch ( e ) {
+			notify( errorMessage( e ) );
+		} finally {
+			setBusy( false );
+		}
+	};
+	return (
+		<Section
+			className="devbridge-grid__wide devbridge-preview-card"
+			title={ __( 'Preview waiting', 'lab591-dev-bridge' ) }
+			description={ __(
+				'Changes visible only through the preview link: visitors still see the live site.',
+				'lab591-dev-bridge'
+			) }
+		>
+			<ul className="devbridge-chips">
+				{ preview.units.map( ( unit ) => (
+					<li key={ unit } className="devbridge-chip">
+						{ unit }
+					</li>
+				) ) }
+			</ul>
+			<ul className="devbridge-preview-files">
+				{ preview.files.slice( 0, 20 ).map( ( f ) => (
+					<li key={ f }>
+						<code>{ f }</code>
+					</li>
+				) ) }
+			</ul>
+			<p className="devbridge-muted devbridge-small">
+				{ preview.expired
+					? __(
+							'The preview link expired: ask Claude (or run "wpdev preview") for a new one.',
+							'lab591-dev-bridge'
+						)
+					: sprintf(
+							/* translators: %s: date and time. */
+							__(
+								'The link sent to the developer works until %s.',
+								'lab591-dev-bridge'
+							),
+							formatDateTime( preview.expires_at )
+						) }
+			</p>
+			<div className="devbridge-actions">
+				<Button
+					variant="primary"
+					isBusy={ busy }
+					disabled={ busy }
+					onClick={ () => act( 'publish' ) }
+				>
+					{ __( 'Publish', 'lab591-dev-bridge' ) }
+				</Button>
+				<Button
+					variant="secondary"
+					isDestructive
+					disabled={ busy }
+					onClick={ () => act( 'discard' ) }
+				>
+					{ __( 'Discard preview', 'lab591-dev-bridge' ) }
+				</Button>
+			</div>
 		</Section>
 	);
 }

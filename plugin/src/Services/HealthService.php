@@ -132,6 +132,15 @@ final class HealthService implements HealthChecker {
 	}
 
 	/**
+	 * Fatal/parse error lines appended to debug.log after $offset (used by the preview check).
+	 *
+	 * @return list<string>
+	 */
+	public function fatalSince( int $offset ): array {
+		return $this->linesSince( $offset )['fatal'];
+	}
+
+	/**
 	 * Fatal/parse error lines and distinct warning lines appended to debug.log after $offset.
 	 *
 	 * @return array{fatal: list<string>, warnings: list<string>}

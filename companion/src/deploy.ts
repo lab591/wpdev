@@ -1,10 +1,11 @@
-import { readFile, stat } from 'node:fs/promises';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { zipSync, type Zippable } from 'fflate';
 import type { Config } from './config.js';
 import type { Context } from './context.js';
 import { matchAny } from './glob.js';
 import { xxh128 } from './hash.js';
-import type { DeployManifest, DeployResponse } from './http.js';
+import type { DeployManifest, DeployResponse, PreviewResponse } from './http.js';
 import { commitPaths, type CommitResult } from './git.js';
 import { lintPhp, type LintResult, type Runner } from './lint.js';
 import { toNative } from './paths.js';
@@ -86,11 +87,16 @@ export type DeployOutcome =
   | { kind: 'lint_failed'; changes: Change[]; lint: LintResult }
   | { kind: 'dry_run'; changes: Change[]; lint: LintResult | undefined }
   | { kind: 'done'; changes: Change[]; lint: LintResult | undefined; response: DeployResponse; rescueWarning?: string; git?: CommitResult }
-  | { kind: 'failed'; changes: Change[]; lint: LintResult | undefined; error: unknown; rescueWarning?: string };
+  | { kind: 'failed'; changes: Change[]; lint: LintResult | undefined; error: unknown; rescueWarning?: string }
+  | { kind: 'preview'; changes: Change[]; lint: LintResult | undefined; response: PreviewResponse };
 
 export interface DeployOptions {
   dryRun?: boolean;
   force?: boolean;
+  /** "preview": send the changes to the preview copies instead of the live site (0.5.0). */
+  target?: 'live' | 'preview';
+  /** Preview only: do nothing when the same changes were already previewed (Stop hook). */
+  skipSamePreview?: boolean;
 }
 
 export interface DeployDeps {
@@ -126,6 +132,30 @@ export async function runDeploy(ctx: Context, options: DeployOptions = {}, deps:
   }
   if (options.dryRun) {
     return { kind: 'dry_run', changes, lint };
+  }
+  if (options.target === 'preview') {
+    // Nothing changes on the live site: state, rescue token and git are left alone.
+    const fingerprint = previewFingerprint(changes);
+    const marker = path.join(config.stateDir, 'last-preview.json');
+    if (options.skipSamePreview) {
+      try {
+        const last = JSON.parse(await readFile(marker, 'utf8')) as { fingerprint?: string; expires_at?: number };
+        if (last.fingerprint === fingerprint && (last.expires_at ?? 0) > Date.now() / 1000) {
+          return { kind: 'no_changes' };
+        }
+      } catch {
+        // No previous preview from this project.
+      }
+    }
+    try {
+      const bundle = await buildBundle(config, changes, options.force === true);
+      const response = await client.preview(bundle.manifest, bundle.zip);
+      await mkdir(config.stateDir, { recursive: true });
+      await writeFile(marker, `${JSON.stringify({ fingerprint, expires_at: response.expires_at })}\n`, 'utf8');
+      return { kind: 'preview', changes, lint, response };
+    } catch (error) {
+      return { kind: 'failed', changes, lint, error };
+    }
   }
 
   let rescueWarning: string | undefined;
@@ -191,6 +221,14 @@ export async function seedBaseline(ctx: Context, state: State): Promise<boolean>
     if (local.has(p)) state.set({ p, h_base: f.h, s: -1, m: -1 });
   }
   return true;
+}
+
+/** Identity of a change set (paths, kinds and content hashes). */
+export function previewFingerprint(changes: readonly Change[]): string {
+  return changes
+    .map((c) => `${c.status}:${c.p}:${c.h ?? ''}`)
+    .sort()
+    .join('\n');
 }
 
 /** Message of the automatic commit: release, site, counts and (up to 50) paths. */

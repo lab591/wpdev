@@ -155,6 +155,23 @@ await scenario( 'restore: local changes are discarded, back to the server versio
 	expect( diff.out.includes( 'Modificati in locale (0)' ), 'local changes left', diff.out );
 } );
 
+await scenario( 'preview: visible only with the preview cookie, then published', async () => {
+	writeFileSync( local( `${ THEME }/functions.php` ), `${ original }\nadd_action( 'wp_footer', function () { echo 'E2E-PREVIEW-MARK'; } );\n` );
+	const r = wpdev( project, [ 'preview' ] );
+	expect( r.code === 0, 'preview failed', r.out );
+	const token = /devbridge_preview=([0-9a-f]{64})/.exec( r.out )?.[ 1 ];
+	expect( token, 'no preview link', r.out );
+	expect( ! ( await get( '/' ) ).body.includes( 'E2E-PREVIEW-MARK' ), 'visitors see the preview' );
+	const withCookie = await fetch( `${ SITE }/`, { headers: { Cookie: `devbridge_preview=${ token }` } } );
+	expect( ( await withCookie.text() ).includes( 'E2E-PREVIEW-MARK' ), 'preview not shown with the cookie' );
+	expect( withCookie.headers.get( 'x-devbridge-preview' ) === '1', 'preview header missing' );
+	const pub = wpdev( project, [ 'preview', 'publish' ] );
+	expect( pub.code === 0, 'publish failed', pub.out );
+	expect( ( await get( '/' ) ).body.includes( 'E2E-PREVIEW-MARK' ), 'not live after publish' );
+	writeFileSync( local( `${ THEME }/functions.php` ), original );
+	expect( wpdev( project, [ 'deploy' ] ).code === 0, 'cleanup deploy failed' );
+} );
+
 await scenario( 'mode off: deploys are refused', async () => {
 	wp( 'wp devbridge disable' );
 	appendFileSync( local( `${ THEME }/style.css` ), '\n.e2e-off {}\n' );

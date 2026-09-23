@@ -243,6 +243,37 @@ Intestazione `Update URI: https://github.com/lab591/wpdev`: WordPress chiede gli
 bozza né pre-release e ha come asset lo zip `lab591-dev-bridge-*.zip` scaricabile da
 `https://github.com/lab591/wpdev/releases/download/…`. `DEVBRIDGE_DISABLE_UPDATES` li disattiva.
 
+### 2.15 Anteprima prima della pubblicazione (0.5.0)
+
+Obiettivo: vedere le modifiche sul sito vero **senza che i visitatori le vedano**, poi pubblicarle o scartarle.
+
+- **Unità**: tema o plugin (la cartella sotto `themes/` o `plugins/` che contiene i file modificati). Per ogni unità
+  toccata il server crea una copia `<cartella>--devbridge-preview` accanto all'originale (stesso contenitore, così
+  i file statici sono raggiungibili agli stessi URL relativi) e vi applica le modifiche. Ogni anteprima riparte da
+  zero: copia della versione live + l'insieme completo delle modifiche inviate, quindi una modifica tolta in
+  locale sparisce anche dall'anteprima. Non disponibile per `mu-plugins`. Limiti: 5.000 file e 50 MB per unità.
+- **Validazione**: identica al deploy (`DeployValidator`: PathGuard, deny list, estensioni, conflitti con la
+  versione live, tutto prima di scrivere). Le copie non contengono link simbolici né file in deny list.
+- **Chi la vede**: solo chi ha il cookie `devbridge_preview`, impostato aprendo il link
+  `/?devbridge_preview=<token>` restituito dal server (token casuale di 32 byte, salvato solo come sha256 in
+  `preview.json` nello storage, scadenza 8 ore, nuovo token a ogni anteprima). Un mu-plugin
+  (`devbridge-preview.php`, copiato e verificato come il rescue) per quelle richieste sostituisce il tema
+  (`stylesheet`/`template`) e i plugin attivi (`active_plugins`, `active_sitewide_plugins`) con le copie, invia
+  `Cache-Control: no-store`, `X-Robots-Tag: noindex` e `DONOTCACHEPAGE`, e mostra un'etichetta "Anteprima". Senza
+  cookie valido il mu-plugin non fa nulla.
+- **Health check**: dopo la creazione il server chiede la home con il cookie di anteprima e cerca nuovi errori
+  fatali: un errore resta confinato all'anteprima (nessun rollback necessario) e viene riportato a Claude.
+- **Pubblica**: il server trasforma l'anteprima in un deploy normale (manifest con `base_h` della versione live al
+  momento dell'anteprima, zip dai file della copia con hash verificati) → backup, health check, rollback automatico
+  come sempre; se riesce, l'anteprima viene eliminata. **Scarta**: elimina copie e `preview.json`.
+- **Endpoint** (modalità write): `POST /preview` (multipart come `/deploy`), `GET /preview`,
+  `POST /preview/publish`, `POST /preview/discard`.
+- Le copie sono nascoste dagli elenchi di plugin e temi dell'admin e non sono selezionabili come cartelle
+  scrivibili; disinstallazione e disattivazione le rimuovono insieme al mu-plugin.
+- **Companion**: `wpdev preview` (crea/aggiorna l'anteprima dalle modifiche locali e stampa il link),
+  `wpdev preview publish|discard|status`; strumenti MCP `preview`, `preview_publish`, `preview_discard`.
+  `"deploy": { "target": "preview" }` in `wpdev.json` fa pubblicare all'hook Stop in anteprima invece che live.
+
 ### 2.14 Multisite (M4)
 
 In una rete multisite temi, plugin e file sono condivisi da tutti i siti: Dev Bridge è quindi

@@ -126,6 +126,18 @@ Se il progetto è un repository git, dopo ogni deploy riuscito `wpdev` fa un com
 pubblicati (messaggio `wpdev deploy <release>`), così la cronologia locale segue le release del sito; le altre
 modifiche restano come sono. Si disattiva con `"deploy": { "gitCommit": false }` in `wpdev.json`.
 
+### Anteprima prima della pubblicazione
+
+`wpdev preview` pubblica le modifiche locali **solo in anteprima**: il sito live non cambia e il comando stampa un
+link. Chi lo apre (tu, il cliente, Claude nel browser) vede il sito con le modifiche; tutti gli altri continuano
+a vedere la versione live. Poi `wpdev preview publish` le mette online con un deploy normale (backup, health
+check, rollback automatico) oppure `wpdev preview discard` le scarta. Anche dalla pagina Dev Bridge
+dell'amministrazione, nella scheda *Stato*, compaiono i pulsanti *Pubblica* e *Scarta anteprima*.
+
+Con `"deploy": { "target": "preview" }` in `wpdev.json` anche l'hook di fine turno pubblica in anteprima invece
+che live: Claude lavora e ti mostra il risultato, e sei tu a decidere quando pubblicare. L'anteprima funziona
+per temi e plugin (non per i mu-plugin) e il link vale 8 ore.
+
 ### Più ambienti (staging e produzione)
 
 Si può lavorare con un sito di prova e pubblicare in produzione solo quando serve:
@@ -179,6 +191,7 @@ Comandi utili:
 | `wpdev rollback --rescue` | rollback fuori banda quando WordPress non risponde (token dell'ultimo deploy, monouso, 24 h) |
 | `wpdev health` | health check su richiesta |
 | `wpdev log [-n 200]` | ultime righe di `debug.log` |
+| `wpdev preview [publish\|discard\|status]` | anteprima delle modifiche locali visibile solo con il link; poi pubblica o scarta |
 | `wpdev restore <percorsi...>` | riporta file o cartelle locali alla versione del server, scartando le modifiche locali (niente viene inviato al sito) |
 | `wpdev claude-md [--force]` | aggiorna la sezione wpdev di `CLAUDE.md` con i dati attuali del sito |
 | `wpdev info <argomento> [nome]` | informazioni sul sito: `overview`, `post_types`, `taxonomies`, `shortcodes`, `hook <nome>`, `rest_routes [prefisso]`, `cron`, `blocks [prefisso]` |

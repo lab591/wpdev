@@ -21,6 +21,21 @@ Lab591\DevBridge\Autoloader::register( __DIR__ . '/src' );
 	defined( 'WPMU_PLUGIN_DIR' ) ? WPMU_PLUGIN_DIR : WP_CONTENT_DIR . '/mu-plugins',
 	''
 ) )->remove();
+( new Lab591\DevBridge\Rescue\RescueInstaller(
+	__DIR__ . '/mu-plugin/' . Lab591\DevBridge\Rescue\RescueInstaller::PREVIEW_FILE,
+	defined( 'WPMU_PLUGIN_DIR' ) ? WPMU_PLUGIN_DIR : WP_CONTENT_DIR . '/mu-plugins',
+	'',
+	Lab591\DevBridge\Rescue\RescueInstaller::PREVIEW_FILE,
+	Lab591\DevBridge\Rescue\RescueInstaller::PREVIEW_MARKER
+) )->remove();
+// Preview copies (`*--devbridge-preview` next to themes and plugins).
+foreach ( [ get_theme_root(), WP_PLUGIN_DIR ] as $devbridge_container ) {
+	foreach ( (array) glob( rtrim( (string) $devbridge_container, '/\\' ) . '/*--devbridge-preview', GLOB_ONLYDIR ) as $devbridge_copy ) {
+		if ( ! is_link( (string) $devbridge_copy ) ) {
+			Lab591\DevBridge\Storage\Storage::removeTree( (string) $devbridge_copy );
+		}
+	}
+}
 
 $devbridge_has_storage = defined( 'DEVBRIDGE_STORAGE_DIR' ) || false !== Lab591\DevBridge\Support\Options::get( Lab591\DevBridge\Storage\Storage::SUFFIX_OPTION );
 if ( $devbridge_has_storage ) {

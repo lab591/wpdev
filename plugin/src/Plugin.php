@@ -13,6 +13,7 @@ use Lab591\DevBridge\Admin\AdminPage;
 use Lab591\DevBridge\Audit\AuditLog;
 use Lab591\DevBridge\Cli\Command;
 use Lab591\DevBridge\Deploy\Deployer;
+use Lab591\DevBridge\Deploy\PreviewService;
 use Lab591\DevBridge\Deploy\RollbackService;
 use Lab591\DevBridge\Rescue\RescueInstaller;
 use Lab591\DevBridge\Rest\Api;
@@ -77,6 +78,10 @@ final class Plugin {
 		if ( is_admin() ) {
 			( new AdminPage( $this ) )->register();
 			add_action( 'admin_init', [ $this->rescueInstaller(), 'maybeRepair' ] );
+			add_action( 'admin_init', [ $this->previewInstaller(), 'maybeRepair' ] );
+			// Preview copies are internal: never listed as separate plugins or themes.
+			add_filter( 'all_plugins', [ self::class, 'hidePreviewCopies' ] );
+			add_filter( 'wp_prepare_themes_for_js', [ self::class, 'hidePreviewCopies' ] );
 		}
 		if ( defined( 'WP_CLI' ) && WP_CLI && class_exists( '\WP_CLI' ) ) {
 			\WP_CLI::add_command( 'devbridge', new Command( $this ) );
@@ -97,6 +102,7 @@ final class Plugin {
 		$plugin = self::instance();
 		$plugin->audit->install();
 		$plugin->rescueInstaller()->install();
+		$plugin->previewInstaller()->install();
 		// On a network the cleanup runs once, on the main site.
 		$switched = Options::network() && ! is_main_site() && switch_to_blog( get_main_site_id() );
 		if ( ! wp_next_scheduled( self::CRON_AUDIT ) ) {
@@ -178,6 +184,8 @@ final class Plugin {
 		self::instance()->mode->disable();
 		// Disabling the plugin must also switch off the out-of-band rescue.
 		self::instance()->rescueInstaller()->remove();
+		self::instance()->previewInstaller()->remove();
+		self::instance()->previewService()->discard();
 	}
 
 	public function cleanupAudit(): void {
@@ -206,7 +214,7 @@ final class Plugin {
 	 * @return string[]
 	 */
 	public function protectedPaths(): array {
-		return [ $this->pluginDir(), $this->storage()->dir(), $this->rescueInstaller()->target() ];
+		return [ $this->pluginDir(), $this->storage()->dir(), $this->rescueInstaller()->target(), $this->previewInstaller()->target() ];
 	}
 
 	public function storage(): Storage {
@@ -214,6 +222,61 @@ final class Plugin {
 			$this->storage = Storage::fromWordPress();
 		}
 		return $this->storage;
+	}
+
+	public function previewInstaller(): RescueInstaller {
+		return new RescueInstaller(
+			$this->pluginDir() . '/mu-plugin/' . RescueInstaller::PREVIEW_FILE,
+			defined( 'WPMU_PLUGIN_DIR' ) ? WPMU_PLUGIN_DIR : WP_CONTENT_DIR . '/mu-plugins',
+			VERSION,
+			RescueInstaller::PREVIEW_FILE,
+			RescueInstaller::PREVIEW_MARKER
+		);
+	}
+
+	/**
+	 * Removes `*--devbridge-preview` entries from plugin/theme lists (keys are file or slug names).
+	 *
+	 * @param array<string, mixed> $items
+	 * @return array<string, mixed>
+	 */
+	public static function hidePreviewCopies( array $items ): array {
+		foreach ( array_keys( $items ) as $key ) {
+			if ( str_contains( (string) $key, PreviewService::SUFFIX ) ) {
+				unset( $items[ $key ] );
+			}
+		}
+		return $items;
+	}
+
+	public function previewService(): PreviewService {
+		return new PreviewService(
+			$this->guard(),
+			$this->storage(),
+			$this->deployLimits(),
+			function ( string $token ): array {
+				$health   = $this->health();
+				$offset   = $health->logOffset();
+				$started  = microtime( true );
+				$response = wp_remote_get(
+					add_query_arg( 'devbridge_health', bin2hex( random_bytes( 4 ) ), home_url( '/' ) ),
+					[
+						'timeout'   => 10,
+						'sslverify' => true,
+						'cookies'   => [ 'devbridge_preview' => $token ],
+						'headers'   => [ 'Cache-Control' => 'no-cache' ],
+					]
+				);
+				$errors   = $health->fatalSince( $offset );
+				$code     = is_wp_error( $response ) ? null : (int) wp_remote_retrieve_response_code( $response );
+				return [
+					'status' => [] !== $errors || ( null !== $code && $code >= 500 ) ? 'fail' : ( null === $code ? 'unknown' : 'ok' ),
+					'code'   => $code,
+					'ms'     => (int) round( ( microtime( true ) - $started ) * 1000 ),
+					'errors' => $errors,
+				];
+			}
+		);
 	}
 
 	public function rescueInstaller(): RescueInstaller {

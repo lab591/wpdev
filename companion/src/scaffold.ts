@@ -81,6 +81,8 @@ export interface ClaudeMdInput {
   writable: readonly string[];
   /** The folders come from the site settings (wpdev.json does not restrict them). */
   writableFromSite?: boolean;
+  /** deploy.target is "preview": changes go to a preview at the end of each turn. */
+  previewTarget?: boolean;
   /** Multisite network: themes and plugins are shared by every site. */
   network?: { mainSite: string; sites: number };
 }
@@ -114,7 +116,17 @@ export function renderManagedSection(input: ClaudeMdInput): string {
 - Dopo modifiche visibili, verifica la pagina nel browser (Chrome).
 - Contenuti e pagine Elementor si gestiscono con l'MCP del sito (WSP), non via file.
 
-## Pagine da verificare dopo le modifiche
+${
+    input.previewTarget
+      ? `## Anteprima
+- A fine turno le modifiche vanno **in anteprima**: il sito live non cambia. Il link dell'anteprima è
+  nell'output dell'hook (o usa lo strumento MCP \`preview\`): aprilo nel browser per verificare e
+  condividilo con l'utente.
+- Pubblica con \`preview_publish\` **solo quando l'utente lo chiede**; per annullare usa \`preview_discard\`.
+
+`
+      : ''
+  }## Pagine da verificare dopo le modifiche
 - Dopo ogni deploy il server controlla la home (e gli URL configurati dall'amministratore).
 - Quando modifichi qualcosa che riguarda pagine specifiche (template, shortcode, checkout,
   form...), aggiungi i loro percorsi in \`wpdev.json\` → \`health.paths\` (es. \`"/shop/"\`,

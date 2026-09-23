@@ -169,6 +169,23 @@ export interface DeployResponse {
   rescue_token?: string;
 }
 
+export interface PreviewResponse {
+  /** One-time link that sets the preview cookie in the browser. */
+  link: string;
+  expires_at: number;
+  units: string[];
+  files: number;
+  health: { status: 'ok' | 'fail' | 'unknown'; code: number | null; ms?: number; errors?: string[] };
+}
+
+export type PreviewStatus =
+  | { active: false }
+  | { active: true; expires_at: number; expired: boolean; units: string[]; files: string[] };
+
+export interface PreviewPublishResponse extends DeployResponse {
+  files: { p: string; action: 'write' | 'delete'; h: string | null; base_h: string | null }[];
+}
+
 export interface RestoredFile {
   p: string;
   h: string | null;
@@ -288,6 +305,28 @@ export class ApiClient {
       form.append('bundle', new Blob([bundle], { type: 'application/zip' }), 'bundle.zip');
     }
     return this.json<DeployResponse>('POST', 'deploy', form, DEPLOY_TIMEOUT_MS);
+  }
+
+  /** Preview before publishing (0.5.0): same payload as deploy, applied to preview copies only. */
+  preview(manifest: DeployManifest, bundle: Uint8Array | undefined): Promise<PreviewResponse> {
+    const form = new FormData();
+    form.append('manifest', JSON.stringify(manifest));
+    if (bundle) {
+      form.append('bundle', new Blob([bundle], { type: 'application/zip' }), 'bundle.zip');
+    }
+    return this.json<PreviewResponse>('POST', 'preview', form, DEPLOY_TIMEOUT_MS);
+  }
+
+  previewStatus(): Promise<PreviewStatus> {
+    return this.json<PreviewStatus>('GET', 'preview');
+  }
+
+  previewPublish(): Promise<PreviewPublishResponse> {
+    return this.json<PreviewPublishResponse>('POST', 'preview/publish', {}, DEPLOY_TIMEOUT_MS);
+  }
+
+  previewDiscard(): Promise<{ status: 'ok' }> {
+    return this.json<{ status: 'ok' }>('POST', 'preview/discard', {});
   }
 
   rollback(releaseId?: string, force = false): Promise<RollbackResponse> {

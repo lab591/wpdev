@@ -23,15 +23,27 @@ final class RescueInstaller {
 	public const MISSING   = 'missing';
 	public const OUTDATED  = 'outdated';
 
+	public const PREVIEW_FILE   = 'devbridge-preview.php';
+	public const PREVIEW_MARKER = 'Dev-Bridge-Preview: lab591';
+
+	/**
+	 * @param string $source   Copy distributed inside the plugin.
+	 * @param string $muDir    mu-plugins folder.
+	 * @param string $version  Plugin version (repair fingerprint).
+	 * @param string $fileName Installed file name (rescue by default; the preview switch uses PREVIEW_FILE).
+	 * @param string $marker   Header that identifies our file (never overwrite or delete someone else's).
+	 */
 	public function __construct(
 		private readonly string $source,
 		private readonly string $muDir,
 		private readonly string $version,
+		private readonly string $fileName = self::FILE_NAME,
+		private readonly string $marker = self::MARKER,
 	) {
 	}
 
 	public function target(): string {
-		return rtrim( $this->muDir, '/\\' ) . DIRECTORY_SEPARATOR . self::FILE_NAME;
+		return rtrim( $this->muDir, '/\\' ) . DIRECTORY_SEPARATOR . $this->fileName;
 	}
 
 	public function state(): string {
@@ -99,7 +111,7 @@ final class RescueInstaller {
 			'size'    => is_file( $target ) ? (int) filesize( $target ) : -1,
 			'mtime'   => is_file( $target ) ? (int) filemtime( $target ) : -1,
 		];
-		if ( Options::get( self::CHECK_OPTION ) === $fingerprint ) {
+		if ( Options::get( $this->checkOption() ) === $fingerprint ) {
 			return;
 		}
 		$this->install();
@@ -107,10 +119,14 @@ final class RescueInstaller {
 		$fingerprint['size']  = is_file( $target ) ? (int) filesize( $target ) : -1;
 		$fingerprint['mtime'] = is_file( $target ) ? (int) filemtime( $target ) : -1;
 		if ( self::INSTALLED === $this->state() ) {
-			Options::update( self::CHECK_OPTION, $fingerprint, true );
+			Options::update( $this->checkOption(), $fingerprint, true );
 		} else {
-			Options::delete( self::CHECK_OPTION );
+			Options::delete( $this->checkOption() );
 		}
+	}
+
+	private function checkOption(): string {
+		return self::FILE_NAME === $this->fileName ? self::CHECK_OPTION : self::CHECK_OPTION . '_' . basename( $this->fileName, '.php' );
 	}
 
 	/**
@@ -121,7 +137,7 @@ final class RescueInstaller {
 		if ( is_file( $target ) && $this->isOurs( $target ) ) {
 			unlink( $target );
 		}
-		Options::delete( self::CHECK_OPTION );
+		Options::delete( $this->checkOption() );
 	}
 
 	private function isOurs( string $file ): bool {
@@ -131,6 +147,6 @@ final class RescueInstaller {
 		}
 		$head = (string) fread( $fh, 2048 );
 		fclose( $fh );
-		return str_contains( $head, self::MARKER );
+		return str_contains( $head, $this->marker );
 	}
 }

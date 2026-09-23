@@ -94,7 +94,7 @@ async function createConfig(dir: string, target: string, out: Output, options: I
     exclude: ['**/node_modules/**', '**/.git/**', '**/*.map'],
     php: 'php',
     cache: { enabled: true, trustWindowSec: 60 },
-    deploy: { allowDelete: true, lintPhp: true, gitCommit: true },
+    deploy: { allowDelete: true, lintPhp: true, gitCommit: true, target: 'live' },
     health: { paths: [] },
   };
   const config = parseConfig(json, dir, { insecureLocal: options.insecureLocal ?? false });
@@ -151,6 +151,7 @@ async function scaffoldProject(dir: string, config: Config, out: Output, options
       url: config.siteUrl,
       writable: config.writable,
       writableFromSite: config.writableFromSite,
+      previewTarget: config.deploy.target === 'preview',
       ...(network ? { network } : {}),
     }),
   );

@@ -41,8 +41,19 @@ export interface Release {
 	status: string;
 }
 
+export type PreviewState =
+	| { active: false }
+	| {
+			active: true;
+			expires_at: number;
+			expired: boolean;
+			units: string[];
+			files: string[];
+	  };
+
 export interface StatusData {
 	mode: ModeState;
+	preview: PreviewState;
 	writableRoots: string[];
 	checks: Check[];
 	releases: Release[];

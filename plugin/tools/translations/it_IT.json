@@ -255,5 +255,14 @@
   "Send test": "Invia una prova",
   "Webhook URL": "URL del webhook",
   "https only. Receives a JSON with \"text\" (Slack), \"content\" (Discord) and the structured fields.": "Solo https. Riceve un JSON con \"text\" (Slack), \"content\" (Discord) e i campi strutturati.",
-  "Notify": "Notifica"
+  "Notify": "Notifica",
+  "Publishing failed the health check and was rolled back: the live site is unchanged, the preview is kept.": "La pubblicazione non ha superato l'health check ed è stata annullata: il sito live non è cambiato, l'anteprima resta disponibile.",
+  "Preview published (release %s).": "Anteprima pubblicata (release %s).",
+  "Preview discarded.": "Anteprima scartata.",
+  "Preview waiting": "Anteprima in attesa",
+  "Changes visible only through the preview link: visitors still see the live site.": "Modifiche visibili solo con il link di anteprima: i visitatori continuano a vedere il sito live.",
+  "The preview link expired: ask Claude (or run \"wpdev preview\") for a new one.": "Il link di anteprima è scaduto: chiedine uno nuovo a Claude (o esegui \"wpdev preview\").",
+  "The link sent to the developer works until %s.": "Il link inviato allo sviluppatore funziona fino al %s.",
+  "Publish": "Pubblica",
+  "Discard preview": "Scarta anteprima"
 }

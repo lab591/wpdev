@@ -176,6 +176,17 @@ export function formatDeployOutcome(o: DeployOutcome): { text: string; isError: 
       };
     case 'failed':
       return { text: [apiErrorText(o.error), ...notes].join('\n'), isError: true };
+    case 'preview': {
+      const p = o.response;
+      const lines = [
+        `preview ready (${counts}; ${p.units.join(', ')}): the live site is unchanged`,
+        `open this link in the browser to see it (sets a preview cookie): ${p.link}`,
+        `preview check: ${p.health.status}${p.health.code ? ` (HTTP ${p.health.code})` : ''}`,
+        ...(p.health.errors ?? []).slice(0, 20).map((e) => `  ${e}`),
+        'publish with preview_publish, or discard with preview_discard',
+      ];
+      return { text: [...lines, ...notes].join('\n'), isError: p.health.status === 'fail' };
+    }
     case 'done': {
       const r = o.response;
       if (r.status === 'rolled_back') {

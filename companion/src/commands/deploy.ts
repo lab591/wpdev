@@ -103,6 +103,20 @@ export function reportDeploy(outcome: DeployOutcome): Report {
       r.code = EXIT_ERROR;
       r.stderr.push(...describeDeployError(outcome.error));
       return r;
+    case 'preview': {
+      const p = outcome.response;
+      r.stdout.push(`Anteprima pronta (${summary(outcome.changes)}; ${p.units.join(', ')}): il sito live non è cambiato.`);
+      r.stdout.push(`Apri: ${p.link}`);
+      r.stdout.push(`Valida fino a ${new Date(p.expires_at * 1000).toLocaleString('it-IT')}. Poi: wpdev preview publish (pubblica) oppure wpdev preview discard.`);
+      if (p.health.status === 'fail') {
+        r.code = EXIT_DEPLOY_FAILED;
+        r.stderr.push(`L'anteprima ha un errore (HTTP ${p.health.code ?? '?'}): il sito live non è toccato, correggi e ricrea l'anteprima.`);
+        (p.health.errors ?? []).slice(0, MAX_LISTED).forEach((e) => r.stderr.push(`  ${e}`));
+      } else if (p.health.status === 'unknown') {
+        r.stderr.push('Controllo dell\'anteprima non eseguibile (loopback non raggiungibile): verificala nel browser.');
+      }
+      return r;
+    }
     case 'done': {
       const res = outcome.response;
       if (res.status === 'rolled_back') {
@@ -209,7 +223,7 @@ export async function hookDeploy(
       // Protected environment (e.g. production): the hook never publishes there.
       return EXIT_OK;
     }
-    outcome = await runDeploy(ctx, {}, deps);
+    outcome = await runDeploy(ctx, { target: ctx.config.deploy.target, skipSamePreview: true }, deps);
     report = reportDeploy(outcome);
   } catch (e) {
     report = { code: EXIT_ERROR, stdout: [], stderr: [`Deploy non eseguito: ${describeError(e)}`] };

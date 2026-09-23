@@ -2,6 +2,7 @@
 import { Command, InvalidArgumentError } from 'commander';
 import { cacheClearCommand } from './commands/cache.js';
 import { claudeMdCommand } from './commands/claudeMd.js';
+import { previewCommand } from './commands/preview.js';
 import { restoreCommand } from './commands/restore.js';
 import { deployCommand, hookDeploy, readHookInput } from './commands/deploy.js';
 import { diffCommand } from './commands/diff.js';
@@ -96,6 +97,13 @@ program
   .command('diff')
   .description('file modificati in locale, sul server e in conflitto')
   .action(() => runWithContext((ctx) => diffCommand(ctx, consoleOutput)));
+
+program
+  .command('preview [action]')
+  .description("anteprima: senza argomenti pubblica le modifiche locali solo per chi ha il link; poi 'publish', 'discard' o 'status'")
+  .action((action: string | undefined) =>
+    runWithContext((ctx) => previewCommand(ctx, consoleOutput, action), action === undefined || action === 'create'),
+  );
 
 program
   .command('restore <paths...>')

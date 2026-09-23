@@ -99,7 +99,7 @@ final class FolderPicker {
 		if ( false === $entries ) {
 			return [];
 		}
-		$names = array_values( array_filter( $entries, static fn ( string $n ): bool => '' !== $n && '.' !== $n[0] ) );
+		$names = array_values( array_filter( $entries, static fn ( string $n ): bool => '' !== $n && '.' !== $n[0] && ! str_ends_with( $n, '--devbridge-preview' ) ) );
 		natcasesort( $names );
 		return array_values( $names );
 	}

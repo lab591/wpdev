@@ -11,7 +11,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-23T20:11:11+00:00\n"
+"POT-Creation-Date: 2026-09-23T21:50:31+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: lab591-dev-bridge\n"
@@ -31,150 +31,164 @@ msgstr "Ponte sicuro tra un progetto Claude Code in locale e questo sito: esplor
 msgid "Lab591"
 msgstr "Lab591"
 
-#: src/Admin/AdminController.php:89
+#: src/Admin/AdminController.php:90
 msgid "You are not allowed to manage Dev Bridge."
 msgstr "Non hai i permessi per gestire Dev Bridge."
 
-#: src/Admin/AdminController.php:92
+#: src/Admin/AdminController.php:93
 msgid "This page has expired: reload it and try again."
 msgstr "Questa pagina è scaduta: ricaricala e riprova."
 
+#: src/Admin/AdminController.php:187
+msgid "Publishing failed the health check and was rolled back: the live site is unchanged, the preview is kept."
+msgstr "La pubblicazione non ha superato l'health check ed è stata annullata: il sito live non è cambiato, l'anteprima resta disponibile."
+
+#. translators: %s: release id.
+#: src/Admin/AdminController.php:189
+#, php-format
+msgid "Preview published (release %s)."
+msgstr "Anteprima pubblicata (release %s)."
+
+#: src/Admin/AdminController.php:193
+msgid "Preview discarded."
+msgstr "Anteprima scartata."
+
 #. translators: %d: number of authorized users.
-#: src/Admin/AdminController.php:190
+#: src/Admin/AdminController.php:222
 #, php-format
 msgid "%d authorized user"
 msgid_plural "%d authorized users"
 msgstr[0] "%d utente autorizzato"
 msgstr[1] "%d utenti autorizzati"
 
-#: src/Admin/AdminController.php:192
+#: src/Admin/AdminController.php:224
 msgid "No authorized user"
 msgstr "Nessun utente autorizzato"
 
-#: src/Admin/AdminController.php:192
+#: src/Admin/AdminController.php:224
 msgid "Nobody can connect until you select at least one user in Settings → Access."
 msgstr "Nessuno può connettersi finché non selezioni almeno un utente in Impostazioni → Accesso."
 
 #. translators: %d: number of writable folders.
-#: src/Admin/AdminController.php:198
+#: src/Admin/AdminController.php:230
 #, php-format
 msgid "%d writable folder"
 msgid_plural "%d writable folders"
 msgstr[0] "%d cartella scrivibile"
 msgstr[1] "%d cartelle scrivibili"
 
-#: src/Admin/AdminController.php:200
+#: src/Admin/AdminController.php:232
 msgid "No writable folder"
 msgstr "Nessuna cartella scrivibile"
 
-#: src/Admin/AdminController.php:200
+#: src/Admin/AdminController.php:232
 msgid "Claude can read the site but not deploy: choose a theme or plugin in Settings → Writable folders."
 msgstr "Claude può leggere il sito ma non pubblicare: scegli un tema o un plugin in Impostazioni → Cartelle scrivibili."
 
-#: src/Admin/AdminController.php:204
+#: src/Admin/AdminController.php:236
 msgid "HTTPS active"
 msgstr "HTTPS attivo"
 
-#: src/Admin/AdminController.php:206
+#: src/Admin/AdminController.php:238
 msgid "Local environment: HTTP allowed"
 msgstr "Ambiente locale: HTTP consentito"
 
-#: src/Admin/AdminController.php:206
+#: src/Admin/AdminController.php:238
 msgid "On a real site HTTPS is mandatory."
 msgstr "Su un sito reale l'HTTPS è obbligatorio."
 
-#: src/Admin/AdminController.php:208
+#: src/Admin/AdminController.php:240
 msgid "The site is not on HTTPS"
 msgstr "Il sito non è in HTTPS"
 
-#: src/Admin/AdminController.php:208
+#: src/Admin/AdminController.php:240
 msgid "Requests will be rejected until the site uses HTTPS."
 msgstr "Le richieste verranno rifiutate finché il sito non usa HTTPS."
 
-#: src/Admin/AdminController.php:212
+#: src/Admin/AdminController.php:244
 msgid "Application Passwords available"
 msgstr "Application Password disponibili"
 
-#: src/Admin/AdminController.php:214
+#: src/Admin/AdminController.php:246
 msgid "Application Passwords are disabled"
 msgstr "Le Application Password sono disattivate"
 
-#: src/Admin/AdminController.php:214
+#: src/Admin/AdminController.php:246
 msgid "They are required to connect: check plugins or code that disable them."
 msgstr "Servono per connettersi: controlla plugin o codice che le disattivano."
 
-#: src/Admin/AdminController.php:219
+#: src/Admin/AdminController.php:251
 msgid "Out-of-band rescue installed"
 msgstr "Rescue fuori banda installato"
 
-#: src/Admin/AdminController.php:221
+#: src/Admin/AdminController.php:253
 msgid "Out-of-band rescue not installed yet"
 msgstr "Rescue fuori banda non ancora installato"
 
-#: src/Admin/AdminController.php:221
+#: src/Admin/AdminController.php:253
 msgid "It will be installed automatically on the next admin page load."
 msgstr "Verrà installato automaticamente al prossimo caricamento di una pagina di amministrazione."
 
-#: src/Admin/AdminController.php:226
+#: src/Admin/AdminController.php:258
 msgid "Out-of-band rescue not installed"
 msgstr "Rescue fuori banda non installato"
 
-#: src/Admin/AdminController.php:227
+#: src/Admin/AdminController.php:259
 msgid "The mu-plugins folder is not directly writable. Copy the file below into wp-content/mu-plugins/ (permissions 0644)."
 msgstr "La cartella mu-plugins non è scrivibile direttamente. Copia il file qui sotto in wp-content/mu-plugins/ (permessi 0644)."
 
-#: src/Admin/AdminController.php:237
+#: src/Admin/AdminController.php:269
 msgid "Private storage inside wp-content"
 msgstr "Storage privato dentro wp-content"
 
-#: src/Admin/AdminController.php:238
+#: src/Admin/AdminController.php:270
 msgid "It has a random name and is protected by .htaccess. Recommended: move it outside the web root in wp-config.php; on Nginx add the rule below."
 msgstr "Ha un nome casuale ed è protetto da .htaccess. Consigliato: spostarlo fuori dalla document root in wp-config.php; su Nginx aggiungi la regola qui sotto."
 
-#: src/Admin/AdminController.php:242
+#: src/Admin/AdminController.php:274
 msgid "Private storage outside the web root"
 msgstr "Storage privato fuori dalla document root"
 
-#: src/Admin/AdminController.php:247
+#: src/Admin/AdminController.php:279
 msgid "Fast search active, regular expressions included (PCRE2)."
 msgstr "Ricerca veloce attiva, espressioni regolari incluse (PCRE2)."
 
-#: src/Admin/AdminController.php:247
+#: src/Admin/AdminController.php:279
 msgid "Fast search active for text; regular expressions use the PHP search (no PCRE2)."
 msgstr "Ricerca veloce attiva per il testo; le espressioni regolari usano la ricerca PHP (niente PCRE2)."
 
-#: src/Admin/AdminController.php:249
+#: src/Admin/AdminController.php:281
 msgid "ripgrep configured but not executable"
 msgstr "ripgrep configurato ma non eseguibile"
 
-#: src/Admin/AdminController.php:249
+#: src/Admin/AdminController.php:281
 msgid "Search keeps working with the PHP engine. Check the path in Settings → Search."
 msgstr "La ricerca continua a funzionare con il motore PHP. Controlla il percorso in Impostazioni → Lettura e ricerca."
 
-#: src/Admin/AdminController.php:251
+#: src/Admin/AdminController.php:283
 msgid "ripgrep not configured"
 msgstr "ripgrep non configurato"
 
-#: src/Admin/AdminController.php:251
+#: src/Admin/AdminController.php:283
 msgid "Optional: search uses the PHP engine."
 msgstr "Facoltativo: la ricerca usa il motore PHP."
 
-#: src/Admin/AdminController.php:266
+#: src/Admin/AdminController.php:298
 msgid "Development mode disabled."
 msgstr "Modalità sviluppo disattivata."
 
-#: src/Admin/AdminController.php:271
+#: src/Admin/AdminController.php:303
 msgid "Choose read or write."
 msgstr "Scegli lettura o scrittura."
 
 #. translators: %d: maximum number of hours.
-#: src/Admin/AdminController.php:276
+#: src/Admin/AdminController.php:308
 #, php-format
 msgid "Duration must be between 1 and %d hours."
 msgstr "La durata deve essere tra 1 e %d ore."
 
 #. translators: %d: hours.
-#: src/Admin/AdminController.php:281
+#: src/Admin/AdminController.php:313
 #, php-format
 msgid "Read and write enabled for %d hour."
 msgid_plural "Read and write enabled for %d hours."
@@ -182,42 +196,42 @@ msgstr[0] "Lettura e scrittura attive per %d ora."
 msgstr[1] "Lettura e scrittura attive per %d ore."
 
 #. translators: %d: hours.
-#: src/Admin/AdminController.php:283
+#: src/Admin/AdminController.php:315
 #, php-format
 msgid "Read-only access enabled for %d hour."
 msgid_plural "Read-only access enabled for %d hours."
 msgstr[0] "Accesso in sola lettura attivo per %d ora."
 msgstr[1] "Accesso in sola lettura attivo per %d ore."
 
-#: src/Admin/AdminController.php:308
+#: src/Admin/AdminController.php:340
 msgid "Invalid request: nothing was saved."
 msgstr "Richiesta non valida: non è stato salvato nulla."
 
-#: src/Admin/AdminController.php:320
+#: src/Admin/AdminController.php:352
 msgid "Settings saved."
 msgstr "Impostazioni salvate."
 
-#: src/Admin/AdminController.php:320
+#: src/Admin/AdminController.php:352
 #: build/index.js:8
 msgid "Settings saved, some entries were discarded:"
 msgstr "Impostazioni salvate, alcune voci sono state scartate:"
 
-#: src/Admin/AdminController.php:404
+#: src/Admin/AdminController.php:436
 msgid "This folder cannot be listed."
 msgstr "Questa cartella non può essere elencata."
 
 #. translators: %s: folder path.
-#: src/Admin/AdminController.php:433
+#: src/Admin/AdminController.php:465
 #, php-format
 msgid "Folder %s created and made writable. Run \"wpdev pull\" in the local project."
 msgstr "Cartella %s creata e resa scrivibile. Esegui \"wpdev pull\" nel progetto locale."
 
-#: src/Admin/AdminController.php:458
+#: src/Admin/AdminController.php:490
 msgid "active theme"
 msgstr "tema attivo"
 
 #. translators: 1: email result, 2: webhook result.
-#: src/Admin/AdminController.php:475
+#: src/Admin/AdminController.php:507
 #, php-format
 msgid "Test sent. Email: %1$s. Webhook: %2$s."
 msgstr "Prova inviata. Email: %1$s. Webhook: %2$s."
@@ -231,7 +245,7 @@ msgid "Dev Bridge settings need JavaScript."
 msgstr "Le impostazioni di Dev Bridge richiedono JavaScript."
 
 #: src/Admin/AdminPage.php:119
-#: build/index.js:12
+#: build/index.js:13
 msgid "Settings"
 msgstr "Impostazioni"
 
@@ -358,15 +372,15 @@ msgstr "L'indirizzo email \"%s\" non è valido"
 msgid "Webhook \"%s\" rejected: use an https:// URL (http:// only for local hosts)"
 msgstr "Webhook \"%s\" rifiutato: usa un URL https:// (http:// solo per host locali)"
 
-#: src/Plugin.php:90
+#: src/Plugin.php:97
 msgid "On a multisite network Dev Bridge can only be network-activated (Network Admin → Plugins → Network Activate), because themes and plugins are shared by all sites."
 msgstr "In una rete multisite Dev Bridge si attiva solo a livello di rete (Amministrazione rete → Plugin → Attiva sulla rete), perché temi e plugin sono condivisi da tutti i siti."
 
-#: src/Plugin.php:91
+#: src/Plugin.php:98
 msgid "Activation not allowed"
 msgstr "Attivazione non consentita"
 
-#: src/Plugin.php:143
+#: src/Plugin.php:153
 msgid "Dev Bridge is active on this site only, but this is a multisite network: deactivate it and network-activate it from Network Admin. Until then it does nothing."
 msgstr "Dev Bridge è attivo solo su questo sito ma l'installazione è una rete multisite: disattivalo e attivalo dall'Amministrazione rete. Finché non lo fai è inattivo."
 
@@ -462,7 +476,7 @@ msgid "Copied"
 msgstr "Copiato"
 
 #: build/index.js:6
-#: build/index.js:12
+#: build/index.js:13
 msgid "Audit log"
 msgstr "Audit log"
 
@@ -1028,19 +1042,45 @@ msgid "REST endpoint:"
 msgstr "Endpoint REST:"
 
 #: build/index.js:12
+msgid "Preview waiting"
+msgstr "Anteprima in attesa"
+
+#: build/index.js:12
+msgid "Changes visible only through the preview link: visitors still see the live site."
+msgstr "Modifiche visibili solo con il link di anteprima: i visitatori continuano a vedere il sito live."
+
+#: build/index.js:12
+msgid "The preview link expired: ask Claude (or run \"wpdev preview\") for a new one."
+msgstr "Il link di anteprima è scaduto: chiedine uno nuovo a Claude (o esegui \"wpdev preview\")."
+
+#. translators: %s: date and time.
+#: build/index.js:13
+#, js-format
+msgid "The link sent to the developer works until %s."
+msgstr "Il link inviato allo sviluppatore funziona fino al %s."
+
+#: build/index.js:13
+msgid "Publish"
+msgstr "Pubblica"
+
+#: build/index.js:13
+msgid "Discard preview"
+msgstr "Scarta anteprima"
+
+#: build/index.js:13
 msgid "Status"
 msgstr "Stato"
 
 #. translators: 1: "whole network" or empty, 2: plugin version.
-#: build/index.js:13
+#: build/index.js:14
 #, js-format
 msgid "Claude Code ↔ WordPress%1$s · v%2$s"
 msgstr "Claude Code ↔ WordPress%1$s · v%2$s"
 
-#: build/index.js:13
+#: build/index.js:14
 msgid "whole network"
 msgstr "intera rete"
 
-#: build/index.js:13
+#: build/index.js:14
 msgid "Dev Bridge sections"
 msgstr "Sezioni di Dev Bridge"

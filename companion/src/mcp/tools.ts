@@ -8,6 +8,7 @@ import { ApiError, INTROSPECT_TOPICS, type CacheTarget } from '../http.js';
 import { describeError } from '../messages.js';
 import { normalizeRel, normalizeRelOrRoot } from '../paths.js';
 import { restorePaths } from '../commands/restore.js';
+import { publishPreview } from '../preview.js';
 import { deleteRescue } from '../rescue.js';
 import { resolveWritable } from '../writable.js';
 import {
@@ -141,6 +142,50 @@ export function buildTools(getContext: () => Context | Promise<Context>, deps: D
         run(async (ctx) =>
           formatIntrospect(await ctx.client.introspect(args.topic as (typeof INTROSPECT_TOPICS)[number], typeof args.name === 'string' ? args.name : '')),
         ),
+    },
+    {
+      name: 'preview',
+      description:
+        'Publish the local changes to a PREVIEW only: the live site does not change; the returned link shows the preview in the browser (sets a cookie). Use it to check visual changes before publishing; then preview_publish or preview_discard.',
+      inputSchema: {},
+      handler: async () => {
+        try {
+          const res = formatDeployOutcome(await runDeploy(await getContext(), { target: 'preview' }, deps));
+          return res.isError ? refuse(res.text) : { text: res.text };
+        } catch (e) {
+          return refuse(`error: ${describeError(e)}`);
+        }
+      },
+    },
+    {
+      name: 'preview_publish',
+      description: 'Publish the current preview to the live site (a normal deploy: backup, health check, automatic rollback).',
+      inputSchema: {},
+      handler: async () => {
+        try {
+          const ctx = await getContext();
+          if (!ctx.config.autoDeploy) {
+            return refuse(`refused: "${ctx.config.env}" is a protected environment; only the user can publish there, from the terminal: wpdev --env ${ctx.config.env} preview publish`);
+          }
+          const { response, git } = await publishPreview(ctx);
+          if (response.status === 'rolled_back') {
+            return refuse([`publish ROLLED BACK automatically: the live site is back to the previous version; the preview is kept`, ...(response.errors ?? []).slice(0, 20).map((e) => `  ${e}`)].join('\n'));
+          }
+          return { text: `preview published: release ${response.release_id}, ${response.written} written, ${response.deleted} deleted${git?.hash ? `, git commit ${git.hash}` : ''}` };
+        } catch (e) {
+          return refuse(`error: ${describeError(e)}`);
+        }
+      },
+    },
+    {
+      name: 'preview_discard',
+      description: 'Discard the current preview (the live site is not affected).',
+      inputSchema: {},
+      handler: () =>
+        run(async (ctx) => {
+          await ctx.client.previewDiscard();
+          return 'preview discarded';
+        }),
     },
     {
       name: 'restore_local',

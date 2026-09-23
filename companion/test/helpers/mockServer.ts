@@ -14,6 +14,8 @@ export interface MockSite {
   /** Force an error response for an endpoint. */
   failWith?: { endpoint: string; status: number; body: unknown };
   logLines: string[];
+  /** Current preview (0.5.0): manifest and bundle received by POST /preview. */
+  preview?: { manifest: NonNullable<MockSite['lastDeploy']>['manifest']; bundle?: Uint8Array };
   /** New PHP warnings reported by the next /deploy health check. */
   deployWarnings?: string[];
   /** Overrides the /deploy response body (status 200). */
@@ -128,11 +130,55 @@ export async function startMockServer(init: Partial<MockSite> = {}): Promise<Moc
         return;
       }
       const b = (body ?? {}) as Record<string, unknown>;
-      if (['deploy', 'rollback', 'releases', 'cache-flush'].includes(endpoint) && site.mode !== 'write') {
+      if (['deploy', 'rollback', 'releases', 'cache-flush', 'preview', 'preview/publish', 'preview/discard'].includes(endpoint) && site.mode !== 'write') {
         error(res, 403, 'mode_insufficient', 'This endpoint requires "write" mode');
         return;
       }
       switch (endpoint) {
+        case 'preview': {
+          if (req.method === 'GET') {
+            send(res, 200, site.preview ? { active: true, expires_at: 1900000000, expired: false, units: ['wp-content/themes/child'], files: site.preview.manifest.files.map((f) => `${f.action} ${f.p}`) } : { active: false });
+            return;
+          }
+          const form = await new Response(raw, { headers: { 'content-type': String(req.headers['content-type']) } }).formData();
+          const manifest = JSON.parse(String(form.get('manifest'))) as NonNullable<MockSite['lastDeploy']>['manifest'];
+          const file = form.get('bundle');
+          site.preview = file && typeof file !== 'string' ? { manifest, bundle: new Uint8Array(await file.arrayBuffer()) } : { manifest };
+          send(res, 200, {
+            link: `${url.origin}/?devbridge_preview=${'b'.repeat(64)}`,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+            units: ['wp-content/themes/child'],
+            files: manifest.files.length,
+            health: { status: 'ok', code: 200 },
+          });
+          return;
+        }
+        case 'preview/publish': {
+          if (!site.preview) {
+            error(res, 404, 'no_preview', 'There is no preview to publish');
+            return;
+          }
+          const entries = site.preview.bundle ? unzipSync(site.preview.bundle) : {};
+          let written = 0;
+          let deleted = 0;
+          for (const f of site.preview.manifest.files) {
+            if (f.action === 'write') {
+              site.files.set(f.p, entries[f.p] as Uint8Array);
+              written++;
+            } else {
+              site.files.delete(f.p);
+              deleted++;
+            }
+          }
+          const files = site.preview.manifest.files.map((f) => ({ p: f.p, action: f.action, h: f.h ?? null, base_h: f.base_h }));
+          site.preview = undefined;
+          send(res, 200, { release_id: '20260923-111500-pub123', status: 'ok', written, deleted, health: { status: 'ok', checks: [] }, rescue_token: 'c'.repeat(64), files });
+          return;
+        }
+        case 'preview/discard':
+          site.preview = undefined;
+          send(res, 200, { status: 'ok' });
+          return;
         case 'deploy': {
           const form = await new Response(raw, { headers: { 'content-type': String(req.headers['content-type']) } }).formData();
           const manifest = JSON.parse(String(form.get('manifest'))) as NonNullable<MockSite['lastDeploy']>['manifest'];

@@ -99,6 +99,9 @@ final class WritableRootValidator {
 		if ( null === $container ) {
 			throw PathException::denied( 'writable folders must be inside wp-content/themes/ or wp-content/plugins/' );
 		}
+		if ( str_contains( $root, '--devbridge-preview' ) ) {
+			throw PathException::denied( 'preview copies cannot be writable' );
+		}
 
 		$guard    = new PathGuard(
 			new PathPolicy(

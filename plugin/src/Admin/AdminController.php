@@ -46,6 +46,7 @@ final class AdminController {
 		'devbridge_mkdir'    => [ 'mkdir', 'POST' ],
 		'devbridge_audit'    => [ 'audit', 'GET' ],
 		'devbridge_notify'   => [ 'notifyTest', 'POST' ],
+		'devbridge_preview'  => [ 'previewAction', 'POST' ],
 	];
 
 	public function __construct( private readonly Plugin $plugin ) {
@@ -163,7 +164,38 @@ final class AdminController {
 				$releases
 			),
 			'network'       => Options::network() ? [ 'sites' => count( $this->plugin->networkSites() ) ] : null,
+			'preview'       => $this->plugin->previewService()->status(),
 		];
+	}
+
+	/**
+	 * Preview from the admin: a fresh link for the current admin, publish or discard.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function previewAction(): array {
+		$data    = $this->payload();
+		$service = $this->plugin->previewService();
+		switch ( (string) ( $data['op'] ?? '' ) ) {
+			case 'publish':
+				try {
+					$out = $service->publish( $this->plugin->deployer(), get_current_user_id() );
+				} catch ( \Lab591\DevBridge\Support\ApiException $e ) {
+					wp_send_json_error( [ 'message' => $e->getMessage() ], 400 );
+				}
+				$message = 'rolled_back' === ( $out['status'] ?? '' )
+					? __( 'Publishing failed the health check and was rolled back: the live site is unchanged, the preview is kept.', 'lab591-dev-bridge' )
+					/* translators: %s: release id. */
+					: sprintf( __( 'Preview published (release %s).', 'lab591-dev-bridge' ), (string) $out['release_id'] );
+				break;
+			case 'discard':
+				$service->discard();
+				$message = __( 'Preview discarded.', 'lab591-dev-bridge' );
+				break;
+			default:
+				wp_send_json_error( [ 'message' => 'Unknown operation' ], 400 );
+		}
+		return [ 'message' => $message ] + $this->status();
 	}
 
 	/**

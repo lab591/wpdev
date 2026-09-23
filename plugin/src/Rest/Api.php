@@ -45,19 +45,22 @@ final class Api {
 	 * before WordPress validates parameters, so that unauthenticated callers never get past it.
 	 */
 	private const GATES = [
-		'/status'      => [ Mode::READ, 'read' ],
-		'/list'        => [ Mode::READ, 'read' ],
-		'/read'        => [ Mode::READ, 'read' ],
-		'/grep'        => [ Mode::READ, 'read' ],
-		'/manifest'    => [ Mode::READ, 'read' ],
-		'/archive'     => [ Mode::READ, 'read' ],
-		'/log'         => [ Mode::READ, 'read' ],
-		'/health'      => [ Mode::READ, 'read' ],
-		'/introspect'  => [ Mode::READ, 'read' ],
-		'/deploy'      => [ Mode::WRITE, 'write' ],
-		'/rollback'    => [ Mode::WRITE, 'write' ],
-		'/releases'    => [ Mode::WRITE, 'read' ],
-		'/cache-flush' => [ Mode::WRITE, 'read' ],
+		'/status'          => [ Mode::READ, 'read' ],
+		'/list'            => [ Mode::READ, 'read' ],
+		'/read'            => [ Mode::READ, 'read' ],
+		'/grep'            => [ Mode::READ, 'read' ],
+		'/manifest'        => [ Mode::READ, 'read' ],
+		'/archive'         => [ Mode::READ, 'read' ],
+		'/log'             => [ Mode::READ, 'read' ],
+		'/health'          => [ Mode::READ, 'read' ],
+		'/introspect'      => [ Mode::READ, 'read' ],
+		'/deploy'          => [ Mode::WRITE, 'write' ],
+		'/preview'         => [ Mode::WRITE, 'write' ],
+		'/preview/publish' => [ Mode::WRITE, 'write' ],
+		'/preview/discard' => [ Mode::WRITE, 'write' ],
+		'/rollback'        => [ Mode::WRITE, 'write' ],
+		'/releases'        => [ Mode::WRITE, 'read' ],
+		'/cache-flush'     => [ Mode::WRITE, 'read' ],
 	];
 
 	private Gate $gate;
@@ -233,6 +236,21 @@ final class Api {
 				],
 			]
 		);
+		$this->route(
+			'/preview',
+			'POST',
+			[ $this, 'preview' ],
+			$read,
+			[
+				'manifest' => [
+					'type'      => 'string',
+					'maxLength' => 4194304,
+				],
+			]
+		);
+		$this->route( '/preview', 'GET', [ $this, 'previewStatus' ], $read, [] );
+		$this->route( '/preview/publish', 'POST', [ $this, 'previewPublish' ], $read, [] );
+		$this->route( '/preview/discard', 'POST', [ $this, 'previewDiscard' ], $read, [] );
 		$this->route(
 			'/rollback',
 			'POST',
@@ -429,6 +447,45 @@ final class Api {
 				$out             = $this->plugin->deployer()->deploy( $manifest, $bundle, get_current_user_id() );
 				$this->releaseId = (string) $out['release_id'];
 				return $out;
+			}
+		);
+	}
+
+	public function preview( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		return $this->run(
+			function () use ( $request ): array {
+				$json = $request->get_param( 'manifest' );
+				if ( ! is_string( $json ) || '' === $json ) {
+					throw new ApiException( 'invalid_manifest', 'Invalid manifest: missing "manifest" field', 400 );
+				}
+				$manifest         = Manifest::parse( $json, $this->plugin->deployLimits()['deploy_files'], $this->plugin->networkSites() );
+				$this->auditPaths = array_map( static fn ( $e ): string => 'preview ' . $e->action . ' ' . $e->path, $manifest->entries );
+				$bundle           = self::uploadedBundle( $request );
+				$this->auditBytes = null === $bundle ? 0 : (int) filesize( $bundle );
+				return $this->plugin->previewService()->create( $manifest, $bundle, get_current_user_id() );
+			}
+		);
+	}
+
+	public function previewStatus( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		return $this->run( fn (): array => $this->plugin->previewService()->status() );
+	}
+
+	public function previewPublish( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		return $this->run(
+			function (): array {
+				$out             = $this->plugin->previewService()->publish( $this->plugin->deployer(), get_current_user_id() );
+				$this->releaseId = (string) ( $out['release_id'] ?? '' );
+				return $out;
+			}
+		);
+	}
+
+	public function previewDiscard( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		return $this->run(
+			function (): array {
+				$this->plugin->previewService()->discard();
+				return [ 'status' => 'ok' ];
 			}
 		);
 	}
