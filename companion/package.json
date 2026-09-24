@@ -1,6 +1,6 @@
 {
   "name": "wpdev",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "license": "GPL-2.0-or-later",
   "description": "Dev Bridge companion: CLI and MCP server to work on a remote WordPress site from Claude Code",
   "keywords": [

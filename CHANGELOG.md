@@ -2,7 +2,7 @@
 
 Tutte le versioni del plugin **Lab591 Dev Bridge** e del companion **wpdev**.
 
-## 0.6.1
+## 0.7.0
 
 - **Protezione della pagina con password** (facoltativa): senza password la pagina Dev Bridge mostra solo il
   campo per sbloccarla e tutte le azioni sono rifiutate. Sblocco per sessione, 30 minuti di inattività,
