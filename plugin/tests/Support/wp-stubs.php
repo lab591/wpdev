@@ -145,5 +145,11 @@ namespace {
 		function wp_json_encode( mixed $data, int $flags = 0 ): string|false {
 			return json_encode( $data, $flags );
 		}
+		function wp_hash_password( string $password ): string {
+			return password_hash( $password, PASSWORD_BCRYPT, [ 'cost' => 4 ] );
+		}
+		function wp_check_password( string $password, string $hash, mixed $user_id = '' ): bool {
+			return password_verify( $password, $hash );
+		}
 	}
 }

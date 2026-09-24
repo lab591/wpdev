@@ -730,3 +730,9 @@ $info: #3858e9;
 	font-size: 12px;
 	line-height: 1.5;
 }
+
+.devbridge-header__side {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}

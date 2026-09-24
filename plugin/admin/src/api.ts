@@ -26,7 +26,12 @@ async function unwrap< T >( response: Response ): Promise< T > {
 		json = null;
 	}
 	if ( ! json || json.success !== true ) {
-		const data = json?.data as { message?: string } | undefined;
+		const data = json?.data as
+			{ message?: string; locked?: boolean } | undefined;
+		if ( data?.locked ) {
+			// Unlock expired (inactivity, logout elsewhere): the page shows the password form.
+			window.location.reload();
+		}
 		throw new ApiError(
 			data?.message ??
 				sprintf(

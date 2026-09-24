@@ -57,11 +57,37 @@ final class AdminPage {
 		$this->hook = Options::network()
 			? (string) add_submenu_page( 'settings.php', 'Dev Bridge', 'Dev Bridge', Options::capability(), self::SLUG, [ $this, 'render' ] )
 			: (string) add_options_page( 'Dev Bridge', 'Dev Bridge', Options::capability(), self::SLUG, [ $this, 'render' ] );
+		if ( '' !== $this->hook ) {
+			add_action( 'load-' . $this->hook, [ $this, 'handleUnlock' ] );
+		}
+	}
+
+	/**
+	 * Unlock form of the protected page (POST to the page itself, then redirect: no resubmission).
+	 */
+	public function handleUnlock(): void {
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : '';
+		if ( 'POST' !== $method || ! isset( $_POST['devbridge_unlock'] ) || ! current_user_can( Options::capability() ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- checked right below.
+			return;
+		}
+		check_admin_referer( 'devbridge_unlock' );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- a password is compared as is, never stored or printed.
+		$password = isset( $_POST['devbridge_password'] ) && is_string( $_POST['devbridge_password'] ) ? (string) wp_unslash( $_POST['devbridge_password'] ) : '';
+		$result   = $this->plugin->pageLock()->attempt( get_current_user_id(), (string) wp_get_session_token(), $password );
+		$this->controller->auditLock( $result['ok'] ? 'unlocked' : 'wrong password', $result['ok'] ? 200 : 403 );
+		$args = [];
+		if ( ! $result['ok'] ) {
+			$args = isset( $result['retry_after'] )
+				? [ 'devbridge_retry' => (int) ceil( $result['retry_after'] / 60 ) ]
+				: [ 'devbridge_wrong' => 1 ];
+		}
+		wp_safe_redirect( add_query_arg( $args, self::pageUrl() ) );
+		exit;
 	}
 
 	public function enqueue( string $hook ): void {
-		if ( '' === $this->hook || $hook !== $this->hook ) {
-			return;
+		if ( '' === $this->hook || $hook !== $this->hook || $this->controller->locked() ) {
+			return; // Locked: not even the script or its bootstrap data reach the browser.
 		}
 		$dir  = dirname( PLUGIN_FILE );
 		$meta = self::assetMeta();
@@ -99,6 +125,10 @@ final class AdminPage {
 		if ( ! current_user_can( Options::capability() ) ) {
 			return;
 		}
+		if ( $this->controller->locked() ) {
+			$this->renderLocked();
+			return;
+		}
 		echo '<div class="wrap devbridge-wrap"><div id="devbridge-admin-root"></div>';
 		if ( null === self::assetMeta() ) {
 			printf(
@@ -107,6 +137,32 @@ final class AdminPage {
 			);
 		}
 		printf( '<noscript><div class="notice notice-error"><p>%s</p></div></noscript></div>', esc_html__( 'Dev Bridge settings need JavaScript.', 'lab591-dev-bridge' ) );
+	}
+
+	/**
+	 * The protected page: a password field and nothing else.
+	 */
+	private function renderLocked(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- display flags only.
+		$retry = isset( $_GET['devbridge_retry'] ) ? absint( $_GET['devbridge_retry'] ) : 0;
+		$wrong = isset( $_GET['devbridge_wrong'] );
+		// phpcs:enable
+		echo '<div class="wrap"><h1>' . esc_html( get_admin_page_title() ) . '</h1>';
+		if ( $retry > 0 ) {
+			printf( '<div class="notice notice-error"><p>%s</p></div>', esc_html( PageLock::throttleMessage( $retry * 60 ) ) );
+		} elseif ( $wrong ) {
+			printf( '<div class="notice notice-error"><p>%s</p></div>', esc_html__( 'Wrong password.', 'lab591-dev-bridge' ) );
+		}
+		echo '<form method="post" action="' . esc_url( self::pageUrl() ) . '" style="max-width:420px">';
+		printf( '<p>%s</p>', esc_html__( 'This page is protected by a password.', 'lab591-dev-bridge' ) );
+		wp_nonce_field( 'devbridge_unlock' );
+		echo '<input type="hidden" name="devbridge_unlock" value="1" />';
+		printf(
+			'<p><label for="devbridge-password">%s</label><br /><input type="password" id="devbridge-password" name="devbridge_password" class="regular-text" autocomplete="current-password" required autofocus /></p>',
+			esc_html__( 'Password', 'lab591-dev-bridge' )
+		);
+		printf( '<p><button type="submit" class="button button-primary">%s</button></p>', esc_html__( 'Unlock', 'lab591-dev-bridge' ) );
+		echo '</form></div>';
 	}
 
 	/**
@@ -139,7 +195,7 @@ final class AdminPage {
 	 */
 	public function pluginsScreenNotices(): void {
 		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( null === $screen || ! in_array( $screen->id, [ 'plugins', 'plugins-network' ], true ) || ! current_user_can( Options::capability() ) ) {
+		if ( null === $screen || ! in_array( $screen->id, [ 'plugins', 'plugins-network' ], true ) || ! current_user_can( Options::capability() ) || $this->controller->locked() ) {
 			return;
 		}
 		if ( RescueInstaller::INSTALLED !== $this->plugin->rescueInstaller()->state() ) {

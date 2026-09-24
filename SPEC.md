@@ -235,9 +235,29 @@ Ciclo di vita:
 Tabella `{prefix}devbridge_audit`: `id, ts, user_id, ip, endpoint, mode, paths (JSON, troncato), bytes, status, duration_ms, release_id`.
 Pagina admin con filtri. Pulizia via cron oltre `audit_retention_days`. I contenuti dei file non vengono mai registrati.
 
+### 2.4b Protezione della pagina con password (0.7.0)
+
+Facoltativa, per siti il cui proprietario è amministratore ma non tecnico (`Admin\PageLock`):
+
+- Con la password impostata, la pagina Dev Bridge mostra solo un modulo per sbloccarla (HTML lato server): lo
+  script dell'interfaccia e i dati di avvio non vengono caricati, l'avviso sulla schermata Plugin è nascosto e
+  ogni azione admin-ajax risponde 403 `locked` senza altri dati.
+- Sblocco legato a utente e token di sessione di WordPress (`wp_get_session_token`), valido 30 minuti
+  dall'ultimo uso (rinnovato a ogni richiesta), annullabile con "Blocca"; il logout lo invalida.
+- Password: minimo 10 caratteri, salvata solo come `wp_hash_password` nell'opzione `devbridge_page_lock`
+  (mai esposta: con la lettura del database risulta oscurata). Per cambiarla o toglierla serve quella attuale.
+- Massimo 5 password sbagliate in 15 minuti per utente (anche in cambio/rimozione), poi attesa.
+- Audit: endpoint `/page-lock` con l'evento (sblocco, password sbagliata, attivazione, modifica, rimozione,
+  nuovo blocco), mai la password.
+- Recupero: `wp devbridge lock --clear`.
+- Non è un confine di sicurezza verso gli amministratori (possono disattivare i plugin o modificare il
+  database): serve a evitare modifiche accidentali.
+
 ### 2.12 WP-CLI
 
-`wp devbridge status | enable --mode=read|write --hours=N | disable | releases | rollback [<id>]`
+`wp devbridge status | enable --mode=read|write --hours=N | disable | releases | rollback [<id>] | lock [--clear]`
+
+`lock` (0.7.0) dice se la pagina admin è protetta da password; `--clear` rimuove la password (recupero).
 
 ### 2.13 Disinstallazione
 

@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Lab591\DevBridge;
 
 use Lab591\DevBridge\Admin\AdminPage;
+use Lab591\DevBridge\Admin\PageLock;
 use Lab591\DevBridge\Audit\AuditLog;
 use Lab591\DevBridge\Cli\Command;
 use Lab591\DevBridge\Deploy\Deployer;
@@ -370,6 +371,11 @@ final class Plugin {
 			$this->hashCache = new HashCache( $file );
 		}
 		return $this->hashCache;
+	}
+
+	/** Optional password in front of the admin page (0.7.0). */
+	public function pageLock(): PageLock {
+		return new PageLock();
 	}
 
 	public function databaseService(): DatabaseService {

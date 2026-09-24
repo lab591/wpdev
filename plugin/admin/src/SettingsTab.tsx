@@ -15,12 +15,15 @@ import type { Notify } from './App';
 import { boot, errorMessage, get, post } from './api';
 import { NumberField, Section, Segmented } from './components';
 import FolderTree from './FolderTree';
+import PageLockSection from './PageLockSection';
 import { formatBytes } from './format';
 import type { Settings, SettingsData } from './types';
 
 interface Props {
 	notify: Notify;
 	onSaved: () => void;
+	pageLock: boolean;
+	onPageLock: ( enabled: boolean ) => void;
 }
 
 type ListKey =
@@ -62,7 +65,12 @@ const LIMIT_LABELS: Record< string, { label: string; bytes?: boolean } > = {
 	},
 };
 
-export default function SettingsTab( { notify, onSaved }: Props ) {
+export default function SettingsTab( {
+	notify,
+	onSaved,
+	pageLock,
+	onPageLock,
+}: Props ) {
 	const [ data, setData ] = useState< SettingsData | null >( null );
 	const [ draft, setDraft ] = useState< Settings | null >( null );
 	const [ loadError, setLoadError ] = useState( '' );
@@ -594,6 +602,12 @@ export default function SettingsTab( { notify, onSaved }: Props ) {
 					} ) }
 				</div>
 			</Section>
+
+			<PageLockSection
+				enabled={ pageLock }
+				onChange={ onPageLock }
+				notify={ notify }
+			/>
 
 			<div className={ `devbridge-savebar${ dirty ? ' is-dirty' : '' }` }>
 				<span className="devbridge-savebar__status">

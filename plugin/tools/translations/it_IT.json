@@ -291,5 +291,32 @@
   "Mask personal data": "Maschera i dati personali",
   "Emails, IP addresses, phone numbers, names and addresses are replaced with [personal]. Recommended: what Claude reads ends up in the conversation.": "Email, indirizzi IP, numeri di telefono, nomi e indirizzi vengono sostituiti con [personal]. Consigliato: ciò che Claude legge finisce nella conversazione.",
   "Excluded tables": "Tabelle escluse",
-  "Never visible, not even their structure. Use * as wildcard, e.g. wp_wc_orders*.": "Mai visibili, nemmeno la struttura. Usa * come jolly, es. wp_wc_orders*."
+  "Never visible, not even their structure. Use * as wildcard, e.g. wp_wc_orders*.": "Mai visibili, nemmeno la struttura. Usa * come jolly, es. wp_wc_orders*.",
+  "The password must be at least %d characters long.": "La password deve avere almeno %d caratteri.",
+  "The two passwords do not match.": "Le due password non coincidono.",
+  "The current password is wrong.": "La password attuale è sbagliata.",
+  "Too many wrong passwords: try again in %d minute.": [
+    "Troppe password sbagliate: riprova tra %d minuto.",
+    "Troppe password sbagliate: riprova tra %d minuti."
+  ],
+  "This page is locked: reload it and enter the password.": "Questa pagina è bloccata: ricaricala e inserisci la password.",
+  "Password changed.": "Password cambiata.",
+  "Protection enabled: from now on this page asks for the password.": "Protezione attivata: da ora questa pagina chiede la password.",
+  "Protection removed.": "Protezione rimossa.",
+  "Wrong password.": "Password sbagliata.",
+  "This page is protected by a password.": "Questa pagina è protetta da password.",
+  "Password": "Password",
+  "Unlock": "Sblocca",
+  "Page protection": "Protezione della pagina",
+  "Put this whole page behind a password, useful when the site owner is an administrator but not a developer: without the password the page shows nothing. It prevents accidental changes, it does not stop an administrator who wants to deactivate plugins. Forgotten password: \"wp devbridge lock --clear\" on the server.": "Metti tutta questa pagina dietro una password, utile quando il proprietario del sito è amministratore ma non sviluppatore: senza password la pagina non mostra nulla. Evita modifiche per errore, non ferma un amministratore che vuole disattivare i plugin. Password dimenticata: \"wp devbridge lock --clear\" sul server.",
+  "Active: the page asks for the password in every new login session and after 30 minutes of inactivity.": "Attiva: la pagina chiede la password a ogni nuovo accesso e dopo 30 minuti di inattività.",
+  "Not active.": "Non attiva.",
+  "Current password": "Password attuale",
+  "New password": "Nuova password",
+  "At least %d characters.": "Almeno %d caratteri.",
+  "Repeat the password": "Ripeti la password",
+  "Change password": "Cambia password",
+  "Protect the page": "Proteggi la pagina",
+  "Remove protection": "Rimuovi la protezione",
+  "Lock": "Blocca"
 }

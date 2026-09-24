@@ -1,6 +1,6 @@
 <?php
 /**
- * WP-CLI: `wp devbridge status|enable|disable|releases|rollback` (SPEC 2.12).
+ * WP-CLI: `wp devbridge status|enable|disable|releases|rollback|lock` (SPEC 2.12).
  *
  * @package Lab591\DevBridge
  */
@@ -70,6 +70,32 @@ final class Command {
 			return;
 		}
 		\WP_CLI::success( sprintf( 'Mode "%s" enabled until %s.', $state['mode'], wp_date( 'Y-m-d H:i', $state['expires_at'] ) ) );
+	}
+
+	/**
+	 * Shows or removes the password that protects the Dev Bridge admin page.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--clear]
+	 * : Remove the password (for example when it has been forgotten).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp devbridge lock
+	 *     wp devbridge lock --clear
+	 *
+	 * @param string[]             $args       Positional arguments.
+	 * @param array<string, mixed> $assoc_args Named arguments.
+	 */
+	public function lock( array $args, array $assoc_args ): void {
+		$lock = $this->plugin->pageLock();
+		if ( ! empty( $assoc_args['clear'] ) ) {
+			$lock->clear();
+			\WP_CLI::success( 'Page password removed: the Dev Bridge page is open to administrators again.' );
+			return;
+		}
+		\WP_CLI::line( $lock->enabled() ? 'The Dev Bridge page is protected by a password (remove it with --clear).' : 'The Dev Bridge page is not protected by a password.' );
 	}
 
 	/**

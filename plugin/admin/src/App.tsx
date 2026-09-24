@@ -1,7 +1,7 @@
-import { Notice, SnackbarList, Spinner } from '@wordpress/components';
+import { Button, Notice, SnackbarList, Spinner } from '@wordpress/components';
 import { useCallback, useEffect, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
-import { boot, errorMessage, get } from './api';
+import { boot, errorMessage, get, post } from './api';
 import AuditTab from './AuditTab';
 import { ModeBadge } from './components';
 import SettingsTab from './SettingsTab';
@@ -30,6 +30,15 @@ export default function App() {
 	const [ loadError, setLoadError ] = useState( '' );
 	const [ toasts, setToasts ] = useState< Toast[] >( [] );
 	const [ tab, setTabState ] = useState< TabName >( initialTab );
+	const [ pageLock, setPageLock ] = useState( boot.pageLock );
+
+	const lockNow = async () => {
+		try {
+			await post( 'devbridge_lock', { op: 'relock' } );
+		} finally {
+			window.location.reload();
+		}
+	};
 
 	const setTab = useCallback( ( name: TabName ) => {
 		setTabState( name );
@@ -88,7 +97,18 @@ export default function App() {
 						</p>
 					</div>
 				</div>
-				{ status && <ModeBadge mode={ status.mode } /> }
+				<div className="devbridge-header__side">
+					{ status && <ModeBadge mode={ status.mode } /> }
+					{ pageLock && (
+						<Button
+							variant="secondary"
+							size="compact"
+							onClick={ lockNow }
+						>
+							{ __( 'Lock', 'lab591-dev-bridge' ) }
+						</Button>
+					) }
+				</div>
 			</header>
 
 			<div
@@ -125,7 +145,12 @@ export default function App() {
 				className="devbridge-panel"
 			>
 				{ tab === 'settings' && (
-					<SettingsTab notify={ notify } onSaved={ refreshStatus } />
+					<SettingsTab
+						notify={ notify }
+						onSaved={ refreshStatus }
+						pageLock={ pageLock }
+						onPageLock={ setPageLock }
+					/>
 				) }
 				{ tab === 'audit' && <AuditTab /> }
 				{ tab === 'status' &&

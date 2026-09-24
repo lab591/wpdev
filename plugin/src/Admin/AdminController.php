@@ -22,6 +22,7 @@ use Lab591\DevBridge\Mode;
 use Lab591\DevBridge\Plugin;
 use Lab591\DevBridge\Rescue\RescueInstaller;
 use Lab591\DevBridge\Services\CacheDetector;
+use Lab591\DevBridge\Security\ClientIp;
 use Lab591\DevBridge\Security\PathException;
 use Lab591\DevBridge\Security\WritableRootValidator;
 use Lab591\DevBridge\Settings;
@@ -33,7 +34,10 @@ final class AdminController {
 	public const NONCE = 'devbridge_admin';
 
 	/** Audit endpoints offered in the filter. */
-	public const AUDIT_ENDPOINTS = [ '/status', '/list', '/read', '/grep', '/manifest', '/archive', '/log', '/deploy', '/rollback', '/releases', '/health', '/cache-flush' ];
+	public const AUDIT_ENDPOINTS = [ '/status', '/list', '/read', '/grep', '/manifest', '/archive', '/log', '/deploy', '/rollback', '/releases', '/health', '/cache-flush', '/db/schema', '/db/query', self::LOCK_ENDPOINT ];
+
+	/** Audit "endpoint" of the page protection events (unlock, failures, changes). */
+	public const LOCK_ENDPOINT = '/page-lock';
 
 	public const AUDIT_PER_PAGE = 50;
 
@@ -48,6 +52,7 @@ final class AdminController {
 		'devbridge_audit'    => [ 'audit', 'GET' ],
 		'devbridge_notify'   => [ 'notifyTest', 'POST' ],
 		'devbridge_preview'  => [ 'previewAction', 'POST' ],
+		'devbridge_lock'     => [ 'lockAction', 'POST' ],
 	];
 
 	public function __construct( private readonly Plugin $plugin ) {
@@ -83,7 +88,38 @@ final class AdminController {
 			'locale'   => get_user_locale(),
 			'profile'  => admin_url( 'profile.php#application-passwords-section' ),
 			'endpoint' => self::AUDIT_ENDPOINTS,
+			'pageLock' => $this->plugin->pageLock()->enabled(),
 		];
+	}
+
+	/**
+	 * Whether the page protection keeps the current user out (password set, not unlocked in this
+	 * login session). Renews the unlock when it is valid.
+	 */
+	public function locked(): bool {
+		return ! $this->plugin->pageLock()->isUnlocked( get_current_user_id(), (string) wp_get_session_token() );
+	}
+
+	/**
+	 * Records a page protection event in the audit log (never the password).
+	 */
+	public function auditLock( string $event, int $status ): void {
+		// phpcs:disable WordPress.Security.ValidatedSanitizedInput -- validated as IP by ClientIp.
+		$remote    = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) wp_unslash( $_SERVER['REMOTE_ADDR'] ) : '';
+		$forwarded = isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? (string) wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) : '';
+		// phpcs:enable
+		$this->plugin->audit()->record(
+			[
+				'user_id'     => get_current_user_id(),
+				'ip'          => ClientIp::resolve( $remote, $forwarded, (array) $this->plugin->settings()->get( 'trusted_proxies' ) ),
+				'endpoint'    => self::LOCK_ENDPOINT,
+				'mode'        => $this->plugin->mode()->current(),
+				'paths'       => [ $event ],
+				'bytes'       => 0,
+				'status'      => $status,
+				'duration_ms' => 0,
+			]
+		);
 	}
 
 	private function authorize( string $method ): void {
@@ -97,6 +133,66 @@ final class AdminController {
 		if ( $method !== $actual ) {
 			wp_send_json_error( [ 'message' => 'Method not allowed' ], 405 );
 		}
+		if ( $this->locked() ) {
+			// Nothing about the page is returned while it is locked, whatever the action.
+			wp_send_json_error(
+				[
+					'message' => __( 'This page is locked: reload it and enter the password.', 'lab591-dev-bridge' ),
+					'locked'  => true,
+				],
+				403
+			);
+		}
+	}
+
+	// ------------------------------------------------------------------ page protection
+
+	/**
+	 * Sets, changes or removes the page password, or locks the page again for this session.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function lockAction(): array {
+		$data    = $this->payload();
+		$lock    = $this->plugin->pageLock();
+		$op      = (string) ( $data['op'] ?? '' );
+		$user    = get_current_user_id();
+		$session = (string) wp_get_session_token();
+		$current = is_string( $data['current'] ?? null ) ? $data['current'] : '';
+		try {
+			if ( 'set' === $op ) {
+				$changing = $lock->enabled();
+				$lock->set(
+					is_string( $data['password'] ?? null ) ? $data['password'] : '',
+					is_string( $data['confirm'] ?? null ) ? $data['confirm'] : '',
+					$current,
+					$user,
+					$session
+				);
+				$this->auditLock( $changing ? 'password changed' : 'protection enabled', 200 );
+				return [
+					'message'  => $changing ? __( 'Password changed.', 'lab591-dev-bridge' ) : __( 'Protection enabled: from now on this page asks for the password.', 'lab591-dev-bridge' ),
+					'pageLock' => true,
+				];
+			}
+			if ( 'remove' === $op ) {
+				$lock->remove( $current, $user );
+				$this->auditLock( 'protection removed', 200 );
+				return [
+					'message'  => __( 'Protection removed.', 'lab591-dev-bridge' ),
+					'pageLock' => false,
+				];
+			}
+			if ( 'relock' === $op ) {
+				$lock->relock( $user, $session );
+				$this->auditLock( 'locked again', 200 );
+				return [ 'pageLock' => true ];
+			}
+		} catch ( \InvalidArgumentException $e ) {
+			$this->auditLock( 'change refused', 403 );
+			wp_send_json_error( [ 'message' => $e->getMessage() ], 400 );
+		}
+		wp_send_json_error( [ 'message' => 'Unknown operation' ], 400 );
 	}
 
 	/**

@@ -11,6 +11,8 @@ export interface Bootstrap {
 	locale: string;
 	profile: string;
 	endpoint: string[];
+	/** A password protects the page (0.7.0). */
+	pageLock: boolean;
 }
 
 export type ModeName = 'off' | 'read' | 'write';

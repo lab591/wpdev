@@ -75,9 +75,26 @@ wp devbridge disable
 wp devbridge status
 wp devbridge releases
 wp devbridge rollback [<id>] [--force]
+wp devbridge lock [--clear]                    # password della pagina: stato o rimozione
 ```
 
 Nessun endpoint REST può cambiare modalità, impostazioni o cartelle.
+
+### Proteggere la pagina con una password (facoltativo)
+
+Quando il proprietario del sito è amministratore ma non sviluppatore, puoi mettere **tutta la pagina Dev Bridge
+dietro una password** (*Impostazioni → Protezione della pagina*). Senza password la pagina mostra solo il campo
+per sbloccarla: niente stato, niente impostazioni, e nemmeno il codice della pagina o le chiamate ajax
+rivelano qualcosa. Tutte le azioni (modalità, impostazioni, cartelle, anteprima) sono rifiutate lato server.
+
+- Lo sblocco vale per quell'utente e quella sessione di accesso, e scade dopo 30 minuti di inattività; il
+  pulsante *Blocca* in alto richiude subito la pagina.
+- Dopo 5 password sbagliate in 15 minuti bisogna aspettare; tentativi, sblocchi e modifiche finiscono
+  nell'audit (mai la password, salvata solo come hash).
+- Per cambiarla o toglierla serve quella attuale. Se la dimentichi: `wp devbridge lock --clear` sul server
+  (`wp devbridge lock` dice se è attiva).
+- Evita modifiche per errore, non è una barriera contro un amministratore che vuole fare danni: può comunque
+  disattivare i plugin.
 
 ---
 

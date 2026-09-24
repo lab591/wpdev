@@ -49,6 +49,7 @@ foreach ( [
 	Lab591\DevBridge\Mode::OPTION,
 	Lab591\DevBridge\Storage\Storage::SUFFIX_OPTION,
 	Lab591\DevBridge\Rescue\RescueInstaller::CHECK_OPTION,
+	Lab591\DevBridge\Admin\PageLock::OPTION,
 ] as $devbridge_option ) {
 	Lab591\DevBridge\Support\Options::delete( $devbridge_option );
 	delete_option( $devbridge_option ); // Leftovers of a single-site install converted to multisite.
