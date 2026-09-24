@@ -12,6 +12,8 @@ import { publishPreview } from '../preview.js';
 import { deleteRescue } from '../rescue.js';
 import { resolveWritable } from '../writable.js';
 import {
+  cacheNoticeText,
+  unknownHealthText,
   formatCacheFlush,
   formatDeployOutcome,
   formatGrep,
@@ -171,7 +173,13 @@ export function buildTools(getContext: () => Context | Promise<Context>, deps: D
           if (response.status === 'rolled_back') {
             return refuse([`publish ROLLED BACK automatically: the live site is back to the previous version; the preview is kept`, ...(response.errors ?? []).slice(0, 20).map((e) => `  ${e}`)].join('\n'));
           }
-          return { text: `preview published: release ${response.release_id}, ${response.written} written, ${response.deleted} deleted${git?.hash ? `, git commit ${git.hash}` : ''}` };
+          return {
+            text: [
+              `preview published: release ${response.release_id}, ${response.written} written, ${response.deleted} deleted${git?.hash ? `, git commit ${git.hash}` : ''}`,
+              ...(response.status === 'health_unknown' ? [unknownHealthText(response.health)] : []),
+              ...cacheNoticeText(response.cache),
+            ].join('\n'),
+          };
         } catch (e) {
           return refuse(`error: ${describeError(e)}`);
         }

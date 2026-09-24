@@ -15,6 +15,7 @@ use Lab591\DevBridge\Deploy\ReleaseStore;
 use Lab591\DevBridge\Mode;
 use Lab591\DevBridge\Plugin;
 use Lab591\DevBridge\Services\ArchiveService;
+use Lab591\DevBridge\Services\CacheDetector;
 use Lab591\DevBridge\Services\CacheFlushService;
 use Lab591\DevBridge\Services\GrepService;
 use Lab591\DevBridge\Services\IntrospectionService;
@@ -446,7 +447,7 @@ final class Api {
 
 				$out             = $this->plugin->deployer()->deploy( $manifest, $bundle, get_current_user_id() );
 				$this->releaseId = (string) $out['release_id'];
-				return $out;
+				return self::withCacheNotice( $out );
 			}
 		);
 	}
@@ -476,7 +477,7 @@ final class Api {
 			function (): array {
 				$out             = $this->plugin->previewService()->publish( $this->plugin->deployer(), get_current_user_id() );
 				$this->releaseId = (string) ( $out['release_id'] ?? '' );
-				return $out;
+				return self::withCacheNotice( $out );
 			}
 		);
 	}
@@ -488,6 +489,24 @@ final class Api {
 				return [ 'status' => 'ok' ];
 			}
 		);
+	}
+
+	/**
+	 * Adds the caches that may hide a change just published (`cache`), so the agent does not
+	 * mistake a cached page for a broken fix.
+	 *
+	 * @param array<string, mixed> $out Deploy response.
+	 * @return array<string, mixed>
+	 */
+	private static function withCacheNotice( array $out ): array {
+		if ( null === ( $out['release_id'] ?? null ) || 'rolled_back' === ( $out['status'] ?? '' ) ) {
+			return $out;
+		}
+		$notice = CacheDetector::notice( ( new CacheDetector() )->report() );
+		if ( null !== $notice ) {
+			$out['cache'] = $notice;
+		}
+		return $out;
 	}
 
 	/**

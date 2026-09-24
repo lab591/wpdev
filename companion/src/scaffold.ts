@@ -114,6 +114,9 @@ export function renderManagedSection(input: ClaudeMdInput): string {
 - Per annullare le tue modifiche locali a un file o a una cartella (tornare alla versione del sito) usa
   \`restore_local\`.
 - Dopo modifiche visibili, verifica la pagina nel browser (Chrome).
+- Se il deploy (o \`site_info\` → \`page_cache\`) segnala una **cache delle pagine**, nel browser puoi vedere
+  pagine vecchie: per verificare aggiungi all'URL un parametro casuale (es. \`?v=123\`). Chiedi all'utente se
+  può disattivare la cache mentre lavorate, ma non su un sito di produzione: lì chiedigli di svuotarla.
 - Contenuti e pagine Elementor si gestiscono con l'MCP del sito (WSP), non via file.
 
 ${

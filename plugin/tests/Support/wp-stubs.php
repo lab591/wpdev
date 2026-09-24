@@ -122,7 +122,13 @@ namespace {
 		}
 		function wp_remote_get( string $url, array $args = [] ): mixed {
 			$answer = null === WpStubs::$http ? [ 'code' => 200 ] : ( WpStubs::$http )( $url );
-			return null === $answer ? new \WP_Error( 'http_request_failed', 'Connection refused' ) : [ 'response' => [ 'code' => $answer['code'] ] ];
+			return null === $answer ? new \WP_Error( 'http_request_failed', 'Connection refused' ) : [
+				'response' => [ 'code' => $answer['code'] ],
+				'headers'  => $answer['headers'] ?? [],
+			];
+		}
+		function wp_remote_retrieve_headers( mixed $response ): mixed {
+			return $response['headers'] ?? [];
 		}
 		function wp_remote_retrieve_response_code( mixed $response ): int {
 			return (int) ( $response['response']['code'] ?? 0 );

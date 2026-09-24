@@ -263,18 +263,35 @@ final class Plugin {
 					[
 						'timeout'   => 10,
 						'sslverify' => true,
-						'cookies'   => [ 'devbridge_preview' => $token ],
+						'cookies'   => [ PreviewService::COOKIE => $token ],
 						'headers'   => [ 'Cache-Control' => 'no-cache' ],
 					]
 				);
 				$errors   = $health->fatalSince( $offset );
 				$code     = is_wp_error( $response ) ? null : (int) wp_remote_retrieve_response_code( $response );
-				return [
+				$result   = [
 					'status' => [] !== $errors || ( null !== $code && $code >= 500 ) ? 'fail' : ( null === $code ? 'unknown' : 'ok' ),
 					'code'   => $code,
 					'ms'     => (int) round( ( microtime( true ) - $started ) * 1000 ),
 					'errors' => $errors,
 				];
+				if ( 'ok' === $result['status'] ) {
+					// Same request as a browser (no cache-busting argument): does the cookie get past the caches?
+					$plain = wp_remote_get(
+						home_url( '/' ),
+						[
+							'timeout'     => 10,
+							'sslverify'   => true,
+							'redirection' => 0,
+							'cookies'     => [ PreviewService::COOKIE => $token ],
+						]
+					);
+					if ( ! is_wp_error( $plain ) && (int) wp_remote_retrieve_response_code( $plain ) < 300 ) {
+						$headers = wp_remote_retrieve_headers( $plain );
+						$result += PreviewService::visibility( is_object( $headers ) && method_exists( $headers, 'getAll' ) ? $headers->getAll() : (array) $headers );
+					}
+				}
+				return $result;
 			}
 		);
 	}

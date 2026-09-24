@@ -162,7 +162,8 @@ await scenario( 'preview: visible only with the preview cookie, then published',
 	const token = /devbridge_preview=([0-9a-f]{64})/.exec( r.out )?.[ 1 ];
 	expect( token, 'no preview link', r.out );
 	expect( ! ( await get( '/' ) ).body.includes( 'E2E-PREVIEW-MARK' ), 'visitors see the preview' );
-	const withCookie = await fetch( `${ SITE }/`, { headers: { Cookie: `devbridge_preview=${ token }` } } );
+	expect( ! r.out.includes( 'wordpress_devbridge_preview' ), 'preview wrongly reported as hidden by a cache', r.out );
+	const withCookie = await fetch( `${ SITE }/`, { headers: { Cookie: `wordpress_devbridge_preview=${ token }` } } );
 	expect( ( await withCookie.text() ).includes( 'E2E-PREVIEW-MARK' ), 'preview not shown with the cookie' );
 	expect( withCookie.headers.get( 'x-devbridge-preview' ) === '1', 'preview header missing' );
 	const pub = wpdev( project, [ 'preview', 'publish' ] );
@@ -170,6 +171,33 @@ await scenario( 'preview: visible only with the preview cookie, then published',
 	expect( ( await get( '/' ) ).body.includes( 'E2E-PREVIEW-MARK' ), 'not live after publish' );
 	writeFileSync( local( `${ THEME }/functions.php` ), original );
 	expect( wpdev( project, [ 'deploy' ] ).code === 0, 'cleanup deploy failed' );
+} );
+
+await scenario( 'page cache (WP Super Cache): detected, reported after deploy, hidden preview flagged', async () => {
+	wp( 'wp plugin is-installed wp-super-cache || wp plugin install wp-super-cache' );
+	wp( 'wp plugin activate wp-super-cache && wp config set WP_CACHE true --raw' );
+	try {
+		expect( wp( 'wp eval-file wp-content/e2e-fixtures/supercache.php on' ).includes( 'WPSC_ON' ), 'WP Super Cache not enabled' );
+		await get( '/' );
+		expect( ( await get( '/' ) ).body.includes( 'super cache' ), 'home page not served from WP Super Cache' );
+
+		const info = wpdev( project, [ 'info', 'overview' ] );
+		expect( /page_cache: WP Super Cache/.test( info.out ), 'page cache not in site_info', info.out );
+
+		appendFileSync( local( `${ THEME }/style.css` ), '\n.e2e-cache {}\n' );
+		const d = wpdev( project, [ 'deploy' ] );
+		expect( d.code === 0 && d.out.includes( 'Cache delle pagine attiva sul sito (WP Super Cache)' ), 'cache not reported after deploy', d.out );
+		expect( /Health check: ok/.test( d.out ), 'the cache-busting health check must stay conclusive', d.out );
+
+		writeFileSync( local( `${ THEME }/functions.php` ), `${ original }\nadd_action( 'wp_footer', function () { echo 'E2E-CACHED-PREVIEW'; } );\n` );
+		const p = wpdev( project, [ 'preview' ] );
+		expect( p.code === 0 && p.out.includes( 'wordpress_devbridge_preview' ), 'preview hidden by the cache not flagged', p.out );
+		wpdev( project, [ 'preview', 'discard' ] );
+		writeFileSync( local( `${ THEME }/functions.php` ), original );
+	} finally {
+		wp( 'wp eval-file wp-content/e2e-fixtures/supercache.php off' );
+		wp( 'wp plugin deactivate wp-super-cache && wp config set WP_CACHE false --raw' );
+	}
 } );
 
 await scenario( 'mode off: deploys are refused', async () => {

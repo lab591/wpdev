@@ -2,6 +2,17 @@
 
 Tutte le versioni del plugin **Lab591 Dev Bridge** e del companion **wpdev**.
 
+## Non ancora rilasciato
+
+- **Cache**: il plugin rileva cache delle pagine (drop-in `advanced-cache.php`, plugin di cache lato server,
+  hosting gestiti), ottimizzazione CSS/JS, object cache e OPcache non aggiornabile, e lo dice nella scheda Stato,
+  in `site_info` e dopo ogni deploy, con le istruzioni per Claude. Non svuota niente: per farlo in automatico
+  basta agganciare l'azione `devbridge_deployed` (esempi nel README).
+- **Health check**: una pagina servita da una cache (proxy, CDN) non conta più come "ok": l'esito diventa "non
+  verificabile".
+- **Anteprima**: cookie rinominato `wordpress_devbridge_preview` (saltato da molte cache di server e CDN); se una
+  cache davanti a PHP lo ignora, `wpdev preview` lo segnala invece di dare un link che mostra il sito live.
+
 ## 0.5.0
 
 - **Anteprima prima della pubblicazione**: `wpdev preview` mostra le modifiche solo a chi ha il link (cookie);

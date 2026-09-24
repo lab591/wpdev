@@ -68,4 +68,28 @@ final class HealthBackendTest extends TestCase {
 		$result = ( new HealthService( [ self::LOGIN ], null, null, [ self::LOGIN, self::PING ] ) )->check( 0 );
 		$this->assertSame( [ 'admin', 'backend' ], array_column( $result['checks'], 'source' ) );
 	}
+
+	public function test_page_served_from_a_proxy_cache_is_not_proof(): void {
+		WpStubs::$http = static fn ( string $url ): array => str_starts_with( $url, 'https://example.test/?' )
+			? [
+				'code'    => 200,
+				'headers' => [ 'x-litespeed-cache' => 'hit' ],
+			]
+			: [ 'code' => 200 ];
+		$result        = self::service()->check( 0 );
+		$this->assertSame( 'unknown', $result['status'], 'No automatic OK on a cached page' );
+		$this->assertSame( 'x-litespeed-cache: hit', $result['checks'][0]['cached'] );
+		$this->assertArrayNotHasKey( 'cached', $result['checks'][1] );
+		$this->assertStringContainsString( 'served from a cache', $result['message'] );
+	}
+
+	public function test_a_cached_page_does_not_hide_a_real_failure(): void {
+		WpStubs::$http = static fn ( string $url ): array => str_starts_with( $url, self::PING )
+			? [ 'code' => 500 ]
+			: [
+				'code'    => 200,
+				'headers' => [ 'cf-cache-status' => 'HIT' ],
+			];
+		$this->assertSame( 'fail', self::service()->check( 0 )['status'] );
+	}
 }

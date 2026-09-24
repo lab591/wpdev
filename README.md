@@ -226,6 +226,37 @@ strumento MCP `health` li usano anche per una verifica immediata.
 
 ---
 
+### Cache (WP Rocket, LiteSpeed, WP Super Cache, Cloudflare…)
+
+Una cache delle pagine può far vedere a Claude la versione vecchia di una pagina appena modificata, e
+un'anteprima può non vedersi. Dev Bridge **rileva** le cache ma **non le svuota** (ogni plugin e ogni hosting ha la
+sua API):
+
+- nella scheda *Stato* compare la voce **Cache**, con un avviso se c'è una cache delle pagine attiva; `site_info` →
+  `overview` riporta `page_cache`, `object_cache`, `opcache` e `development_mode`;
+- dopo ogni deploy Claude riceve l'elenco delle cache che possono nascondere la modifica. Per verificare una
+  pagina aggiunge un parametro casuale all'URL (`?v=123`); su un sito di sviluppo o staging ti chiede se puoi
+  disattivare la cache mentre lavorate, in produzione ti chiede di svuotarla;
+- l'health check non si fida di una pagina servita da una cache (header come `cf-cache-status: HIT` o
+  `x-litespeed-cache: hit`): in quel caso l'esito è "non verificabile" e non "ok";
+- se una cache davanti a PHP ignora il cookie dell'anteprima, `wpdev preview` lo segnala. Molte cache di server
+  e CDN saltano già i cookie `wordpress_*`; per le altre escludi il cookie `wordpress_devbridge_preview` dalla
+  cache, oppure disattivala mentre lavori.
+
+**Svuotare la cache in automatico dopo ogni deploy.** Aggiungi una riga in un mu-plugin o nel `functions.php` di
+un tema che Claude non modifica, con la funzione del tuo plugin di cache:
+
+```php
+add_action( 'devbridge_deployed', fn () => function_exists( 'rocket_clean_domain' ) && rocket_clean_domain() ); // WP Rocket
+add_action( 'devbridge_deployed', fn () => do_action( 'litespeed_purge_all' ) );             // LiteSpeed Cache
+add_action( 'devbridge_deployed', fn () => function_exists( 'w3tc_flush_all' ) && w3tc_flush_all() ); // W3 Total Cache
+add_action( 'devbridge_deployed', fn () => function_exists( 'wp_cache_clear_cache' ) && wp_cache_clear_cache() ); // WP Super Cache
+```
+
+L'azione riceve anche il risultato del deploy, l'elenco dei file e l'id dell'utente, per chi vuole svuotare solo
+ciò che serve. Sui siti in produzione valuta se svuotare tutto a ogni deploy: con l'hook di fine turno i deploy
+possono essere frequenti.
+
 ## 5. Reti multisite
 
 In una rete multisite Dev Bridge è **un'unica istanza per tutta la rete**, perché temi e plugin sono
@@ -275,7 +306,9 @@ le regex richiedono ripgrep con PCRE2, altrimenti si usa la ricerca PHP. `site_g
 | `403 mode_off` / `mode_insufficient` | Attiva la modalità dal pannello o con `wp devbridge enable` |
 | `403 forbidden_user` | Aggiungi l'utente in *Utenti autorizzati* |
 | `413 too_large` sul deploy | Limiti PHP `upload_max_filesize` / `post_max_size` (il valore effettivo è in `wpdev status`) |
-| `health_unknown` | Il sito non riesce a chiamare sé stesso (loopback bloccato): nessun rollback automatico, verifica a mano |
+| `health_unknown` | Il sito non riesce a chiamare sé stesso (loopback bloccato), oppure le pagine sono arrivate da una cache (proxy, CDN): nessun rollback automatico, verifica a mano |
+| Claude vede la versione vecchia di una pagina | Cache delle pagine attiva (vedi *Cache* nella scheda Stato): disattivala mentre lavori o svuotala dopo il deploy |
+| L'anteprima mostra il sito live | Una cache davanti a PHP ignora il cookie: escludi `wordpress_devbridge_preview` dalla cache o disattivala |
 | Tutti i file risultano modificati | `core.autocrlf=true` senza `.gitattributes` `* -text`: rigenera con `wpdev init` e riesegui il checkout |
 | Rescue "non disponibile" | Nessun deploy recente da questo progetto, token scaduto (24 h) o già usato: ripristina via FTP/SSH da `storage/releases/<id>/files/` |
 | Ricerche lente in locale con WAMP/XAMPP | Xdebug attivo nel PHP del web server rallenta molto `/grep` e `/manifest` |

@@ -145,6 +145,8 @@ export interface HealthCheck {
   code?: number;
   ms?: number;
   error?: string;
+  /** Header proving the page came from a proxy/CDN cache (the check proves nothing then). */
+  cached?: string;
 }
 
 export interface HealthResult {
@@ -167,6 +169,17 @@ export interface DeployResponse {
   health: HealthResult;
   errors?: string[];
   rescue_token?: string;
+  /** Caches that may hide the change just published (0.6.0). */
+  cache?: CacheNotice;
+}
+
+export interface CacheNotice {
+  /** Page caches (plugins, server caches, managed hosts). */
+  page: string[];
+  /** Plugins that combine/minify CSS and JS. */
+  assets: string[];
+  /** OPcache cannot be invalidated: seconds before PHP changes are visible (-1: until PHP restarts). */
+  opcache_stale_s: number | null;
 }
 
 export interface PreviewResponse {
@@ -175,7 +188,15 @@ export interface PreviewResponse {
   expires_at: number;
   units: string[];
   files: number;
-  health: { status: 'ok' | 'fail' | 'unknown'; code: number | null; ms?: number; errors?: string[] };
+  health: {
+    status: 'ok' | 'fail' | 'unknown';
+    code: number | null;
+    ms?: number;
+    errors?: string[];
+    /** false: a plain browser request with the cookie got the live page (a cache in front of PHP). */
+    visible?: boolean;
+    cached?: string;
+  };
 }
 
 export type PreviewStatus =

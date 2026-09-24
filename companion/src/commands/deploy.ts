@@ -1,6 +1,6 @@
 import type { Context } from '../context.js';
 import { countChanges, runDeploy, type Change, type DeployDeps, type DeployOutcome } from '../deploy.js';
-import { ApiError, type HealthResult } from '../http.js';
+import { ApiError, type CacheNotice, type DeployResponse, type HealthResult, type PreviewResponse } from '../http.js';
 import type { LintError } from '../lint.js';
 import { describeError } from '../messages.js';
 import { EXIT_DEPLOY_FAILED, EXIT_ERROR, EXIT_OK, type Output } from '../output.js';
@@ -33,9 +33,45 @@ export function warningLines(h: HealthResult): string[] {
   ];
 }
 
+/** Caches that may hide a change just published (0.6.0). */
+export function cacheLines(cache: CacheNotice | undefined): string[] {
+  if (!cache) return [];
+  const out: string[] = [];
+  if (cache.page.length) {
+    out.push(
+      `Cache delle pagine attiva sul sito (${cache.page.join(', ')}): nel browser potresti vedere pagine vecchie. ` +
+        'Su un sito di sviluppo o staging conviene disattivarla mentre lavori; in produzione svuotala dopo il deploy.',
+    );
+  }
+  if (cache.assets.length) {
+    out.push(`Ottimizzazione CSS/JS attiva (${cache.assets.join(', ')}): i file combinati potrebbero non includere le modifiche finché non ne svuoti la cache.`);
+  }
+  if (cache.opcache_stale_s !== null) {
+    const when = cache.opcache_stale_s < 0 ? 'solo al riavvio di PHP' : `entro ${cache.opcache_stale_s} secondi`;
+    out.push(`OPcache non aggiornabile dal plugin (opcache.restrict_api): le modifiche PHP diventano visibili ${when} e l'health check potrebbe aver provato il codice vecchio.`);
+  }
+  return out;
+}
+
+/** The health check could not prove anything: loopback unreachable or pages served from a cache. */
+export function unknownHealthLine(res: DeployResponse): string {
+  return res.health.checks.some((c) => c.cached)
+    ? 'ATTENZIONE: alcune pagine sono arrivate da una cache (proxy, CDN o server) e non dimostrano che il nuovo codice funzioni: nessun rollback automatico. Verifica il sito a mano; in caso di problemi `wpdev rollback`.'
+    : 'ATTENZIONE: health check non eseguibile (loopback non raggiungibile): nessun rollback automatico. Verifica il sito a mano; in caso di problemi `wpdev rollback`.';
+}
+
+/** The preview link would show the live site: a cache in front of PHP ignores the preview cookie. */
+export function previewVisibilityLine(health: PreviewResponse['health']): string | null {
+  if (health.visible !== false) return null;
+  return (
+    `Attenzione: una cache davanti a PHP${health.cached ? ` (${health.cached})` : ''} risponde con la pagina live anche a chi ha il link, quindi l'anteprima potrebbe non vedersi. ` +
+    'Escludi dalla cache il cookie wordpress_devbridge_preview oppure disattiva la cache mentre lavori.'
+  );
+}
+
 export function healthLine(h: HealthResult): string {
   const checks = h.checks
-    .map((c) => `${c.url}${c.source === 'agent' ? ' [wpdev.json]' : c.source === 'backend' ? ' [backend]' : ''} ${c.code ?? c.error ?? '?'}${c.ms !== undefined ? ` (${c.ms} ms)` : ''}`)
+    .map((c) => `${c.url}${c.source === 'agent' ? ' [wpdev.json]' : c.source === 'backend' ? ' [backend]' : ''} ${c.code ?? c.error ?? '?'}${c.cached ? ` [dalla cache: ${c.cached}]` : ''}${c.ms !== undefined ? ` (${c.ms} ms)` : ''}`)
     .join(', ');
   const label = h.status === 'ok' ? 'ok' : h.status === 'fail' ? 'FALLITO' : 'sconosciuto';
   return `Health check: ${label}${checks ? ` — ${checks}` : ''}${h.message ? ` — ${h.message}` : ''}`;
@@ -115,6 +151,8 @@ export function reportDeploy(outcome: DeployOutcome): Report {
       } else if (p.health.status === 'unknown') {
         r.stderr.push('Controllo dell\'anteprima non eseguibile (loopback non raggiungibile): verificala nel browser.');
       }
+      const hidden = previewVisibilityLine(p.health);
+      if (hidden) r.stderr.push(hidden);
       return r;
     }
     case 'done': {
@@ -137,9 +175,8 @@ export function reportDeploy(outcome: DeployOutcome): Report {
       r.stdout.push(healthLine(res.health));
       if (outcome.git?.hash) r.stdout.push(`Commit git ${outcome.git.hash} (solo i file pubblicati).`);
       if (outcome.git?.error) r.stderr.push(`Commit git non riuscito: ${outcome.git.error} (il deploy è comunque online).`);
-      if (res.status === 'health_unknown') {
-        r.stderr.push('ATTENZIONE: health check non eseguibile (loopback non raggiungibile): nessun rollback automatico. Verifica il sito a mano; in caso di problemi `wpdev rollback`.');
-      }
+      if (res.status === 'health_unknown') r.stderr.push(unknownHealthLine(res));
+      r.stderr.push(...cacheLines(res.cache));
       if (res.errors?.length) {
         r.stderr.push('Righe fatali nel debug.log:', ...res.errors.slice(0, MAX_LISTED).map((e) => `  ${e}`));
       }

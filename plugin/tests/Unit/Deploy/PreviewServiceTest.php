@@ -224,6 +224,19 @@ final class PreviewServiceTest extends TestCase {
 		$this->assertSame( 'wp-content/plugins/myplug--devbridge-preview/inc/a.php', PreviewService::previewPath( 'wp-content/plugins/myplug/inc/a.php' ) );
 	}
 
+	public function test_visibility_of_the_preview_through_caches(): void {
+		$this->assertSame( [ 'visible' => true ], PreviewService::visibility( [ 'X-DevBridge-Preview' => '1' ] ) );
+		$this->assertSame( [ 'visible' => false ], PreviewService::visibility( [ 'Content-Type' => 'text/html' ] ) );
+		$this->assertSame(
+			[
+				'visible' => false,
+				'cached'  => 'x-litespeed-cache: hit',
+			],
+			PreviewService::visibility( [ 'X-LiteSpeed-Cache' => 'hit' ] )
+		);
+		$this->assertStringStartsWith( 'wordpress_', PreviewService::COOKIE, 'Prefix bypassed by common server caches' );
+	}
+
 	private function deployer(): Deployer {
 		return new Deployer(
 			$this->guard(),

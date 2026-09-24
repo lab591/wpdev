@@ -3,7 +3,7 @@ import { runDeploy, type DeployDeps } from '../deploy.js';
 import { describeError } from '../messages.js';
 import { EXIT_DEPLOY_FAILED, EXIT_ERROR, EXIT_OK, type Output } from '../output.js';
 import { publishPreview } from '../preview.js';
-import { healthLine, reportDeploy } from './deploy.js';
+import { cacheLines, healthLine, reportDeploy, unknownHealthLine } from './deploy.js';
 
 /** `wpdev preview [publish|discard|status]` (0.5.0). */
 export async function previewCommand(ctx: Context, out: Output, action: string | undefined, deps: DeployDeps = {}): Promise<number> {
@@ -35,6 +35,8 @@ export async function previewCommand(ctx: Context, out: Output, action: string |
         out.info(`Anteprima pubblicata: release ${response.release_id}, ${response.written} file scritti, ${response.deleted} cancellati.`);
         out.info(healthLine(response.health));
         if (git?.hash) out.info(`Commit git ${git.hash}.`);
+        if (response.status === 'health_unknown') out.warn(unknownHealthLine(response));
+        cacheLines(response.cache).forEach((l) => out.warn(l));
         return EXIT_OK;
       }
       case 'discard':

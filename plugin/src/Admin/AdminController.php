@@ -21,6 +21,7 @@ use Lab591\DevBridge\Deploy\ReleaseStore;
 use Lab591\DevBridge\Mode;
 use Lab591\DevBridge\Plugin;
 use Lab591\DevBridge\Rescue\RescueInstaller;
+use Lab591\DevBridge\Services\CacheDetector;
 use Lab591\DevBridge\Security\PathException;
 use Lab591\DevBridge\Security\WritableRootValidator;
 use Lab591\DevBridge\Settings;
@@ -281,6 +282,35 @@ final class AdminController {
 			$add( 'ripgrep', 'warning', __( 'ripgrep configured but not executable', 'lab591-dev-bridge' ), __( 'Search keeps working with the PHP engine. Check the path in Settings → Search.', 'lab591-dev-bridge' ) );
 		} else {
 			$add( 'ripgrep', 'info', __( 'ripgrep not configured', 'lab591-dev-bridge' ), __( 'Optional: search uses the PHP engine.', 'lab591-dev-bridge' ) );
+		}
+
+		$cache = ( new CacheDetector() )->report();
+		if ( [] !== $cache['page'] ) {
+			$add(
+				'cache',
+				'warning',
+				/* translators: %s: cache names, e.g. "WP Rocket, Kinsta". */
+				sprintf( __( 'Page cache active: %s', 'lab591-dev-bridge' ), implode( ', ', $cache['page'] ) ),
+				__( 'After a deploy Claude may see outdated pages. On a development or staging site, disable the cache while you work with Claude; on a live site purge it after each deploy (you can automate it with the devbridge_deployed action, see the README).', 'lab591-dev-bridge' )
+			);
+		} elseif ( [] !== $cache['assets'] ) {
+			$add(
+				'cache',
+				'info',
+				/* translators: %s: plugin names, e.g. "Autoptimize". */
+				sprintf( __( 'CSS/JS optimization active: %s', 'lab591-dev-bridge' ), implode( ', ', $cache['assets'] ) ),
+				__( 'Combined or minified files may not include the latest changes until the plugin cache is cleared.', 'lab591-dev-bridge' )
+			);
+		} else {
+			$add( 'cache', 'ok', __( 'No page cache detected', 'lab591-dev-bridge' ) );
+		}
+		if ( null !== $cache['opcache_stale_s'] ) {
+			$add(
+				'opcache',
+				'warning',
+				__( 'OPcache cannot be refreshed by the plugin', 'lab591-dev-bridge' ),
+				__( 'opcache.restrict_api prevents invalidating updated PHP files: changes may stay invisible for a while and the health check may test the old code. Allow this site path in opcache.restrict_api or ask the host.', 'lab591-dev-bridge' )
+			);
 		}
 		return $checks;
 	}

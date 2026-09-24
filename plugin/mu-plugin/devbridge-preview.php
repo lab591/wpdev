@@ -1,7 +1,7 @@
 <?php
 /**
  * Description: Dev Bridge Preview — shows the preview copies of themes and plugins only to requests with a valid preview cookie. Inert otherwise.
- * Version:     0.5.0
+ * Version:     0.6.0
  * Author:      Lab591
  * Dev-Bridge-Preview: lab591
  *
@@ -19,7 +19,7 @@
 declare(strict_types=1);
 
 // Cheap exit for every normal request.
-if ( ! defined( 'ABSPATH' ) || ( empty( $_COOKIE['devbridge_preview'] ) && empty( $_GET['devbridge_preview'] ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- token-authenticated, read-only switch.
+if ( ! defined( 'ABSPATH' ) || ( empty( $_COOKIE['wordpress_devbridge_preview'] ) && empty( $_GET['devbridge_preview'] ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- token-authenticated, read-only switch.
 	return;
 }
 
@@ -31,7 +31,7 @@ devbridge_preview_boot();
 function devbridge_preview_boot(): void {
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput -- the token itself is the credential, compared as a hash.
 	$from_link = isset( $_GET['devbridge_preview'] ) && is_string( $_GET['devbridge_preview'] );
-	$token     = $from_link ? (string) $_GET['devbridge_preview'] : (string) ( $_COOKIE['devbridge_preview'] ?? '' );
+	$token     = $from_link ? (string) $_GET['devbridge_preview'] : (string) ( $_COOKIE['wordpress_devbridge_preview'] ?? '' );
 	// phpcs:enable
 	if ( 1 !== preg_match( '/^[0-9a-f]{64}$/', $token ) ) {
 		return;
@@ -39,14 +39,14 @@ function devbridge_preview_boot(): void {
 	$preview = devbridge_preview_load();
 	if ( null === $preview || ! hash_equals( (string) $preview['token_sha256'], hash( 'sha256', $token ) ) ) {
 		if ( ! $from_link ) {
-			setcookie( 'devbridge_preview', '', time() - 3600, '/' ); // Stale cookie: drop it.
+			setcookie( 'wordpress_devbridge_preview', '', time() - 3600, '/' ); // Stale cookie: drop it.
 		}
 		return;
 	}
 
 	if ( $from_link ) {
 		setcookie(
-			'devbridge_preview',
+			'wordpress_devbridge_preview', // "wordpress_" prefix: many server/CDN caches bypass it.
 			$token,
 			array(
 				'expires'  => (int) $preview['expires_at'],

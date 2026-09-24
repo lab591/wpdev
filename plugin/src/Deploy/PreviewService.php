@@ -17,6 +17,7 @@ namespace Lab591\DevBridge\Deploy;
 use Lab591\DevBridge\Security\Access;
 use Lab591\DevBridge\Security\PathException;
 use Lab591\DevBridge\Security\PathGuard;
+use Lab591\DevBridge\Services\CacheDetector;
 use Lab591\DevBridge\Storage\Storage;
 use Lab591\DevBridge\Support\ApiException;
 
@@ -30,6 +31,15 @@ final class PreviewService {
 	public const CONTAINERS = [ 'wp-content/themes', 'wp-content/plugins' ];
 
 	/**
+	 * Preview cookie. The "wordpress_" prefix is on purpose: many server and CDN caches (Varnish
+	 * templates, Cloudflare APO, managed hosts) already bypass the cache for such cookies.
+	 */
+	public const COOKIE = 'wordpress_devbridge_preview';
+
+	/** Header sent by the preview mu-plugin on every preview response. */
+	public const HEADER = 'x-devbridge-preview';
+
+	/**
 	 * @param array{deploy_zip_bytes: int, deploy_files: int, deploy_file_bytes: int} $limits
 	 * @param \Closure(string): array<string, mixed>                                  $probe Health request with the preview cookie token.
 	 */
@@ -39,6 +49,28 @@ final class PreviewService {
 		private readonly array $limits,
 		private readonly \Closure $probe,
 	) {
+	}
+
+	/**
+	 * Whether a plain request with the preview cookie reached the preview (the mu-plugin answered)
+	 * or was served by a cache in front of PHP, which would show the live site to the preview link.
+	 *
+	 * @param iterable<string, string|string[]> $headers Response headers (any case).
+	 * @return array{visible: bool, cached?: string}
+	 */
+	public static function visibility( iterable $headers ): array {
+		$all = [];
+		foreach ( $headers as $name => $value ) {
+			$all[ strtolower( (string) $name ) ] = $value;
+		}
+		if ( isset( $all[ self::HEADER ] ) ) {
+			return [ 'visible' => true ];
+		}
+		$cached = CacheDetector::hitEvidence( $all );
+		return null === $cached ? [ 'visible' => false ] : [
+			'visible' => false,
+			'cached'  => $cached,
+		];
 	}
 
 	private function file(): string {

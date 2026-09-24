@@ -264,5 +264,12 @@
   "The preview link expired: ask Claude (or run \"wpdev preview\") for a new one.": "Il link di anteprima è scaduto: chiedine uno nuovo a Claude (o esegui \"wpdev preview\").",
   "The link sent to the developer works until %s.": "Il link inviato allo sviluppatore funziona fino al %s.",
   "Publish": "Pubblica",
-  "Discard preview": "Scarta anteprima"
+  "Discard preview": "Scarta anteprima",
+  "Page cache active: %s": "Cache delle pagine attiva: %s",
+  "After a deploy Claude may see outdated pages. On a development or staging site, disable the cache while you work with Claude; on a live site purge it after each deploy (you can automate it with the devbridge_deployed action, see the README).": "Dopo un deploy Claude potrebbe vedere pagine non aggiornate. Su un sito di sviluppo o staging disattiva la cache mentre lavori con Claude; su un sito in produzione svuotala dopo ogni deploy (puoi automatizzarlo con l'azione devbridge_deployed, vedi il README).",
+  "CSS/JS optimization active: %s": "Ottimizzazione CSS/JS attiva: %s",
+  "Combined or minified files may not include the latest changes until the plugin cache is cleared.": "I file combinati o minificati potrebbero non includere le ultime modifiche finché non si svuota la cache del plugin.",
+  "No page cache detected": "Nessuna cache delle pagine rilevata",
+  "OPcache cannot be refreshed by the plugin": "OPcache non può essere aggiornata dal plugin",
+  "opcache.restrict_api prevents invalidating updated PHP files: changes may stay invisible for a while and the health check may test the old code. Allow this site path in opcache.restrict_api or ask the host.": "opcache.restrict_api impedisce di invalidare i file PHP aggiornati: le modifiche possono restare invisibili per un po' e l'health check potrebbe provare il codice vecchio. Consenti il percorso di questo sito in opcache.restrict_api o chiedi all'hosting."
 }

@@ -192,6 +192,12 @@ Le cancellazioni sono ammesse solo dentro `writable_roots`; le cartelle rimaste 
   provoca il rollback.
   Solo i 5xx contano come errore: una pagina di login rinominata da un plugin di sicurezza (404/403/redirect) non
   fa fallire il deploy.
+- **Risposte dalla cache** (0.6.0): la richiesta usa un argomento casuale in query e `Cache-Control`/`Pragma:
+  no-cache`, che bastano a saltare la maggior parte delle cache. Se però la risposta porta header tipici di una
+  pagina servita da una cache (`x-litespeed-cache: hit`, `cf-cache-status: HIT`, `x-cache`/`x-cache-status`/
+  `x-proxy-cache: HIT`, `x-varnish` con due id, `age > 0`…) quel controllo non prova niente: il check riporta
+  `cached` con l'header trovato e l'esito complessivo diventa `unknown` (nessun OK automatico, nessun rollback se
+  non c'è un vero errore), con un messaggio che lo spiega.
 - **Avvisi** (0.5.0): le nuove righe `PHP Warning/Notice/Deprecated` scritte in `debug.log` dopo l'inizio del
   deploy (una copia per messaggio, senza timestamp) non fanno mai fallire il deploy. La risposta di `/deploy`
   riporta in `health.warnings` solo quelle che citano i file appena pubblicati (max 20) e in
@@ -235,6 +241,37 @@ Pagina admin con filtri. Pulizia via cron oltre `audit_retention_days`. I conten
 
 `uninstall.php`: rimuove opzioni, tabella audit, mu-plugin rescue (se ancora presente), storage (chiedendo conferma nella pagina admin prima della disattivazione se ci sono release).
 
+### 2.13c Cache (0.6.0)
+
+Il plugin **rileva** le cache che possono nascondere una modifica appena pubblicata, **non le svuota**: ogni
+plugin di cache e ogni hosting ha la sua API e integrarle sarebbe una dipendenza fragile. Lo svuotamento resta
+all'utente, che può agganciarlo all'azione `devbridge_deployed`.
+
+- **Rilevamento** (`Services\CacheDetector`), prima con segnali generici e poi con i nomi:
+  - cache delle pagine: `WP_CACHE` con il drop-in `advanced-cache.php` (qualsiasi plugin, anche sconosciuto);
+    plugin di cache lato server (LiteSpeed Cache, SiteGround Speed Optimizer, Breeze, NitroPack, Nginx Helper,
+    Proxy Cache Purge), attivi anche senza drop-in; hosting gestiti riconosciuti da costanti/classi dei loro
+    mu-plugin (WP Engine, Kinsta, Pantheon, GoDaddy, Pressable, WordPress.com). Un elenco breve di plugin noti
+    (WP Rocket, W3 Total Cache, WP Super Cache…) serve solo a dare un nome al drop-in;
+  - ottimizzazione CSS/JS (Autoptimize, Perfmatters);
+  - object cache: drop-in `object-cache.php` in uso (non influisce sul codice, solo informativo);
+  - OPcache: se `opcache.restrict_api` impedisce al plugin di invalidare i file, quanto possono restare invisibili
+    le modifiche PHP (`revalidate_freq`, o fino al riavvio con `validate_timestamps=0`); in quel caso anche
+    l'health check può provare il codice vecchio;
+  - `WP_DEVELOPMENT_MODE`.
+- **Dove compare**: `site_info` → `overview` (`page_cache`, `object_cache`, `asset_optimization`, `opcache`,
+  `development_mode`); nella risposta di `/deploy` e `/preview/publish` il campo `cache` (`page`, `assets`,
+  `opcache_stale_s`), presente solo se qualcosa può nascondere la modifica; nella scheda Stato dell'admin una voce
+  "Cache" (avviso se c'è una cache delle pagine) e una voce "OPcache" se non è aggiornabile.
+- **Cosa fa Claude** (istruzioni nel `CLAUDE.md` e nel testo del tool `deploy`): per verificare una pagina aggiunge
+  un parametro casuale all'URL; chiede all'utente di disattivare la cache mentre si sviluppa, ma non su un sito di
+  produzione, dove chiede invece di svuotarla. Il deploy da MCP è già rifiutato sugli ambienti protetti.
+- **Anteprima**: il cookie si chiama `wordpress_devbridge_preview` perché molte cache di server e CDN saltano già i
+  cookie `wordpress_*`. Le cache servite da `advanced-cache.php` (WP Super Cache, WP Rocket…) partono però prima
+  dei mu-plugin e ignorano il cookie: dopo la creazione il server fa anche una richiesta "come un browser" (senza
+  argomenti in query) con il cookie e, se manca l'header `X-DevBridge-Preview`, riporta `health.visible: false`
+  (con l'eventuale header di cache), così Claude e l'utente sanno che il link mostrerebbe il sito live.
+
 ### 2.13b Aggiornamenti (0.5.0)
 
 Intestazione `Update URI: https://github.com/lab591/wpdev`: WordPress chiede gli aggiornamenti al plugin (filtro
@@ -254,7 +291,7 @@ Obiettivo: vedere le modifiche sul sito vero **senza che i visitatori le vedano*
   locale sparisce anche dall'anteprima. Non disponibile per `mu-plugins`. Limiti: 5.000 file e 50 MB per unità.
 - **Validazione**: identica al deploy (`DeployValidator`: PathGuard, deny list, estensioni, conflitti con la
   versione live, tutto prima di scrivere). Le copie non contengono link simbolici né file in deny list.
-- **Chi la vede**: solo chi ha il cookie `devbridge_preview`, impostato aprendo il link
+- **Chi la vede**: solo chi ha il cookie `wordpress_devbridge_preview` (0.6.0; prima `devbridge_preview`), impostato aprendo il link
   `/?devbridge_preview=<token>` restituito dal server (token casuale di 32 byte, salvato solo come sha256 in
   `preview.json` nello storage, scadenza 8 ore, nuovo token a ogni anteprima). Un mu-plugin
   (`devbridge-preview.php`, copiato e verificato come il rescue) per quelle richieste sostituisce il tema
@@ -470,6 +507,9 @@ resta all'utente. `wpdev init` con un `wpdev.json` già presente lo riusa.
 - Non cercare di scrivere fuori dalle cartelle consentite: il server lo rifiuta.
 - Se il deploy fallisce, leggi gli errori riportati, controlla `site_log` e correggi.
 - Dopo modifiche visibili, verifica la pagina nel browser (Chrome).
+- Se il deploy (o `site_info` → `page_cache`) segnala una cache delle pagine, nel browser puoi vedere pagine
+  vecchie: per verificare aggiungi all'URL un parametro casuale (es. `?v=123`). Chiedi all'utente se può
+  disattivare la cache mentre lavorate, ma non su un sito di produzione: lì chiedigli di svuotarla.
 - Contenuti e pagine Elementor si gestiscono con l'MCP del sito (WSP), non via file.
 
 ## Convenzioni

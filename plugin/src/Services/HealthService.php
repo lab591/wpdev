@@ -44,10 +44,11 @@ final class HealthService implements HealthChecker {
 	}
 
 	public function check( int $logOffset, array $extraPaths = [] ): array {
-		$checks  = [];
-		$failed  = false;
-		$unknown = false;
-		$targets = [];
+		$checks    = [];
+		$failed    = false;
+		$unknown   = false;
+		$cachedAny = false;
+		$targets   = [];
 		foreach ( $this->urls as $url ) {
 			$targets[ $url ] = 'admin';
 		}
@@ -69,7 +70,10 @@ final class HealthService implements HealthChecker {
 					'timeout'     => 10,
 					'sslverify'   => true,
 					'redirection' => 3,
-					'headers'     => [ 'Cache-Control' => 'no-cache' ],
+					'headers'     => [
+						'Cache-Control' => 'no-cache',
+						'Pragma'        => 'no-cache',
+					],
 				]
 			);
 			$check    = [
@@ -84,6 +88,13 @@ final class HealthService implements HealthChecker {
 				$check['code'] = (int) wp_remote_retrieve_response_code( $response );
 				if ( $check['code'] >= 500 ) {
 					$failed = true;
+				} else {
+					// A page served by a proxy/CDN cache says nothing about the new code.
+					$cached = CacheDetector::hitEvidence( self::headers( $response ) );
+					if ( null !== $cached ) {
+						$check['cached'] = $cached;
+						$cachedAny       = true;
+					}
 				}
 			}
 			$checks[] = $check;
@@ -95,15 +106,31 @@ final class HealthService implements HealthChecker {
 		}
 
 		$result = [
-			'status'   => $failed ? self::FAIL : ( $unknown ? self::UNKNOWN : self::OK ),
+			'status'   => $failed ? self::FAIL : ( $unknown || $cachedAny ? self::UNKNOWN : self::OK ),
 			'checks'   => $checks,
 			'errors'   => $errors,
 			'warnings' => $warnings,
 		];
 		if ( ! $failed && $unknown ) {
 			$result['message'] = 'Loopback request failed (network error or blocked by the host): changes were kept, check the site manually.';
+		} elseif ( ! $failed && $cachedAny ) {
+			$result['message'] = 'Some pages were served from a cache (proxy, CDN or server) even with a cache-busting request: they do not prove the new code works. Changes were kept, check the site manually.';
 		}
 		return $result;
+	}
+
+	/**
+	 * Response headers as an iterable of name => value(s), whatever the HTTP API returned.
+	 *
+	 * @param array<string, mixed>|object $response
+	 * @return iterable<string, string|string[]>
+	 */
+	private static function headers( array|object $response ): iterable {
+		$headers = wp_remote_retrieve_headers( $response );
+		if ( is_object( $headers ) && method_exists( $headers, 'getAll' ) ) {
+			$headers = $headers->getAll();
+		}
+		return is_array( $headers ) ? $headers : [];
 	}
 
 	/**

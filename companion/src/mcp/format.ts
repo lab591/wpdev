@@ -1,6 +1,6 @@
 import type { Config } from '../config.js';
 import { countChanges, type DeployOutcome } from '../deploy.js';
-import { ApiError, type CacheFlushResponse, type GrepResponse, type HealthResult, type IntrospectResponse, type ListResponse, type LogResponse, type ReadResponse, type RollbackResponse, type StatusResponse } from '../http.js';
+import { ApiError, type CacheFlushResponse, type CacheNotice, type GrepResponse, type HealthResult, type IntrospectResponse, type ListResponse, type LogResponse, type ReadResponse, type RollbackResponse, type StatusResponse } from '../http.js';
 import { describeError, formatSize } from '../messages.js';
 import { isInside, relativeTo } from '../paths.js';
 import { compareRoots } from '../roots.js';
@@ -126,7 +126,9 @@ export function formatLog(res: LogResponse): string {
 // ---------------------------------------------------------------- M2: deploy & co.
 
 function healthText(h: HealthResult): string {
-  const checks = h.checks.map((c) => `${c.url}${c.source === 'agent' ? ' (agent)' : c.source === 'backend' ? ' (backend)' : ''} ${c.code ?? c.error ?? '?'}`).join(', ');
+  const checks = h.checks
+    .map((c) => `${c.url}${c.source === 'agent' ? ' (agent)' : c.source === 'backend' ? ' (backend)' : ''} ${c.code ?? c.error ?? '?'}${c.cached ? ` [served from cache: ${c.cached}]` : ''}`)
+    .join(', ');
   return `health: ${h.status}${checks ? ` (${checks})` : ''}${h.message ? ` — ${h.message}` : ''}`;
 }
 
@@ -147,6 +149,36 @@ function apiErrorText(error: unknown): string {
     return `error: ${error.message}${where} [${error.code}${error.status ? ` ${error.status}` : ''}]`;
   }
   return `error: ${describeError(error)}`;
+}
+
+/** What the agent must know when caches may hide a change just published (0.6.0). */
+export function cacheNoticeText(cache: CacheNotice | undefined): string[] {
+  if (!cache) return [];
+  const out: string[] = [];
+  if (cache.page.length) {
+    out.push(
+      `page cache active on the site (${cache.page.join(', ')}): pages you open in the browser may be stale. ` +
+        'To check a page now add a random query argument (e.g. ?v=123), which bypasses most page caches. ' +
+        'Ask the user whether the cache can be disabled while developing on this site; on a production site do not ask that, ask them to purge it instead.',
+    );
+  }
+  if (cache.assets.length) {
+    out.push(`CSS/JS optimization active (${cache.assets.join(', ')}): combined/minified files may not include your changes until its cache is cleared; tell the user if styles or scripts look outdated.`);
+  }
+  if (cache.opcache_stale_s !== null) {
+    const when = cache.opcache_stale_s < 0 ? 'until PHP restarts' : `for up to ${cache.opcache_stale_s}s`;
+    out.push(`OPcache cannot be invalidated by the plugin (opcache.restrict_api): PHP changes may stay invisible ${when} and the health check may have tested the old code. Tell the user.`);
+  }
+  return out;
+}
+
+/** Warning when the preview link would show the live site (a cache in front of PHP ignores the cookie). */
+export function previewVisibilityText(health: { visible?: boolean; cached?: string }): string[] {
+  if (health.visible !== false) return [];
+  return [
+    `warning: a request with the preview cookie got the live page${health.cached ? ` (${health.cached})` : ''}: a cache in front of PHP ignores the cookie, so the link may show the live site. ` +
+      'Ask the user to exclude the cookie wordpress_devbridge_preview from the server/CDN cache or to disable the cache while developing.',
+  ];
 }
 
 /** Compact text for the MCP `deploy` tool. */
@@ -183,6 +215,7 @@ export function formatDeployOutcome(o: DeployOutcome): { text: string; isError: 
         `open this link in the browser to see it (sets a preview cookie): ${p.link}`,
         `preview check: ${p.health.status}${p.health.code ? ` (HTTP ${p.health.code})` : ''}`,
         ...(p.health.errors ?? []).slice(0, 20).map((e) => `  ${e}`),
+        ...previewVisibilityText(p.health),
         'publish with preview_publish, or discard with preview_discard',
       ];
       return { text: [...lines, ...notes].join('\n'), isError: p.health.status === 'fail' };
@@ -206,14 +239,22 @@ export function formatDeployOutcome(o: DeployOutcome): { text: string; isError: 
       const lines = [`release ${r.release_id}: ${r.written} written, ${r.deleted} deleted (${counts})`, healthText(r.health)];
       if (o.git?.hash) lines.push(`git commit ${o.git.hash} (published files only)`);
       if (o.git?.error) lines.push(`note: automatic git commit failed: ${o.git.error}`);
-      if (r.status === 'health_unknown') lines.push('warning: health check could not run (loopback unreachable), no automatic rollback: verify the site in the browser');
+      if (r.status === 'health_unknown') lines.push(unknownHealthText(r.health));
       if (r.errors?.length) lines.push('fatal lines in debug.log:', ...r.errors.slice(0, 20).map((e) => `  ${e}`));
       if (r.health.warnings?.length) {
         lines.push('new PHP warnings in the deployed files (deploy kept online; fix them):', ...r.health.warnings.slice(0, 20).map((w) => `  ${w}`));
       }
+      lines.push(...cacheNoticeText(r.cache));
       return { text: [...lines, ...notes].join('\n'), isError: false };
     }
   }
+}
+
+/** Inconclusive health check: loopback unreachable, or pages served from a cache. */
+export function unknownHealthText(h: HealthResult): string {
+  return h.checks.some((c) => c.cached)
+    ? 'warning: some pages were served from a cache (proxy/CDN/server), so the health check proves nothing and there was no automatic rollback: verify the site in the browser adding a random query argument (e.g. ?v=123)'
+    : 'warning: health check could not run (loopback unreachable), no automatic rollback: verify the site in the browser';
 }
 
 export function formatRollback(r: RollbackResponse): string {

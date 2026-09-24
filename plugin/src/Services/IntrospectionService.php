@@ -102,10 +102,33 @@ final class IntrospectionService {
 				'key'   => 'permalinks',
 				'value' => '' === (string) get_option( 'permalink_structure' ) ? 'plain' : (string) get_option( 'permalink_structure' ),
 			],
-			[
-				'key'   => 'object_cache',
-				'value' => wp_using_ext_object_cache() ? 'external' : 'none',
-			],
+		];
+		$cache   = ( new CacheDetector() )->report();
+		$items[] = [
+			'key'   => 'page_cache',
+			'value' => [] === $cache['page'] ? 'none' : implode( ', ', $cache['page'] ),
+		];
+		$items[] = [
+			'key'   => 'object_cache',
+			'value' => $cache['object'] ?? 'none',
+		];
+		if ( [] !== $cache['assets'] ) {
+			$items[] = [
+				'key'   => 'asset_optimization',
+				'value' => implode( ', ', $cache['assets'] ),
+			];
+		}
+		$items[] = [
+			'key'   => 'opcache',
+			'value' => match ( true ) {
+				null === $cache['opcache_stale_s'] => $cache['opcache'],
+				-1 === $cache['opcache_stale_s']   => 'restricted: PHP changes may stay invisible until PHP restarts',
+				default                            => 'restricted: PHP changes may take up to ' . $cache['opcache_stale_s'] . 's to be visible',
+			},
+		];
+		$items[] = [
+			'key'   => 'development_mode',
+			'value' => '' === $cache['development_mode'] ? 'none' : $cache['development_mode'],
 		];
 		foreach ( [ 'WP_DEBUG', 'WP_DEBUG_LOG', 'WP_DEBUG_DISPLAY', 'SCRIPT_DEBUG', 'DISALLOW_FILE_EDIT', 'DISABLE_WP_CRON' ] as $constant ) {
 			$items[] = [
