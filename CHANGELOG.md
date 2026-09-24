@@ -2,11 +2,14 @@
 
 Tutte le versioni del plugin **Lab591 Dev Bridge** e del companion **wpdev**.
 
-## Non ancora rilasciato
+## 0.6.1
 
 - **Protezione della pagina con password** (facoltativa): senza password la pagina Dev Bridge mostra solo il
   campo per sbloccarla e tutte le azioni sono rifiutate. Sblocco per sessione, 30 minuti di inattività,
   pulsante *Blocca*, limite ai tentativi, eventi nell'audit, recupero con `wp devbridge lock --clear`.
+- *Bacheca → Aggiornamenti → Controlla di nuovo* ora rilegge subito le release da GitHub (prima restavano in
+  cache fino a 12 ore).
+- CI: i test del companion su Linux non vanno più in errore quando git termina prima di leggere l'input.
 
 ## 0.6.0
 

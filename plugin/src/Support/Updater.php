@@ -4,7 +4,8 @@
  * https://github.com/lab591/wpdev`, so WordPress asks this class (filter
  * `update_plugins_github.com`) instead of wordpress.org.
  *
- * The latest release is read from the GitHub API (cached 12 hours); an update is offered only
+ * The latest release is read from the GitHub API (cached 12 hours, dropped by "Check again" on
+ * Dashboard → Updates); an update is offered only
  * when its version is newer and it has the plugin zip attached as a release asset of the same
  * repository. WordPress then downloads and installs it as for any other plugin.
  * Disable with `define( 'DEVBRIDGE_DISABLE_UPDATES', true );`.
@@ -32,6 +33,18 @@ final class Updater {
 			return;
 		}
 		add_filter( 'update_plugins_github.com', [ $this, 'check' ], 10, 3 );
+		add_action( 'load-update-core.php', [ $this, 'onForceCheck' ] );
+	}
+
+	/**
+	 * "Check again" on Dashboard → Updates also skips the 12-hour cache of the GitHub answer,
+	 * so a release published a minute ago shows up immediately.
+	 */
+	public function onForceCheck(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only: only drops a cache, like core does for the same flag.
+		if ( isset( $_GET['force-check'] ) && current_user_can( 'update_plugins' ) ) {
+			Options::deleteTransient( self::CACHE_KEY );
+		}
 	}
 
 	/**
