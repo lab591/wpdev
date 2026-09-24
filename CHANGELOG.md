@@ -2,7 +2,7 @@
 
 Tutte le versioni del plugin **Lab591 Dev Bridge** e del companion **wpdev**.
 
-## Non ancora rilasciato
+## 0.6.0
 
 - **Database in sola lettura** (spento per default, *Impostazioni → Database*): livello *Struttura* (tabelle,
   colonne, indici, chiavi meta, nomi delle opzioni) o *Lettura dati* (righe con query strutturate, max 100).

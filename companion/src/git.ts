@@ -38,7 +38,7 @@ export function runGit(cwd: string, args: string[], input?: string): Promise<Git
   return new Promise((resolve) => {
     let child;
     try {
-      child = spawn('git', args, { cwd, windowsHide: true });
+      child = spawn('git', args, { cwd, windowsHide: true, stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'] });
     } catch {
       resolve({ missing: true });
       return;
@@ -46,8 +46,8 @@ export function runGit(cwd: string, args: string[], input?: string): Promise<Git
     let stdout = '';
     let stderr = '';
     const timer = setTimeout(() => child.kill(), 30_000);
-    child.stdout.on('data', (d: Buffer) => (stdout += d.toString('utf8')));
-    child.stderr.on('data', (d: Buffer) => (stderr += d.toString('utf8')));
+    child.stdout?.on('data', (d: Buffer) => (stdout += d.toString('utf8')));
+    child.stderr?.on('data', (d: Buffer) => (stderr += d.toString('utf8')));
     child.on('error', (e: NodeJS.ErrnoException) => {
       clearTimeout(timer);
       resolve(e.code === 'ENOENT' ? { missing: true } : { missing: false, code: 1, stdout, stderr: e.message });
@@ -56,7 +56,12 @@ export function runGit(cwd: string, args: string[], input?: string): Promise<Git
       clearTimeout(timer);
       resolve({ missing: false, code: code ?? 1, stdout, stderr });
     });
-    child.stdin.end(input ?? '');
+    if (child.stdin) {
+      // git may exit before reading its input (e.g. not a repository): the exit code tells what happened,
+      // the resulting EPIPE on stdin must not crash the process.
+      child.stdin.on('error', () => undefined);
+      child.stdin.end(input);
+    }
   });
 }
 
