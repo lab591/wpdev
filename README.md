@@ -175,6 +175,7 @@ Apri Claude Code nella cartella del progetto. Claude:
 - capisce il sito con `site_info`: versioni, tema e plugin attivi, tipi di contenuto, tassonomie,
   shortcode, callback di un hook con file e riga, rotte REST, cron, blocchi (anche da terminale:
   `wpdev info overview`, `wpdev info hook init`);
+- se l'hai abilitato, legge il **database in sola lettura** con `db_schema` e `db_query` (vedi sotto);
 - a fine turno l'hook esegue `wpdev deploy --hook`: lint PHP, controllo conflitti, upload, health
   check. Se il deploy fallisce o viene annullato, Claude riceve gli errori e li corregge; per evitare
   cicli, un secondo fallimento consecutivo non blocca più il turno.
@@ -194,6 +195,8 @@ Comandi utili:
 | `wpdev preview [publish\|discard\|status]` | anteprima delle modifiche locali visibile solo con il link; poi pubblica o scarta |
 | `wpdev restore <percorsi...>` | riporta file o cartelle locali alla versione del server, scartando le modifiche locali (niente viene inviato al sito) |
 | `wpdev claude-md [--force]` | aggiorna la sezione wpdev di `CLAUDE.md` con i dati attuali del sito |
+| `wpdev db schema <argomento> [nome]` | struttura del database: `tables`, `table <nome>`, `meta_keys postmeta\|usermeta\|termmeta\|commentmeta [--post-type x]`, `options` |
+| `wpdev db query <tabella> [--where "..."]` | righe in sola lettura (max 100), es. `wpdev db query wp_posts --columns ID,post_title --where "post_type = page"` |
 | `wpdev info <argomento> [nome]` | informazioni sul sito: `overview`, `post_types`, `taxonomies`, `shortcodes`, `hook <nome>`, `rest_routes [prefisso]`, `cron`, `blocks [prefisso]` |
 | `wpdev cache clear` | svuota la cache di lettura |
 
@@ -225,6 +228,36 @@ strumento MCP `health` li usano anche per una verifica immediata.
    vengono ripristinati subito e il comando esce con `2`.
 
 ---
+
+### Database (sola lettura)
+
+Per capire come sono salvati i dati e fare debug, Claude può leggere il database, **mai scriverlo**: per
+cambiare dati o struttura scrive una migrazione nel plugin e la pubblica. È spento per default: lo abiliti in
+*Impostazioni → Database*:
+
+- **Struttura**: tabelle, colonne, indici, chiavi meta usate (con quante volte), nomi e dimensioni delle opzioni.
+  Nessun valore salvato;
+- **Lettura dati**: anche le righe, al massimo 100 per volta, con query strutturate (tabella, colonne,
+  condizioni): niente SQL libero.
+
+Protezioni sempre attive:
+
+- le colonne con password, chiavi e token (`user_pass`, `user_activation_key`, `post_password`…) non si possono
+  leggere, né usare nei filtri o nell'ordinamento;
+- i valori di opzioni e meta segreti (password SMTP, chiavi API, licenze, token, webhook, sessioni) diventano
+  `[redacted]`, anche quando sono dentro un JSON o un array serializzato; lo stesso per hash di password, chiavi
+  private e token riconoscibili ovunque compaiano;
+- sui valori di opzioni e meta sono ammessi solo confronti esatti, così nessuno può ricostruire un segreto un
+  carattere alla volta con `like`;
+- con *Maschera i dati personali* (attivo per default) email, IP, telefoni, nomi e indirizzi diventano
+  `[personal]`: quello che Claude legge finisce nella conversazione;
+- le tabelle di Dev Bridge e quelle che escludi in *Tabelle escluse* (es. `wp_wc_orders*`) non sono visibili,
+  nemmeno la struttura;
+- ogni lettura finisce nel registro di audit (tabella e colonne, mai i valori), e serve la modalità sviluppo
+  attiva.
+
+Da terminale: `wpdev db schema tables`, `wpdev db schema meta_keys postmeta --post-type product`,
+`wpdev db query wp_options --columns option_name,autoload --where "option_name like woocommerce_%"`.
 
 ### Cache (WP Rocket, LiteSpeed, WP Super Cache, Cloudflare…)
 

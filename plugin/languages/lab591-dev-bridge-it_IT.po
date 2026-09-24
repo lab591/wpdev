@@ -11,7 +11,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-24T11:26:12+00:00\n"
+"POT-Creation-Date: 2026-09-24T12:38:58+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: lab591-dev-bridge\n"
@@ -173,54 +173,82 @@ msgstr "ripgrep non configurato"
 msgid "Optional: search uses the PHP engine."
 msgstr "Facoltativo: la ricerca usa il motore PHP."
 
+#: src/Admin/AdminController.php:292
+msgid "Database: read access"
+msgstr "Database: accesso in lettura"
+
+#: src/Admin/AdminController.php:294
+msgid "Claude can read rows (no writes, secrets redacted, personal data masked)."
+msgstr "Claude può leggere le righe (nessuna scrittura, segreti oscurati, dati personali mascherati)."
+
+#: src/Admin/AdminController.php:295
+msgid "Claude can read rows (no writes, secrets redacted). Personal data is NOT masked."
+msgstr "Claude può leggere le righe (nessuna scrittura, segreti oscurati). I dati personali NON sono mascherati."
+
+#: src/Admin/AdminController.php:298
+msgid "Database: structure only"
+msgstr "Database: solo struttura"
+
+#: src/Admin/AdminController.php:298
+msgid "Claude sees tables, columns and key names, no stored values."
+msgstr "Claude vede tabelle, colonne e nomi delle chiavi, nessun valore salvato."
+
+#: src/Admin/AdminController.php:300
+msgid "Database: no access"
+msgstr "Database: nessun accesso"
+
+#: src/Admin/AdminController.php:300
+msgid "Optional: allow reading the structure or the data in Settings → Database."
+msgstr "Facoltativo: consenti la lettura della struttura o dei dati in Impostazioni → Database."
+
 #. translators: %s: cache names, e.g. "WP Rocket, Kinsta".
-#: src/Admin/AdminController.php:293
+#: src/Admin/AdminController.php:309
 #, php-format
 msgid "Page cache active: %s"
 msgstr "Cache delle pagine attiva: %s"
 
-#: src/Admin/AdminController.php:294
+#: src/Admin/AdminController.php:310
 msgid "After a deploy Claude may see outdated pages. On a development or staging site, disable the cache while you work with Claude; on a live site purge it after each deploy (you can automate it with the devbridge_deployed action, see the README)."
 msgstr "Dopo un deploy Claude potrebbe vedere pagine non aggiornate. Su un sito di sviluppo o staging disattiva la cache mentre lavori con Claude; su un sito in produzione svuotala dopo ogni deploy (puoi automatizzarlo con l'azione devbridge_deployed, vedi il README)."
 
 #. translators: %s: plugin names, e.g. "Autoptimize".
-#: src/Admin/AdminController.php:301
+#: src/Admin/AdminController.php:317
 #, php-format
 msgid "CSS/JS optimization active: %s"
 msgstr "Ottimizzazione CSS/JS attiva: %s"
 
-#: src/Admin/AdminController.php:302
+#: src/Admin/AdminController.php:318
 msgid "Combined or minified files may not include the latest changes until the plugin cache is cleared."
 msgstr "I file combinati o minificati potrebbero non includere le ultime modifiche finché non si svuota la cache del plugin."
 
-#: src/Admin/AdminController.php:305
+#: src/Admin/AdminController.php:321
 msgid "No page cache detected"
 msgstr "Nessuna cache delle pagine rilevata"
 
-#: src/Admin/AdminController.php:311
+#: src/Admin/AdminController.php:327
 msgid "OPcache cannot be refreshed by the plugin"
 msgstr "OPcache non può essere aggiornata dal plugin"
 
-#: src/Admin/AdminController.php:312
+#: src/Admin/AdminController.php:328
 msgid "opcache.restrict_api prevents invalidating updated PHP files: changes may stay invisible for a while and the health check may test the old code. Allow this site path in opcache.restrict_api or ask the host."
 msgstr "opcache.restrict_api impedisce di invalidare i file PHP aggiornati: le modifiche possono restare invisibili per un po' e l'health check potrebbe provare il codice vecchio. Consenti il percorso di questo sito in opcache.restrict_api o chiedi all'hosting."
 
-#: src/Admin/AdminController.php:328
+#: src/Admin/AdminController.php:344
 msgid "Development mode disabled."
 msgstr "Modalità sviluppo disattivata."
 
-#: src/Admin/AdminController.php:333
+#: src/Admin/AdminController.php:349
 msgid "Choose read or write."
 msgstr "Scegli lettura o scrittura."
 
 #. translators: %d: maximum number of hours.
-#: src/Admin/AdminController.php:338
+#: src/Admin/AdminController.php:354
 #, php-format
 msgid "Duration must be between 1 and %d hours."
 msgstr "La durata deve essere tra 1 e %d ore."
 
 #. translators: %d: hours.
-#: src/Admin/AdminController.php:343
+#: src/Admin/AdminController.php:359
 #, php-format
 msgid "Read and write enabled for %d hour."
 msgid_plural "Read and write enabled for %d hours."
@@ -228,42 +256,42 @@ msgstr[0] "Lettura e scrittura attive per %d ora."
 msgstr[1] "Lettura e scrittura attive per %d ore."
 
 #. translators: %d: hours.
-#: src/Admin/AdminController.php:345
+#: src/Admin/AdminController.php:361
 #, php-format
 msgid "Read-only access enabled for %d hour."
 msgid_plural "Read-only access enabled for %d hours."
 msgstr[0] "Accesso in sola lettura attivo per %d ora."
 msgstr[1] "Accesso in sola lettura attivo per %d ore."
 
-#: src/Admin/AdminController.php:370
+#: src/Admin/AdminController.php:386
 msgid "Invalid request: nothing was saved."
 msgstr "Richiesta non valida: non è stato salvato nulla."
 
-#: src/Admin/AdminController.php:382
+#: src/Admin/AdminController.php:398
 msgid "Settings saved."
 msgstr "Impostazioni salvate."
 
-#: src/Admin/AdminController.php:382
+#: src/Admin/AdminController.php:398
 #: build/index.js:8
 msgid "Settings saved, some entries were discarded:"
 msgstr "Impostazioni salvate, alcune voci sono state scartate:"
 
-#: src/Admin/AdminController.php:466
+#: src/Admin/AdminController.php:482
 msgid "This folder cannot be listed."
 msgstr "Questa cartella non può essere elencata."
 
 #. translators: %s: folder path.
-#: src/Admin/AdminController.php:495
+#: src/Admin/AdminController.php:511
 #, php-format
 msgid "Folder %s created and made writable. Run \"wpdev pull\" in the local project."
 msgstr "Cartella %s creata e resa scrivibile. Esegui \"wpdev pull\" nel progetto locale."
 
-#: src/Admin/AdminController.php:520
+#: src/Admin/AdminController.php:536
 msgid "active theme"
 msgstr "tema attivo"
 
 #. translators: 1: email result, 2: webhook result.
-#: src/Admin/AdminController.php:537
+#: src/Admin/AdminController.php:553
 #, php-format
 msgid "Test sent. Email: %1$s. Webhook: %2$s."
 msgstr "Prova inviata. Email: %1$s. Webhook: %2$s."
@@ -404,15 +432,21 @@ msgstr "L'indirizzo email \"%s\" non è valido"
 msgid "Webhook \"%s\" rejected: use an https:// URL (http:// only for local hosts)"
 msgstr "Webhook \"%s\" rifiutato: usa un URL https:// (http:// solo per host locali)"
 
-#: src/Plugin.php:97
+#. translators: %s: table name pattern.
+#: src/Admin/SettingsForm.php:183
+#, php-format
+msgid "Excluded table \"%s\" rejected: use a table name, with * as wildcard (e.g. wp_wc_*)"
+msgstr "Tabella esclusa \"%s\" rifiutata: usa un nome di tabella, con * come jolly (es. wp_wc_*)"
+
+#: src/Plugin.php:99
 msgid "On a multisite network Dev Bridge can only be network-activated (Network Admin → Plugins → Network Activate), because themes and plugins are shared by all sites."
 msgstr "In una rete multisite Dev Bridge si attiva solo a livello di rete (Amministrazione rete → Plugin → Attiva sulla rete), perché temi e plugin sono condivisi da tutti i siti."
 
-#: src/Plugin.php:98
+#: src/Plugin.php:100
 msgid "Activation not allowed"
 msgstr "Attivazione non consentita"
 
-#: src/Plugin.php:153
+#: src/Plugin.php:155
 msgid "Dev Bridge is active on this site only, but this is a multisite network: deactivate it and network-activate it from Network Admin. Until then it does nothing."
 msgstr "Dev Bridge è attivo solo su questo sito ma l'installazione è una rete multisite: disattivalo e attivalo dall'Amministrazione rete. Finché non lo fai è inattivo."
 
@@ -490,8 +524,9 @@ msgid "Write"
 msgstr "Scrittura"
 
 #: build/index.js:5
+#: build/index.js:9
 msgid "Off"
-msgstr "Spenta"
+msgstr "Spento"
 
 #. translators: %s: remaining time.
 #: build/index.js:6
@@ -792,6 +827,54 @@ msgstr "Accelerazione ripgrep (facoltativa)"
 #: build/index.js:9
 msgid "Empty = off. \"rg\" from the PATH or the absolute path of rg/rg.exe. Results still go through the path checks and the deny list."
 msgstr "Vuoto = disattivata. \"rg\" dal PATH o percorso assoluto di rg/rg.exe. I risultati passano comunque dai controlli dei percorsi e dalla deny list."
+
+#: build/index.js:9
+msgid "Database"
+msgstr "Database"
+
+#: build/index.js:9
+msgid "Read-only access to understand the data and debug. Claude never writes to the database through Dev Bridge. Password, key and token columns are never readable."
+msgstr "Accesso in sola lettura per capire i dati e fare debug. Claude non scrive mai nel database tramite Dev Bridge. Le colonne con password, chiavi e token non sono mai leggibili."
+
+#: build/index.js:9
+msgid "Database access"
+msgstr "Accesso al database"
+
+#: build/index.js:9
+msgid "Structure"
+msgstr "Struttura"
+
+#: build/index.js:9
+msgid "Read data"
+msgstr "Lettura dati"
+
+#: build/index.js:9
+msgid "Claude cannot see the database."
+msgstr "Claude non vede il database."
+
+#: build/index.js:9
+msgid "Tables, columns, indexes, meta keys and option names with counts and sizes: no stored value."
+msgstr "Tabelle, colonne, indici, chiavi meta e nomi delle opzioni con conteggi e dimensioni: nessun valore salvato."
+
+#: build/index.js:9
+msgid "Tables, columns, meta keys and rows (at most 100 per query, through structured queries: no free SQL). Values of secret options and meta are redacted."
+msgstr "Tabelle, colonne, chiavi meta e righe (al massimo 100 per query, con query strutturate: niente SQL libero). I valori di opzioni e meta segreti sono oscurati."
+
+#: build/index.js:9
+msgid "Mask personal data"
+msgstr "Maschera i dati personali"
+
+#: build/index.js:9
+msgid "Emails, IP addresses, phone numbers, names and addresses are replaced with [personal]. Recommended: what Claude reads ends up in the conversation."
+msgstr "Email, indirizzi IP, numeri di telefono, nomi e indirizzi vengono sostituiti con [personal]. Consigliato: ciò che Claude legge finisce nella conversazione."
+
+#: build/index.js:9
+msgid "Excluded tables"
+msgstr "Tabelle escluse"
+
+#: build/index.js:9
+msgid "Never visible, not even their structure. Use * as wildcard, e.g. wp_wc_orders*."
+msgstr "Mai visibili, nemmeno la struttura. Usa * come jolly, es. wp_wc_orders*."
 
 #: build/index.js:9
 msgid "Deploy and health check"

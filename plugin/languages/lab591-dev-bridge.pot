@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-24T11:26:12+00:00\n"
+"POT-Creation-Date: 2026-09-24T12:38:58+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: lab591-dev-bridge\n"
@@ -171,54 +171,82 @@ msgstr ""
 msgid "Optional: search uses the PHP engine."
 msgstr ""
 
+#: src/Admin/AdminController.php:292
+msgid "Database: read access"
+msgstr ""
+
+#: src/Admin/AdminController.php:294
+msgid "Claude can read rows (no writes, secrets redacted, personal data masked)."
+msgstr ""
+
+#: src/Admin/AdminController.php:295
+msgid "Claude can read rows (no writes, secrets redacted). Personal data is NOT masked."
+msgstr ""
+
+#: src/Admin/AdminController.php:298
+msgid "Database: structure only"
+msgstr ""
+
+#: src/Admin/AdminController.php:298
+msgid "Claude sees tables, columns and key names, no stored values."
+msgstr ""
+
+#: src/Admin/AdminController.php:300
+msgid "Database: no access"
+msgstr ""
+
+#: src/Admin/AdminController.php:300
+msgid "Optional: allow reading the structure or the data in Settings → Database."
+msgstr ""
+
 #. translators: %s: cache names, e.g. "WP Rocket, Kinsta".
-#: src/Admin/AdminController.php:293
+#: src/Admin/AdminController.php:309
 #, php-format
 msgid "Page cache active: %s"
 msgstr ""
 
-#: src/Admin/AdminController.php:294
+#: src/Admin/AdminController.php:310
 msgid "After a deploy Claude may see outdated pages. On a development or staging site, disable the cache while you work with Claude; on a live site purge it after each deploy (you can automate it with the devbridge_deployed action, see the README)."
 msgstr ""
 
 #. translators: %s: plugin names, e.g. "Autoptimize".
-#: src/Admin/AdminController.php:301
+#: src/Admin/AdminController.php:317
 #, php-format
 msgid "CSS/JS optimization active: %s"
 msgstr ""
 
-#: src/Admin/AdminController.php:302
+#: src/Admin/AdminController.php:318
 msgid "Combined or minified files may not include the latest changes until the plugin cache is cleared."
 msgstr ""
 
-#: src/Admin/AdminController.php:305
+#: src/Admin/AdminController.php:321
 msgid "No page cache detected"
 msgstr ""
 
-#: src/Admin/AdminController.php:311
+#: src/Admin/AdminController.php:327
 msgid "OPcache cannot be refreshed by the plugin"
 msgstr ""
 
-#: src/Admin/AdminController.php:312
+#: src/Admin/AdminController.php:328
 msgid "opcache.restrict_api prevents invalidating updated PHP files: changes may stay invisible for a while and the health check may test the old code. Allow this site path in opcache.restrict_api or ask the host."
 msgstr ""
 
-#: src/Admin/AdminController.php:328
+#: src/Admin/AdminController.php:344
 msgid "Development mode disabled."
 msgstr ""
 
-#: src/Admin/AdminController.php:333
+#: src/Admin/AdminController.php:349
 msgid "Choose read or write."
 msgstr ""
 
 #. translators: %d: maximum number of hours.
-#: src/Admin/AdminController.php:338
+#: src/Admin/AdminController.php:354
 #, php-format
 msgid "Duration must be between 1 and %d hours."
 msgstr ""
 
 #. translators: %d: hours.
-#: src/Admin/AdminController.php:343
+#: src/Admin/AdminController.php:359
 #, php-format
 msgid "Read and write enabled for %d hour."
 msgid_plural "Read and write enabled for %d hours."
@@ -226,42 +254,42 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: hours.
-#: src/Admin/AdminController.php:345
+#: src/Admin/AdminController.php:361
 #, php-format
 msgid "Read-only access enabled for %d hour."
 msgid_plural "Read-only access enabled for %d hours."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Admin/AdminController.php:370
+#: src/Admin/AdminController.php:386
 msgid "Invalid request: nothing was saved."
 msgstr ""
 
-#: src/Admin/AdminController.php:382
+#: src/Admin/AdminController.php:398
 msgid "Settings saved."
 msgstr ""
 
-#: src/Admin/AdminController.php:382
+#: src/Admin/AdminController.php:398
 #: build/index.js:8
 msgid "Settings saved, some entries were discarded:"
 msgstr ""
 
-#: src/Admin/AdminController.php:466
+#: src/Admin/AdminController.php:482
 msgid "This folder cannot be listed."
 msgstr ""
 
 #. translators: %s: folder path.
-#: src/Admin/AdminController.php:495
+#: src/Admin/AdminController.php:511
 #, php-format
 msgid "Folder %s created and made writable. Run \"wpdev pull\" in the local project."
 msgstr ""
 
-#: src/Admin/AdminController.php:520
+#: src/Admin/AdminController.php:536
 msgid "active theme"
 msgstr ""
 
 #. translators: 1: email result, 2: webhook result.
-#: src/Admin/AdminController.php:537
+#: src/Admin/AdminController.php:553
 #, php-format
 msgid "Test sent. Email: %1$s. Webhook: %2$s."
 msgstr ""
@@ -402,15 +430,21 @@ msgstr ""
 msgid "Webhook \"%s\" rejected: use an https:// URL (http:// only for local hosts)"
 msgstr ""
 
-#: src/Plugin.php:97
+#. translators: %s: table name pattern.
+#: src/Admin/SettingsForm.php:183
+#, php-format
+msgid "Excluded table \"%s\" rejected: use a table name, with * as wildcard (e.g. wp_wc_*)"
+msgstr ""
+
+#: src/Plugin.php:99
 msgid "On a multisite network Dev Bridge can only be network-activated (Network Admin → Plugins → Network Activate), because themes and plugins are shared by all sites."
 msgstr ""
 
-#: src/Plugin.php:98
+#: src/Plugin.php:100
 msgid "Activation not allowed"
 msgstr ""
 
-#: src/Plugin.php:153
+#: src/Plugin.php:155
 msgid "Dev Bridge is active on this site only, but this is a multisite network: deactivate it and network-activate it from Network Admin. Until then it does nothing."
 msgstr ""
 
@@ -488,6 +522,7 @@ msgid "Write"
 msgstr ""
 
 #: build/index.js:5
+#: build/index.js:9
 msgid "Off"
 msgstr ""
 
@@ -789,6 +824,54 @@ msgstr ""
 
 #: build/index.js:9
 msgid "Empty = off. \"rg\" from the PATH or the absolute path of rg/rg.exe. Results still go through the path checks and the deny list."
+msgstr ""
+
+#: build/index.js:9
+msgid "Database"
+msgstr ""
+
+#: build/index.js:9
+msgid "Read-only access to understand the data and debug. Claude never writes to the database through Dev Bridge. Password, key and token columns are never readable."
+msgstr ""
+
+#: build/index.js:9
+msgid "Database access"
+msgstr ""
+
+#: build/index.js:9
+msgid "Structure"
+msgstr ""
+
+#: build/index.js:9
+msgid "Read data"
+msgstr ""
+
+#: build/index.js:9
+msgid "Claude cannot see the database."
+msgstr ""
+
+#: build/index.js:9
+msgid "Tables, columns, indexes, meta keys and option names with counts and sizes: no stored value."
+msgstr ""
+
+#: build/index.js:9
+msgid "Tables, columns, meta keys and rows (at most 100 per query, through structured queries: no free SQL). Values of secret options and meta are redacted."
+msgstr ""
+
+#: build/index.js:9
+msgid "Mask personal data"
+msgstr ""
+
+#: build/index.js:9
+msgid "Emails, IP addresses, phone numbers, names and addresses are replaced with [personal]. Recommended: what Claude reads ends up in the conversation."
+msgstr ""
+
+#: build/index.js:9
+msgid "Excluded tables"
+msgstr ""
+
+#: build/index.js:9
+msgid "Never visible, not even their structure. Use * as wildcard, e.g. wp_wc_orders*."
 msgstr ""
 
 #: build/index.js:9

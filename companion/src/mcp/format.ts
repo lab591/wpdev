@@ -40,6 +40,11 @@ export function formatStatus(st: StatusResponse, config: Pick<Config, 'writable'
       ? `writable (edit locally): ${config.writable.join(', ')}${config.writableFromSite ? '' : ' (restricted by wpdev.json)'}`
       : 'writable: none — ask the site administrator to add the specific folder (e.g. wp-content/themes/<theme>) in Dev Bridge settings; never the whole themes/ or plugins/ folder',
     `debug.log: ${st.debug_log ? 'enabled' : 'disabled'}`,
+    st.db === 'read'
+      ? 'database: read-only (db_schema for the structure, db_query for rows; secrets redacted)'
+      : st.db === 'schema'
+        ? 'database: structure only (db_schema); reading rows is not enabled'
+        : 'database: no access (the administrator can enable it in Dev Bridge → Settings → Database)',
   ];
   if (!config.writableFromSite) {
     const cmp = compareRoots(config.writable, st.writable_roots);

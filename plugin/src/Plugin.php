@@ -20,7 +20,9 @@ use Lab591\DevBridge\Rest\Api;
 use Lab591\DevBridge\Security\PathException;
 use Lab591\DevBridge\Security\PathGuard;
 use Lab591\DevBridge\Security\PathPolicy;
+use Lab591\DevBridge\Security\TableGuard;
 use Lab591\DevBridge\Security\WritableRootValidator;
+use Lab591\DevBridge\Services\DatabaseService;
 use Lab591\DevBridge\Services\GrepService;
 use Lab591\DevBridge\Services\HashCache;
 use Lab591\DevBridge\Services\HealthService;
@@ -368,6 +370,15 @@ final class Plugin {
 			$this->hashCache = new HashCache( $file );
 		}
 		return $this->hashCache;
+	}
+
+	public function databaseService(): DatabaseService {
+		global $wpdb;
+		return new DatabaseService(
+			$wpdb,
+			new TableGuard( (string) $wpdb->base_prefix, array_map( 'strval', (array) $this->settings->get( 'db_excluded_tables' ) ) ),
+			(bool) $this->settings->get( 'db_redact_personal' )
+		);
 	}
 
 	public function grepService(): GrepService {

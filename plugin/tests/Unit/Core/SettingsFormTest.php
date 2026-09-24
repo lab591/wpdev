@@ -117,4 +117,26 @@ final class SettingsFormTest extends TestCase {
 		$this->assertSame( [ 'wp-content/themes/child', 'wp-content/themes/parent', 'wp-content/plugins/myplug' ], $out['writable_roots'] );
 		$this->assertSame( [], $form->errors() );
 	}
+
+	public function test_database_settings(): void {
+		$form = $this->form();
+		$out  = $form->sanitize(
+			[
+				'db_access'          => 'read',
+				'db_redact_personal' => false,
+				'db_excluded_tables' => [ 'wp_wc_*', 'wp_users; DROP', 'wp_x' ],
+			],
+			Settings::defaults()
+		);
+		$this->assertSame( 'read', $out['db_access'] );
+		$this->assertFalse( $out['db_redact_personal'] );
+		$this->assertSame( [ 'wp_wc_*', 'wp_x' ], $out['db_excluded_tables'] );
+		$this->assertCount( 1, $form->errors() );
+
+		$defaults = Settings::defaults();
+		$this->assertSame( 'off', $defaults['db_access'], 'Off by default' );
+		$this->assertTrue( $defaults['db_redact_personal'], 'Personal data masked by default' );
+		$this->assertSame( 'off', $form->sanitize( [ 'db_access' => 'write' ], $defaults )['db_access'], 'No write level exists' );
+		$this->assertTrue( $form->sanitize( [], $defaults )['db_redact_personal'], 'Missing field keeps the current value' );
+	}
 }

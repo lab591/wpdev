@@ -13,7 +13,7 @@ import { __, sprintf } from '@wordpress/i18n';
 import type { ReactNode } from 'react';
 import type { Notify } from './App';
 import { boot, errorMessage, get, post } from './api';
-import { NumberField, Section } from './components';
+import { NumberField, Section, Segmented } from './components';
 import FolderTree from './FolderTree';
 import { formatBytes } from './format';
 import type { Settings, SettingsData } from './types';
@@ -31,7 +31,8 @@ type ListKey =
 	| 'ip_allowlist'
 	| 'trusted_proxies'
 	| 'grep_skip_dirs'
-	| 'health_urls';
+	| 'health_urls'
+	| 'db_excluded_tables';
 
 const LIMIT_LABELS: Record< string, { label: string; bytes?: boolean } > = {
 	read_bytes: {
@@ -401,6 +402,93 @@ export default function SettingsTab( { notify, onSaved }: Props ) {
 							'lab591-dev-bridge'
 						) }
 					/>
+				</div>
+			</Section>
+
+			<Section
+				title={ __( 'Database', 'lab591-dev-bridge' ) }
+				description={ __(
+					'Read-only access to understand the data and debug. Claude never writes to the database through Dev Bridge. Password, key and token columns are never readable.',
+					'lab591-dev-bridge'
+				) }
+			>
+				<div className="devbridge-two-columns">
+					<div>
+						<Segmented
+							label={ __(
+								'Database access',
+								'lab591-dev-bridge'
+							) }
+							value={ draft.db_access }
+							options={ [
+								{
+									value: 'off',
+									label: __( 'Off', 'lab591-dev-bridge' ),
+								},
+								{
+									value: 'schema',
+									label: __(
+										'Structure',
+										'lab591-dev-bridge'
+									),
+								},
+								{
+									value: 'read',
+									label: __(
+										'Read data',
+										'lab591-dev-bridge'
+									),
+								},
+							] }
+							onChange={ ( v ) =>
+								set( 'db_access', v as Settings[ 'db_access' ] )
+							}
+						/>
+						<p className="devbridge-help">
+							{
+								{
+									off: __(
+										'Claude cannot see the database.',
+										'lab591-dev-bridge'
+									),
+									schema: __(
+										'Tables, columns, indexes, meta keys and option names with counts and sizes: no stored value.',
+										'lab591-dev-bridge'
+									),
+									read: __(
+										'Tables, columns, meta keys and rows (at most 100 per query, through structured queries: no free SQL). Values of secret options and meta are redacted.',
+										'lab591-dev-bridge'
+									),
+								}[ draft.db_access ]
+							}
+						</p>
+					</div>
+					<div>
+						<ToggleControl
+							__nextHasNoMarginBottom
+							label={ __(
+								'Mask personal data',
+								'lab591-dev-bridge'
+							) }
+							help={ __(
+								'Emails, IP addresses, phone numbers, names and addresses are replaced with [personal]. Recommended: what Claude reads ends up in the conversation.',
+								'lab591-dev-bridge'
+							) }
+							checked={ draft.db_redact_personal }
+							disabled={ draft.db_access !== 'read' }
+							onChange={ ( on: boolean ) =>
+								set( 'db_redact_personal', on )
+							}
+						/>
+					</div>
+					{ list(
+						'db_excluded_tables',
+						__( 'Excluded tables', 'lab591-dev-bridge' ),
+						__(
+							'Never visible, not even their structure. Use * as wildcard, e.g. wp_wc_orders*.',
+							'lab591-dev-bridge'
+						)
+					) }
 				</div>
 			</Section>
 

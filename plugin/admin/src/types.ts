@@ -84,6 +84,9 @@ export interface Settings {
 	audit_retention_days: number;
 	max_read_hours: number;
 	max_write_hours: number;
+	db_access: 'off' | 'schema' | 'read';
+	db_redact_personal: boolean;
+	db_excluded_tables: string[];
 	limits: Limits;
 }
 

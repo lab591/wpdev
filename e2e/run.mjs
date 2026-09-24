@@ -200,6 +200,37 @@ await scenario( 'page cache (WP Super Cache): detected, reported after deploy, h
 	}
 } );
 
+await scenario( 'database: read-only access with secrets and personal data protected', async () => {
+	const off = wpdev( project, [ 'db', 'schema', 'tables' ] );
+	expect( off.code !== 0 && off.out.includes( 'db_disabled' ), 'database readable while disabled', off.out );
+	expect( wp( 'wp eval-file wp-content/e2e-fixtures/db-access.php read' ).includes( 'DB_ACCESS=read' ), 'db access not set' );
+	try {
+		const tables = wpdev( project, [ 'db', 'schema', 'tables' ] );
+		expect( tables.code === 0 && tables.out.includes( 'wp_posts' ), 'tables not listed', tables.out );
+		expect( ! tables.out.includes( 'devbridge_audit' ), 'Dev Bridge audit table visible', tables.out );
+
+		const options = wpdev( project, [ 'db', 'query', 'wp_options', '--columns', 'option_name,option_value', '--where', 'option_name like e2e_%' ] );
+		expect( options.code === 0 && options.out.includes( 'e2e_smtp_password | [redacted]' ), 'secret option not redacted', options.out );
+		expect( options.out.includes( '"api_key":"[redacted]"' ) && options.out.includes( 'api.example' ), 'nested secret not redacted', options.out );
+		expect( ! options.out.includes( 'SECRET-VALUE' ) && ! options.out.includes( 'NESTED-VALUE' ), 'secret leaked', options.out );
+
+		// Exact match on a secret value: the row must not take part (MariaDB REGEXP).
+		const oracle = wpdev( project, [ 'db', 'query', 'wp_options', '--columns', 'option_name', '--where', 'option_value = tok-SECRET-VALUE' ] );
+		expect( oracle.code === 0 && oracle.out.includes( 'wp_options: 0 row(s)' ), 'secret row matched by value', oracle.out );
+		const like = wpdev( project, [ 'db', 'query', 'wp_options', '--where', 'option_value like %AK-%' ] );
+		expect( like.code !== 0 && like.out.includes( 'db_filter_denied' ), 'partial match on values allowed', like.out );
+
+		const users = wpdev( project, [ 'db', 'query', 'wp_users' ] );
+		expect( users.code === 0 && ! users.out.includes( 'user_pass |' ) && users.out.includes( 'secret columns never returned: user_pass' ), 'password column readable', users.out );
+		expect( users.out.includes( '[personal]' ) && ! /@/.test( users.out.split( '\n' ).slice( 3 ).join( '\n' ) ), 'email not masked', users.out );
+
+		const meta = wpdev( project, [ 'db', 'schema', 'meta_keys', 'usermeta' ] );
+		expect( meta.code === 0 && meta.out.includes( 'wp_capabilities' ), 'meta keys not listed', meta.out );
+	} finally {
+		wp( 'wp eval-file wp-content/e2e-fixtures/db-access.php off' );
+	}
+} );
+
 await scenario( 'mode off: deploys are refused', async () => {
 	wp( 'wp devbridge disable' );
 	appendFileSync( local( `${ THEME }/style.css` ), '\n.e2e-off {}\n' );

@@ -15,7 +15,8 @@ import { loadConfig } from './config.js';
 import { createReadyContext, type Context, type GlobalOptions } from './context.js';
 import { startMcpServer } from './mcp/server.js';
 import { describeError } from './messages.js';
-import { INTROSPECT_TOPICS } from './http.js';
+import { formatDbQuery, formatDbSchema, parseWhere } from './db.js';
+import { DB_META_TABLES, DB_TOPICS, INTROSPECT_TOPICS, type DbCondition } from './http.js';
 import { formatIntrospect } from './mcp/format.js';
 import { consoleOutput, EXIT_DEPLOY_FAILED, EXIT_ERROR, EXIT_OK } from './output.js';
 import { VERSION } from './version.js';
@@ -126,6 +127,52 @@ program
         return EXIT_ERROR;
       }
       consoleOutput.info(formatIntrospect(await ctx.client.introspect(topic as (typeof INTROSPECT_TOPICS)[number], name ?? '')));
+      return EXIT_OK;
+    }, true),
+  );
+
+const db = program.command('db').description('database del sito in sola lettura (se abilitato dall\'amministratore)');
+
+db.command('schema <topic> [name]')
+  .description(`struttura: ${DB_TOPICS.join(', ')} (table: nome tabella; meta_keys: ${DB_META_TABLES.join('|')})`)
+  .option('--post-type <tipo>', 'solo per meta_keys di postmeta')
+  .action((topic: string, name: string | undefined, opts: { postType?: string }) =>
+    runWithContext(async (ctx) => {
+      if (!(DB_TOPICS as readonly string[]).includes(topic)) {
+        consoleOutput.warn(`Argomento non valido: usa ${DB_TOPICS.join(', ')}`);
+        return EXIT_ERROR;
+      }
+      consoleOutput.info(formatDbSchema(await ctx.client.dbSchema(topic as (typeof DB_TOPICS)[number], name ?? '', opts.postType ?? '')));
+      return EXIT_OK;
+    }, true),
+  );
+
+db.command('query <table>')
+  .description('righe di una tabella (max 100): i segreti sono sempre oscurati')
+  .option('--columns <a,b>', 'colonne (default: tutte quelle leggibili)')
+  .option('--where <condizione>', 'es. "post_type = page", "ID in 1,2", "post_title like %Home%" (ripetibile, in AND)', collect)
+  .option('--order-by <colonna>', 'ordinamento')
+  .option('--desc', 'ordine decrescente')
+  .option('--limit <n>', 'righe (1-100, default 20)', positiveInt)
+  .option('--offset <n>', 'salta le prime n righe', (v: string) => Number(v))
+  .action((table: string, opts: { columns?: string; where?: string[]; orderBy?: string; desc?: boolean; limit?: number; offset?: number }) =>
+    runWithContext(async (ctx) => {
+      let where: DbCondition[];
+      try {
+        where = (opts.where ?? []).map(parseWhere);
+      } catch (e) {
+        consoleOutput.warn(describeError(e));
+        return EXIT_ERROR;
+      }
+      const res = await ctx.client.dbQuery({
+        table,
+        ...(opts.columns ? { columns: opts.columns.split(',').map((c) => c.trim()).filter(Boolean) } : {}),
+        ...(where.length ? { where } : {}),
+        ...(opts.orderBy ? { order_by: opts.orderBy, order: opts.desc ? 'desc' : 'asc' } : {}),
+        ...(opts.limit ? { limit: opts.limit } : {}),
+        ...(opts.offset ? { offset: opts.offset } : {}),
+      });
+      consoleOutput.info(formatDbQuery(res));
       return EXIT_OK;
     }, true),
   );

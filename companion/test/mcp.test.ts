@@ -113,7 +113,7 @@ describe('tools', () => {
   const tools = Object.fromEntries(buildTools(() => ctx).map((t) => [t.name, t]));
 
   it('exposes the tools with stable names', () => {
-    expect(Object.keys(tools).sort()).toEqual(['cache_flush', 'deploy', 'health', 'preview', 'preview_discard', 'preview_publish', 'restore_local', 'rollback', 'site_grep', 'site_info', 'site_list', 'site_log', 'site_read', 'site_status']);
+    expect(Object.keys(tools).sort()).toEqual(['cache_flush', 'db_query', 'db_schema', 'deploy', 'health', 'preview', 'preview_discard', 'preview_publish', 'restore_local', 'rollback', 'site_grep', 'site_info', 'site_list', 'site_log', 'site_read', 'site_status']);
   });
 
   it('site_info returns compact lines with file:line', async () => {

@@ -171,6 +171,22 @@ final class SettingsForm {
 		}
 		$out['notify_events'] = array_values( array_intersect( \Lab591\DevBridge\Services\Notifier::EVENTS, array_map( 'strval', (array) ( $input['notify_events'] ?? [] ) ) ) );
 
+		$level            = (string) ( $input['db_access'] ?? $out['db_access'] );
+		$out['db_access'] = in_array( $level, \Lab591\DevBridge\Services\DatabaseService::LEVELS, true ) ? $level : 'off';
+		if ( array_key_exists( 'db_redact_personal', $input ) ) {
+			$out['db_redact_personal'] = ! empty( $input['db_redact_personal'] );
+		}
+		$out['db_excluded_tables'] = [];
+		foreach ( self::lines( $input['db_excluded_tables'] ?? '', true ) as $pattern ) {
+			if ( 1 !== preg_match( '/^[A-Za-z0-9_*]{1,64}$/', $pattern ) ) {
+				/* translators: %s: table name pattern. */
+				$this->errors[] = sprintf( __( 'Excluded table "%s" rejected: use a table name, with * as wildcard (e.g. wp_wc_*)', 'lab591-dev-bridge' ), $pattern );
+				continue;
+			}
+			$out['db_excluded_tables'][] = $pattern;
+		}
+		$out['db_excluded_tables'] = array_values( array_unique( $out['db_excluded_tables'] ) );
+
 		$out['retention_releases']   = self::intIn( $input['retention_releases'] ?? null, 1, 100, (int) $out['retention_releases'] );
 		$out['audit_retention_days'] = self::intIn( $input['audit_retention_days'] ?? null, 1, 3650, (int) $out['audit_retention_days'] );
 		$out['max_read_hours']       = self::intIn( $input['max_read_hours'] ?? null, 1, Mode::HARD_MAX_HOURS[ Mode::READ ], (int) $out['max_read_hours'] );

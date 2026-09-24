@@ -48,6 +48,7 @@ final class StatusService {
 			'debug_log'      => null !== self::debugLogFile(),
 			'rescue'         => $this->plugin->rescueInstaller()->state(),
 			'site_url'       => home_url( '/' ),
+			'db'             => $settings->dbAccess(),
 		];
 		if ( Options::network() ) {
 			$status['network'] = [

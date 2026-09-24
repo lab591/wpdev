@@ -48,7 +48,52 @@ export type StatusResponse =
       site_url?: string;
       /** Present on multisite networks. */
       network?: { main_site: string; sites: number };
+      /** Database access granted by the administrator (0.6.0). */
+      db?: DbAccess;
     };
+
+export type DbAccess = 'off' | 'schema' | 'read';
+
+export const DB_TOPICS = ['tables', 'table', 'meta_keys', 'options'] as const;
+export type DbTopic = (typeof DB_TOPICS)[number];
+export const DB_META_TABLES = ['postmeta', 'usermeta', 'termmeta', 'commentmeta'] as const;
+export const DB_OPERATORS = ['=', '!=', '<', '>', '<=', '>=', 'like', 'not like', 'in', 'not in', 'is null', 'is not null'] as const;
+export type DbOperator = (typeof DB_OPERATORS)[number];
+
+export interface DbCondition {
+  column: string;
+  op: DbOperator;
+  value?: string | number | (string | number)[];
+}
+
+export interface DbQuery {
+  table: string;
+  columns?: string[];
+  where?: DbCondition[];
+  order_by?: string;
+  order?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+/** Structure of the database: fields depend on the topic (see docs/protocol.md). */
+export interface DbSchemaResponse {
+  topic: DbTopic;
+  [field: string]: unknown;
+}
+
+export interface DbQueryResponse {
+  table: string;
+  columns: string[];
+  rows: (string | number | null)[][];
+  offset: number;
+  more: boolean;
+  /** Secret columns of the table, never returned. */
+  hidden: string[];
+  /** Values (or parts of values) redacted. */
+  redacted: number;
+  personal: 'masked' | 'shown';
+}
 
 export interface ListEntry {
   p: string;
@@ -366,6 +411,19 @@ export class ApiClient {
     const q = new URLSearchParams({ topic });
     if (name) q.set('name', name);
     return this.json<IntrospectResponse>('GET', `introspect?${q.toString()}`);
+  }
+
+  /** Database structure (0.6.0, needs db access "schema" or "read" on the site). */
+  dbSchema(topic: DbTopic, name = '', postType = ''): Promise<DbSchemaResponse> {
+    const q = new URLSearchParams({ topic });
+    if (name) q.set('name', name);
+    if (postType) q.set('post_type', postType);
+    return this.json<DbSchemaResponse>('GET', `db/schema?${q.toString()}`);
+  }
+
+  /** Rows of a table through a structured query (0.6.0, needs db access "read"). */
+  dbQuery(query: DbQuery): Promise<DbQueryResponse> {
+    return this.json<DbQueryResponse>('POST', 'db/query', query as unknown as Json);
   }
 
   health(paths: readonly string[] = []): Promise<HealthResult> {

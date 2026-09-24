@@ -57,6 +57,9 @@ final class Settings {
 			'audit_retention_days' => 90,
 			'max_read_hours'       => 72,
 			'max_write_hours'      => 8,
+			'db_access'            => 'off',
+			'db_redact_personal'   => true,
+			'db_excluded_tables'   => [],
 		];
 	}
 
@@ -107,6 +110,14 @@ final class Settings {
 		}
 		// Default: home of the (main) site.
 		return [ Options::network() ? get_home_url( get_main_site_id(), '/' ) : home_url( '/' ) ];
+	}
+
+	/**
+	 * Database access level (0.6.0): off, schema or read.
+	 */
+	public function dbAccess(): string {
+		$level = (string) $this->get( 'db_access' );
+		return in_array( $level, [ 'off', 'schema', 'read' ], true ) ? $level : 'off';
 	}
 
 	/**

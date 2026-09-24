@@ -41,6 +41,12 @@ Queste regole non si allentano mai, nemmeno "temporaneamente" o per far passare 
    dal disco.
 9. HTTPS e verifica TLS sempre attivi, salvo le eccezioni per ambienti locali previste dalla specifica.
 
+10. Il database è accessibile solo in lettura (`SHOW`/`SELECT`), mai con SQL libero: tabelle e colonne passano da
+    `TableGuard` (verificate sullo schema reale), i valori solo come segnaposto di `$wpdb->prepare()`.
+11. Le colonne segrete non si leggono, non si filtrano e non si ordinano; i valori di chiavi segrete sono sempre
+    oscurati e non interrogabili con confronti parziali. Nessuna impostazione può disattivarlo.
+12. Mai registrare valori letti dal database (audit o console): solo tabella, colonne e operatori.
+
 Se un requisito sembra richiedere di violare un invariante, fermati e chiedi.
 
 ## Convenzioni PHP

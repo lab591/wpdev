@@ -17,6 +17,8 @@ use Lab591\DevBridge\Plugin;
 use Lab591\DevBridge\Services\ArchiveService;
 use Lab591\DevBridge\Services\CacheDetector;
 use Lab591\DevBridge\Services\CacheFlushService;
+use Lab591\DevBridge\Services\DatabaseService;
+use Lab591\DevBridge\Security\TableGuard;
 use Lab591\DevBridge\Services\GrepService;
 use Lab591\DevBridge\Services\IntrospectionService;
 use Lab591\DevBridge\Services\ListService;
@@ -55,6 +57,8 @@ final class Api {
 		'/log'             => [ Mode::READ, 'read' ],
 		'/health'          => [ Mode::READ, 'read' ],
 		'/introspect'      => [ Mode::READ, 'read' ],
+		'/db/schema'       => [ Mode::READ, 'read' ],
+		'/db/query'        => [ Mode::READ, 'read' ],
 		'/deploy'          => [ Mode::WRITE, 'write' ],
 		'/preview'         => [ Mode::WRITE, 'write' ],
 		'/preview/publish' => [ Mode::WRITE, 'write' ],
@@ -206,6 +210,88 @@ final class Api {
 					'maxLength' => 200,
 					'default'   => '',
 				],
+			]
+		);
+
+		$this->route(
+			'/db/schema',
+			'GET',
+			[ $this, 'dbSchema' ],
+			$read,
+			[
+				'topic'     => [
+					'type'     => 'string',
+					'required' => true,
+					'enum'     => DatabaseService::TOPICS,
+				],
+				'name'      => [
+					'type'      => 'string',
+					'maxLength' => 64,
+					'default'   => '',
+				],
+				'post_type' => [
+					'type'      => 'string',
+					'maxLength' => 20,
+					'default'   => '',
+				],
+			]
+		);
+		$this->route(
+			'/db/query',
+			'POST',
+			[ $this, 'dbQuery' ],
+			$read,
+			[
+				'table'    => [
+					'type'      => 'string',
+					'required'  => true,
+					'minLength' => 1,
+					'maxLength' => 64,
+				],
+				'columns'  => [
+					'type'     => 'array',
+					'maxItems' => 100,
+					'items'    => [
+						'type'      => 'string',
+						'maxLength' => 64,
+					],
+					'default'  => [],
+				],
+				'where'    => [
+					'type'     => 'array',
+					'maxItems' => TableGuard::MAX_WHERE,
+					'items'    => [
+						'type'                 => 'object',
+						'required'             => [ 'column', 'op' ],
+						'additionalProperties' => false,
+						'properties'           => [
+							'column' => [
+								'type'      => 'string',
+								'maxLength' => 64,
+							],
+							'op'     => [
+								'type' => 'string',
+								'enum' => TableGuard::OPERATORS,
+							],
+							'value'  => [
+								'type' => [ 'string', 'number', 'array' ],
+							],
+						],
+					],
+					'default'  => [],
+				],
+				'order_by' => [
+					'type'      => 'string',
+					'maxLength' => 64,
+					'default'   => '',
+				],
+				'order'    => [
+					'type'    => 'string',
+					'enum'    => [ 'asc', 'desc' ],
+					'default' => 'asc',
+				],
+				'limit'    => self::int( 1, TableGuard::MAX_LIMIT, TableGuard::DEFAULT_LIMIT ),
+				'offset'   => self::int( 0, TableGuard::MAX_OFFSET, 0 ),
 			]
 		);
 
@@ -415,6 +501,63 @@ final class Api {
 				return ( new IntrospectionService( ABSPATH ) )->get( $topic, $name );
 			}
 		);
+	}
+
+	public function dbSchema( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		return $this->run(
+			function () use ( $request ): array {
+				$this->requireDb( DatabaseService::SCHEMA );
+				$topic            = (string) $request['topic'];
+				$name             = (string) $request['name'];
+				$this->auditPaths = [ 'db:' . $topic . ( '' === $name ? '' : ':' . $name ) ];
+				return $this->plugin->databaseService()->schema( $topic, $name, (string) $request['post_type'] );
+			}
+		);
+	}
+
+	public function dbQuery( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		return $this->run(
+			function () use ( $request ): array {
+				$this->requireDb( DatabaseService::READ );
+				$where = (array) $request['where'];
+				// Audit: table, columns and operators only, never the values (they may be personal data).
+				$this->auditPaths = [
+					'db:query:' . (string) $request['table'] . ' ' . implode(
+						' AND ',
+						array_map( static fn ( $c ): string => is_array( $c ) ? (string) ( $c['column'] ?? '' ) . ' ' . (string) ( $c['op'] ?? '' ) : '', $where )
+					),
+				];
+				return $this->plugin->databaseService()->query(
+					[
+						'table'    => (string) $request['table'],
+						'columns'  => (array) $request['columns'],
+						'where'    => $where,
+						'order_by' => (string) $request['order_by'],
+						'order'    => (string) $request['order'],
+						'limit'    => (int) $request['limit'],
+						'offset'   => (int) $request['offset'],
+					]
+				);
+			}
+		);
+	}
+
+	/**
+	 * @throws ApiException When the administrator did not grant this database access level.
+	 */
+	private function requireDb( string $level ): void {
+		$current = $this->plugin->settings()->dbAccess();
+		$rank    = array_flip( DatabaseService::LEVELS );
+		if ( $rank[ $current ] < $rank[ $level ] ) {
+			throw new ApiException(
+				'db_disabled',
+				DatabaseService::OFF === $current
+					? 'Database access is disabled: the administrator can enable it in Dev Bridge → Settings → Database'
+					: 'Only the database structure is available: reading rows needs the "read" level in Dev Bridge → Settings → Database',
+				403,
+				[ 'db' => $current ]
+			);
+		}
 	}
 
 	public function health( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {

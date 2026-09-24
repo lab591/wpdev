@@ -284,6 +284,22 @@ final class AdminController {
 			$add( 'ripgrep', 'info', __( 'ripgrep not configured', 'lab591-dev-bridge' ), __( 'Optional: search uses the PHP engine.', 'lab591-dev-bridge' ) );
 		}
 
+		$db = $settings->dbAccess();
+		if ( 'read' === $db ) {
+			$add(
+				'db',
+				'info',
+				__( 'Database: read access', 'lab591-dev-bridge' ),
+				$settings->get( 'db_redact_personal' )
+					? __( 'Claude can read rows (no writes, secrets redacted, personal data masked).', 'lab591-dev-bridge' )
+					: __( 'Claude can read rows (no writes, secrets redacted). Personal data is NOT masked.', 'lab591-dev-bridge' )
+			);
+		} elseif ( 'schema' === $db ) {
+			$add( 'db', 'info', __( 'Database: structure only', 'lab591-dev-bridge' ), __( 'Claude sees tables, columns and key names, no stored values.', 'lab591-dev-bridge' ) );
+		} else {
+			$add( 'db', 'info', __( 'Database: no access', 'lab591-dev-bridge' ), __( 'Optional: allow reading the structure or the data in Settings → Database.', 'lab591-dev-bridge' ) );
+		}
+
 		$cache = ( new CacheDetector() )->report();
 		if ( [] !== $cache['page'] ) {
 			$add(
@@ -401,7 +417,7 @@ final class AdminController {
 		$s                     = $this->plugin->settings()->all();
 		$s['read_roots']       = array_map( static fn ( $r ): string => '' === $r ? '.' : (string) $r, (array) $s['read_roots'] );
 		$s['allowed_user_ids'] = array_map( 'intval', (array) $s['allowed_user_ids'] );
-		foreach ( [ 'writable_roots', 'deny_patterns', 'write_extensions', 'ip_allowlist', 'trusted_proxies', 'grep_skip_dirs', 'health_urls', 'notify_emails', 'notify_events' ] as $key ) {
+		foreach ( [ 'writable_roots', 'deny_patterns', 'write_extensions', 'ip_allowlist', 'trusted_proxies', 'grep_skip_dirs', 'health_urls', 'notify_emails', 'notify_events', 'db_excluded_tables' ] as $key ) {
 			$s[ $key ] = array_values( array_map( 'strval', (array) $s[ $key ] ) );
 		}
 		$s['invalid_roots'] = array_values( array_diff( $s['writable_roots'], $this->plugin->validWritableRoots() ) );

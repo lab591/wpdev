@@ -4,6 +4,12 @@ Tutte le versioni del plugin **Lab591 Dev Bridge** e del companion **wpdev**.
 
 ## Non ancora rilasciato
 
+- **Database in sola lettura** (spento per default, *Impostazioni → Database*): livello *Struttura* (tabelle,
+  colonne, indici, chiavi meta, nomi delle opzioni) o *Lettura dati* (righe con query strutturate, max 100).
+  Colonne segrete mai leggibili, segreti sempre oscurati anche dentro JSON e dati serializzati, solo confronti
+  esatti sui valori di opzioni e meta, dati personali mascherati per default, tabelle escludibili, audit senza
+  valori. Strumenti MCP `db_schema` e `db_query`, comando `wpdev db`.
+
 - **Cache**: il plugin rileva cache delle pagine (drop-in `advanced-cache.php`, plugin di cache lato server,
   hosting gestiti), ottimizzazione CSS/JS, object cache e OPcache non aggiornabile, e lo dice nella scheda Stato,
   in `site_info` e dopo ogni deploy, con le istruzioni per Claude. Non svuota niente: per farlo in automatico

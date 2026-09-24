@@ -37,6 +37,11 @@ Complementa la sezione 2.6 di `SPEC.md` con le scelte concrete condivise da plug
 | `too_many_files` | 413 | Troppi file (manifest, archive, deploy) |
 | `too_large` | 413 | Dimensione oltre i limiti |
 | `log_disabled` | 404 | `WP_DEBUG_LOG` non attivo o file assente |
+| `db_disabled` | 403 | Accesso al database non abilitato (o solo `schema` per `/db/query`); `error.db` = livello attuale |
+| `db_table_denied` | 403 | Tabella inesistente, di un'altra applicazione, di Dev Bridge o esclusa (stessa risposta per tutti i casi) |
+| `db_column_denied` | 403 | Colonna segreta (password, chiavi, token…) usata in `columns`, `where` o `order_by` |
+| `db_filter_denied` | 403 | Filtro non esatto (`like`, `<`, `>`…) sulla colonna dei valori di una tabella chiave-valore |
+| `db_error` | 500 | Errore del database (messaggio troncato a 200 caratteri) |
 | `internal_error` | 500 | Errore interno (dettagli solo nel log del server) |
 
 ## Endpoint (M1)
@@ -126,6 +131,44 @@ omessi in modalità `root` e causano `403 path_denied` in modalità `paths`.
 `callback`: `funzione`, `Classe::metodo`, `Classe->metodo`, `{closure}`. `file` è relativo ad `ABSPATH`; per il
 codice fuori dalla root del sito (o interno a PHP) la posizione non viene indicata. `name`:
 `[A-Za-z0-9_\-./:{}\[\]]`, max 200 caratteri, altrimenti `invalid_param`.
+
+### `GET /db/schema` (0.6.0)
+
+Richiede l'impostazione `db_access` = `schema` o `read` (default `off`) e la modalità `read`.
+`?topic=<argomento>&name=<nome>&post_type=<tipo>`:
+
+| topic | risposta | `name` |
+|---|---|---|
+| `tables` | `{prefix, items: [{name, rows, size_kb, engine}], truncated, excluded, note}`; `rows` è una stima (InnoDB) | — |
+| `table` | `{name, columns: [{name, type, nullable, key, default, extra, hidden?}], indexes: [{name, unique, columns}], key_value}`; le colonne segrete hanno `hidden: true` e nessun `default` | nome completo della tabella |
+| `meta_keys` | `{table, post_type, items: [{key, count}], truncated}` (max 300, le più usate prima) | `postmeta`, `usermeta`, `termmeta`, `commentmeta`; `post_type` solo per `postmeta` |
+| `options` | `{table, items: [{name, bytes, autoload}], truncated, autoload_count, autoload_bytes}`: nomi e dimensioni, mai i valori | — |
+
+Tabelle visibili: solo quelle esistenti con il prefisso base dell'installazione, esclusi i nomi che contengono
+`devbridge` (tabelle di Dev Bridge) e i pattern di `db_excluded_tables` (`*` jolly).
+
+### `POST /db/query` (0.6.0)
+
+Richiede `db_access` = `read`. Corpo JSON:
+`{table, columns?: [..], where?: [{column, op, value?}], order_by?, order?: "asc"|"desc", limit? (1-100, default 20), offset? (0-10000)}`.
+
+- `op`: `=`, `!=`, `<`, `>`, `<=`, `>=`, `like`, `not like`, `in`, `not in`, `is null`, `is not null`; le
+  condizioni sono in AND (max 10); `in` vuole una lista (max 50 valori); valori max 1000 caratteri.
+- Nomi di tabella e colonne verificati sullo schema reale (`[A-Za-z0-9_]`), valori solo come segnaposto di
+  `$wpdb->prepare()`; la query ha l'hint `MAX_EXECUTION_TIME(5000)` (MySQL; ignorato da MariaDB).
+- **Colonne segrete** (nome che contiene `pass`, `pwd`, `secret`, `token`, `salt`, `nonce`, `credential`,
+  `private`, `hash`, `api_key`, `license_key`, `activation_key`…): mai selezionate (elencate in `hidden`), e
+  rifiutate in `columns`, `where`, `order_by` (`db_column_denied`).
+- **Tabelle chiave-valore** (`option_name`/`option_value`, `meta_key`/`meta_value`): la colonna della chiave è
+  sempre inclusa quando si chiede il valore; sui valori sono ammessi solo `=`, `!=`, `in`, `not in`, `is null`,
+  `is not null` (`db_filter_denied`); se si filtra o ordina sui valori, le righe con chiavi segrete (regexp
+  `pass|pwd|secret|token|api_?key|licen[cs]e|private|credential|salt|nonce|session|auth_key|signature|encrypt|webhook|devbridge`)
+  sono escluse in SQL.
+- Risposta: `{table, columns, rows: [[...]], offset, more, hidden, redacted, personal}`. Valori oscurati:
+  `[redacted]` (segreti: valori di chiavi segrete, chiavi segrete dentro JSON o serializzati, hash di password,
+  chiavi private, token noti, credenziali negli URL), `[personal]`/`[email]` (dati personali, se
+  `db_redact_personal` è attivo, default sì). Celle oltre 2000 caratteri troncate con `[+N chars]`.
+- Audit: tabella, colonne e operatori delle condizioni, mai i valori.
 
 ## Endpoint (M2)
 
