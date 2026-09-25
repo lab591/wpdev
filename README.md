@@ -142,7 +142,8 @@ progetto lavori su **una parte** di quelle cartelle, indicale in `wpdev.json`
 **Tornare indietro con git.** Se la cartella non è ancora un repository git, `wpdev init` chiede se crearlo
 (consigliato; `--no-git` per saltare, con `-y` lo crea). Da lì in poi ogni versione resta recuperabile:
 
-- `wpdev init` fa il primo commit con la configurazione del progetto (mai `.env.local`, che è in `.gitignore`);
+- `wpdev init` fa il primo commit con tutto il contenuto attuale del progetto (configurazione e, se il progetto
+  era già avviato, i file su cui stai lavorando; mai `.env.local`, che è in `.gitignore`);
   se git non ha nome ed email, ne imposta di locali per quel solo repository;
 - dopo ogni `wpdev pull` un commit salva la versione del sito appena scaricata;
 - dopo ogni deploy riuscito un commit con **solo** i file pubblicati (messaggio `wpdev deploy <release>`), così

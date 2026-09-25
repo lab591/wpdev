@@ -428,8 +428,8 @@ In una rete multisite temi, plugin e file sono condivisi da tutti i siti: Dev Br
   presenti in locale (nessun download, nessuna cancellazione di file che esistono solo sul server).
 - **Repository locale** (0.7.1): se il progetto non è in un repository git e git è installato, `wpdev init` chiede
   se crearlo (default sì; `-y` lo crea, `--no-git` mai). `git init`, identità locale al repository solo se git non
-  ne ha una, primo commit dei file creati da init (`wpdev.json`, `.gitignore`, `.gitattributes`, `CLAUDE.md`,
-  `.claude/settings.json`, `.mcp.json`). Un repository esistente non viene toccato. Con `deploy.gitCommit`,
+  ne ha una, primo commit di tutto il contenuto non ignorato del progetto (configurazione e, in un progetto già avviato,
+  i file delle cartelle scrivibili). Un repository esistente non viene toccato. Con `deploy.gitCommit`,
   anche `wpdev pull` fa un commit dei file scaricati/rimossi (la versione del sito). `CLAUDE.md` (sezione
   "Versioni (git)", presente solo se il progetto è un repository) chiede a Claude commit dopo ogni modifica
   completata, ripristini con `git checkout <commit> -- <percorsi>`/`git revert`, niente riscritture della storia

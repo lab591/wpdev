@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { CONFIG_FILE, ENV_LOCAL_FILE, parseConfig, resolvePassword, STATE_DIR, validateSiteUrl, type Config, type WpdevJson } from '../config.js';
-import { AUTOCRLF_WARNING, autocrlfRisk, commitPaths, gitState, initRepo } from '../git.js';
+import { AUTOCRLF_WARNING, autocrlfRisk, commitAll, gitState, initRepo } from '../git.js';
 import { ApiClient } from '../http.js';
 import { describeError, formatExpiry } from '../messages.js';
 import { EXIT_ERROR, EXIT_OK, type Output } from '../output.js';
@@ -25,8 +25,6 @@ export interface InitOptions {
   git?: boolean;
 }
 
-/** Files created by init, committed as the first version of a new repository. */
-const PROJECT_FILES = [CONFIG_FILE, '.gitignore', '.gitattributes', 'CLAUDE.md', '.claude/settings.json', '.mcp.json'];
 
 export type Ask = (question: string, def?: string) => Promise<string>;
 
@@ -194,11 +192,10 @@ async function scaffoldProject(dir: string, config: Config, out: Output, options
   if (claudeMd.warn) out.warn(claudeMd.text);
   else out.info(claudeMd.text);
   if (git.created) {
-    const first = await commitPaths(
-      dir,
-      PROJECT_FILES.filter((f) => existsSync(path.join(dir, f))).map((p) => ({ p, deleted: false })),
-      'wpdev init: configurazione del progetto',
-    );
+    // First commit: everything already in the project (configuration and, in a project started earlier,
+    // the files being worked on), so there is a version to go back to from the start.
+    const first = await commitAll(dir, 'wpdev init: stato iniziale del progetto');
+    if (first.hash) out.info(`Primo commit ${first.hash}: stato attuale del progetto.`);
     if (first.error) out.warn(`Primo commit non riuscito: ${first.error}`);
   }
   return EXIT_OK;

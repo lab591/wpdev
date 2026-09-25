@@ -166,3 +166,16 @@ export async function initRepo(cwd: string): Promise<InitRepoResult> {
   return identity ? { ok: true, identity } : { ok: true };
 }
 
+/** Commits everything not ignored (first commit of a repository created by wpdev init). */
+export async function commitAll(cwd: string, message: string): Promise<CommitResult> {
+  const add = await runGit(cwd, ['add', '-A']);
+  if (add.missing) return { skipped: 'git non installato' };
+  if (add.code !== 0) return { error: add.stderr.trim().split('\n')[0] ?? 'git add fallito' };
+  const commit = await runGit(cwd, ['commit', '-q', '-m', message]);
+  if (commit.missing || commit.code !== 0) {
+    const text = commit.missing ? '' : `${commit.stdout}\n${commit.stderr}`;
+    return /nothing to commit/i.test(text) ? { skipped: 'nessun file' } : { error: text.trim().split('\n')[0] || 'git commit fallito' };
+  }
+  const head = await runGit(cwd, ['rev-parse', '--short', 'HEAD']);
+  return head.missing || head.code !== 0 ? { hash: '?' } : { hash: head.stdout.trim() };
+}

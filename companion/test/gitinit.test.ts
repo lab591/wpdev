@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -45,12 +45,20 @@ describe.skipIf(!hasGit)('local git repository (init, pull)', () => {
     expect(await initCommand(dir, out, { site: mock.url, user: mock.site.user, insecureLocal: true, yes: true })).toBe(0);
     expect(existsSync(path.join(dir, '.git'))).toBe(true);
     expect(out.lines.join('\n')).toContain('Creato un repository git locale');
-    expect(git('log', '--format=%s')).toBe('wpdev init: configurazione del progetto');
+    expect(git('log', '--format=%s')).toBe('wpdev init: stato iniziale del progetto');
     const files = git('ls-files').split('\n');
     expect(files).toEqual(expect.arrayContaining(['wpdev.json', '.gitignore', 'CLAUDE.md', '.mcp.json', '.claude/settings.json']));
     expect(files).not.toContain('.env.local');
     expect(git('status', '--porcelain')).toBe('');
     expect(await readFile(path.join(dir, 'CLAUDE.md'), 'utf8')).toContain('## Versioni (git)');
+  });
+
+  it('in a project started earlier, the first commit includes the files already there', async () => {
+    await mkdir(path.join(dir, ...ROOT.split('/')), { recursive: true });
+    await writeFile(path.join(dir, ...ROOT.split('/'), 'style.css'), 'body{color:red}\n');
+    await initCommand(dir, memoryOutput(), { site: mock.url, user: mock.site.user, insecureLocal: true, yes: true });
+    expect(git('ls-files', ROOT)).toBe(`${ROOT}/style.css`);
+    expect(git('status', '--porcelain')).toBe('');
   });
 
   it('pull commits the version of the site', async () => {
