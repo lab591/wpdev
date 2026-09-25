@@ -83,6 +83,8 @@ export interface ClaudeMdInput {
   writableFromSite?: boolean;
   /** deploy.target is "preview": changes go to a preview at the end of each turn. */
   previewTarget?: boolean;
+  /** The project is a git repository: Claude commits its work so every version can be restored. */
+  gitRepo?: boolean;
   /** Multisite network: themes and plugins are shared by every site. */
   network?: { mainSite: string; sites: number };
 }
@@ -130,6 +132,20 @@ ${
   nell'output dell'hook (o usa lo strumento MCP \`preview\`): aprilo nel browser per verificare e
   condividilo con l'utente.
 - Pubblica con \`preview_publish\` **solo quando l'utente lo chiede**; per annullare usa \`preview_discard\`.
+
+`
+      : ''
+  }${
+    input.gitRepo
+      ? `## Versioni (git)
+- Il progetto è un repository git: serve a tornare indietro. Dopo ogni modifica completata fai un commit dei
+  file che hai cambiato (\`git add\` dei soli file tuoi, messaggio in italiano che dice cosa e perché), e fai un
+  commit anche prima di una modifica rischiosa. wpdev fa già un commit dopo ogni \`pull\` e ogni deploy.
+- Per tornare a una versione precedente: \`git log\` per trovarla, poi \`git checkout <commit> -- <percorsi>\` o
+  \`git revert <commit>\`, e un nuovo commit; a fine turno il deploy pubblica la versione ripristinata.
+  Per annullare solo l'ultimo deploy sul sito c'è anche \`rollback\`.
+- Non riscrivere la storia (\`reset --hard\`, \`rebase\`, \`commit --amend\` di commit già fatti) e non fare
+  \`push\` se l'utente non lo chiede.
 
 `
       : ''

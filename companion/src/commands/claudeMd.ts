@@ -1,6 +1,7 @@
 import type { Context } from '../context.js';
 import { describeError } from '../messages.js';
 import { EXIT_ERROR, EXIT_OK, type Output } from '../output.js';
+import { gitState } from '../git.js';
 import { describeClaudeMdResult, writeClaudeMd } from '../scaffold.js';
 import { resolveWritable } from '../writable.js';
 
@@ -26,7 +27,7 @@ export async function claudeMdCommand(ctx: Context, out: Output, force = false):
   const result = describeClaudeMdResult(
     await writeClaudeMd(
       ctx.config.projectRoot,
-      { name, url: ctx.config.siteUrl, writable: ctx.config.writable, writableFromSite: ctx.config.writableFromSite, previewTarget: ctx.config.deploy.target === 'preview', ...(network ? { network } : {}) },
+      { name, url: ctx.config.siteUrl, writable: ctx.config.writable, writableFromSite: ctx.config.writableFromSite, previewTarget: ctx.config.deploy.target === 'preview', gitRepo: (await gitState(ctx.config.projectRoot)) === 'repo', ...(network ? { network } : {}) },
       force,
     ),
   );

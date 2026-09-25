@@ -426,6 +426,14 @@ In una rete multisite temi, plugin e file sono condivisi da tutti i siti: Dev Br
   l'hook Stop e lo strumento MCP `deploy` non pubblicano mai lì; `wpdev --env <nome> deploy` chiede conferma
   (o `--yes`). Il primo deploy verso un ambiente mai sincronizzato usa come base gli hash del server per i file
   presenti in locale (nessun download, nessuna cancellazione di file che esistono solo sul server).
+- **Repository locale** (0.7.1): se il progetto non è in un repository git e git è installato, `wpdev init` chiede
+  se crearlo (default sì; `-y` lo crea, `--no-git` mai). `git init`, identità locale al repository solo se git non
+  ne ha una, primo commit dei file creati da init (`wpdev.json`, `.gitignore`, `.gitattributes`, `CLAUDE.md`,
+  `.claude/settings.json`, `.mcp.json`). Un repository esistente non viene toccato. Con `deploy.gitCommit`,
+  anche `wpdev pull` fa un commit dei file scaricati/rimossi (la versione del sito). `CLAUDE.md` (sezione
+  "Versioni (git)", presente solo se il progetto è un repository) chiede a Claude commit dopo ogni modifica
+  completata, ripristini con `git checkout <commit> -- <percorsi>`/`git revert`, niente riscritture della storia
+  né `push` senza richiesta.
 - `deploy.gitCommit` (0.5.0, default `true`): dopo ogni deploy riuscito, se il progetto è un repository git, il
   companion fa un commit con **solo** i file pubblicati (le altre modifiche, anche già in stage, restano come
   sono), messaggio `wpdev deploy <release>` con sito, conteggi e percorsi. I file ignorati da `.gitignore` e quelli
@@ -454,7 +462,7 @@ Cartella `.wpdev/` (in `.gitignore`):
 
 | Comando | Descrizione |
 |---|---|
-| `wpdev init` | Crea `wpdev.json` guidato (sito, utente, variabile della password; le cartelle scrivibili vengono dal sito, `--writable` solo per restringere), aggiorna `.gitignore`, crea `.gitattributes` (vedi 3.7), testa `/status` |
+| `wpdev init` | Crea `wpdev.json` guidato (sito, utente, variabile della password; le cartelle scrivibili vengono dal sito, `--writable` solo per restringere), aggiorna `.gitignore`, crea `.gitattributes` (vedi 3.7), offre di creare un repository git (`--no-git` per saltare), testa `/status` |
 | `wpdev status` | Modalità e scadenza sul server, cartelle scrivibili (dal sito o ristrette da `wpdev.json`) |
 | `wpdev pull [--path <p>] [--force]` | Scarica le cartelle scrivibili. Incrementale: `/manifest` → confronto con file locali → `/archive` solo dei file diversi. Se un file locale è stato modificato rispetto a `state.json` e anche il server è cambiato, **non sovrascrive**: segnala il conflitto (salvo `--force`). Con `--path` scarica una cartella di sola lettura in `.wpdev/readonly/` (mai deployata) |
 | `wpdev diff` | Tre elenchi: modificati in locale, modificati sul server, in conflitto |

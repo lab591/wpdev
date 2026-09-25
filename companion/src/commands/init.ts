@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { CONFIG_FILE, ENV_LOCAL_FILE, parseConfig, resolvePassword, STATE_DIR, validateSiteUrl, type Config, type WpdevJson } from '../config.js';
-import { AUTOCRLF_WARNING, autocrlfRisk } from '../git.js';
+import { AUTOCRLF_WARNING, autocrlfRisk, commitPaths, gitState, initRepo } from '../git.js';
 import { ApiClient } from '../http.js';
 import { describeError, formatExpiry } from '../messages.js';
 import { EXIT_ERROR, EXIT_OK, type Output } from '../output.js';
@@ -21,7 +21,12 @@ export interface InitOptions {
   insecureLocal?: boolean;
   /** Non-interactive: never prompt, use defaults for missing optional values. */
   yes?: boolean;
+  /** false (`--no-git`): never create a git repository. */
+  git?: boolean;
 }
+
+/** Files created by init, committed as the first version of a new repository. */
+const PROJECT_FILES = [CONFIG_FILE, '.gitignore', '.gitattributes', 'CLAUDE.md', '.claude/settings.json', '.mcp.json'];
 
 export type Ask = (question: string, def?: string) => Promise<string>;
 
@@ -67,7 +72,7 @@ export async function initCommand(dir: string, out: Output, options: InitOptions
     if (!created) return EXIT_ERROR;
     config = created;
   }
-  return scaffoldProject(dir, config, out, options);
+  return scaffoldProject(dir, config, out, options, ask);
 }
 
 async function createConfig(dir: string, target: string, out: Output, options: InitOptions, ask?: Ask): Promise<Config | undefined> {
@@ -103,7 +108,37 @@ async function createConfig(dir: string, target: string, out: Output, options: I
   return config;
 }
 
-async function scaffoldProject(dir: string, config: Config, out: Output, options: InitOptions): Promise<number> {
+/**
+ * Offers a local git repository when the project has none, so that every version can be restored
+ * (commits after pull and deploy, and by Claude). Returns whether the project is now a repository.
+ */
+async function offerGit(dir: string, out: Output, options: InitOptions, ask?: Ask): Promise<{ repo: boolean; created: boolean }> {
+  const state = await gitState(dir);
+  if (state === 'repo') return { repo: true, created: false };
+  if (state === 'missing') {
+    out.info('git non è installato: installalo (https://git-scm.com) per poter tornare alle versioni precedenti dei file, poi riesegui "wpdev init".');
+    return { repo: false, created: false };
+  }
+  if (options.git === false) return { repo: false, created: false };
+  if (!options.yes && ask) {
+    const answer = (await ask('Il progetto non è un repository git. Lo creo, per poter tornare alle versioni precedenti? (S/n)', 'S')).toLowerCase();
+    if (answer.startsWith('n')) {
+      out.info('Nessun repository git: potrai crearlo in seguito con "git init" (e "wpdev claude-md" per aggiornare le istruzioni di Claude).');
+      return { repo: false, created: false };
+    }
+  }
+  const result = await initRepo(dir);
+  if (!result.ok) {
+    out.warn(`Repository git non creato: ${result.error ?? 'errore sconosciuto'}`);
+    return { repo: false, created: false };
+  }
+  out.info('Creato un repository git locale: wpdev fa un commit dopo ogni pull e ogni deploy, e Claude dopo ogni modifica.');
+  if (result.identity) out.info(`git non aveva nome ed email: per questo progetto uso ${result.identity} (cambiali con "git config user.name/user.email").`);
+  return { repo: true, created: true };
+}
+
+async function scaffoldProject(dir: string, config: Config, out: Output, options: InitOptions, ask?: Ask): Promise<number> {
+  const git = await offerGit(dir, out, options, ask);
   const added = await updateGitignore(dir);
   if (added.length) out.info(`Aggiornato .gitignore (${added.join(', ')})`);
   if (await ensureGitattributes(dir)) out.info('Creato .gitattributes (* -text: file identici byte per byte al server)');
@@ -152,10 +187,19 @@ async function scaffoldProject(dir: string, config: Config, out: Output, options
       writable: config.writable,
       writableFromSite: config.writableFromSite,
       previewTarget: config.deploy.target === 'preview',
+      gitRepo: git.repo,
       ...(network ? { network } : {}),
     }),
   );
   if (claudeMd.warn) out.warn(claudeMd.text);
   else out.info(claudeMd.text);
+  if (git.created) {
+    const first = await commitPaths(
+      dir,
+      PROJECT_FILES.filter((f) => existsSync(path.join(dir, f))).map((p) => ({ p, deleted: false })),
+      'wpdev init: configurazione del progetto',
+    );
+    if (first.error) out.warn(`Primo commit non riuscito: ${first.error}`);
+  }
   return EXIT_OK;
 }

@@ -8,6 +8,7 @@ import { isAncestor, isInside, normalizeRel, toNative } from '../paths.js';
 import { scanTree, type LocalFile } from '../scan.js';
 import { State } from '../state.js';
 import { buildPlan, deleteLocalFile, downloadFiles, fetchRemote, localHasher } from '../sync.js';
+import { commitPaths } from '../git.js';
 import { NO_WRITABLE_MESSAGE } from '../writable.js';
 import { LABEL } from './diff.js';
 
@@ -73,6 +74,16 @@ export async function pullCommand(ctx: Context, out: Output, options: PullOption
   }
 
   out.info(`Scaricati ${written.length} file, rimossi ${toDelete.length} in locale.`);
+  if (config.deploy.gitCommit && written.length + toDelete.length > 0) {
+    // The site's version becomes a commit: a known point to go back to.
+    const git = await commitPaths(
+      base,
+      [...written.map((w) => ({ p: w.p, deleted: false })), ...toDelete.map((p) => ({ p, deleted: true }))],
+      `wpdev pull: versione del sito (${written.length} file scaricati, ${toDelete.length} rimossi)`,
+    );
+    if (git.hash) out.info(`Commit git ${git.hash} con la versione del sito.`);
+    if (git.error) out.warn(`Commit git non riuscito: ${git.error}`);
+  }
   if (plan.localModified.length) {
     out.info(`${plan.localModified.length} file modificati solo in locale (non toccati): usa "wpdev diff" per l'elenco.`);
   }

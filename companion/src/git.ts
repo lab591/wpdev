@@ -1,6 +1,6 @@
 import { execFile, spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { tmpdir, userInfo } from 'node:os';
 import path from 'node:path';
 
 /** Returns true when git is configured with `core.autocrlf=true` for `cwd`. */
@@ -120,3 +120,49 @@ export async function commitPaths(cwd: string, paths: { p: string; deleted: bool
   const head = await runGit(cwd, ['rev-parse', '--short', 'HEAD']);
   return head.missing || head.code !== 0 ? { hash: '?' } : { hash: head.stdout.trim() };
 }
+
+/** Whether `cwd` is inside a git work tree: "repo", "none", or "missing" when git is not installed. */
+export async function gitState(cwd: string): Promise<'repo' | 'none' | 'missing'> {
+  const inside = await runGit(cwd, ['rev-parse', '--is-inside-work-tree']);
+  if (inside.missing) return 'missing';
+  return inside.code === 0 && inside.stdout.trim() === 'true' ? 'repo' : 'none';
+}
+
+export interface InitRepoResult {
+  ok: boolean;
+  /** Identity set for this repository only, when git had none configured. */
+  identity?: string;
+  error?: string;
+}
+
+/**
+ * Creates a local repository in `cwd` (wpdev init). When git has no user name/email configured,
+ * a local identity is set for this repository only, so that commits (by wpdev and by Claude) work.
+ */
+export async function initRepo(cwd: string): Promise<InitRepoResult> {
+  const init = await runGit(cwd, ['init', '-q']);
+  if (init.missing) return { ok: false, error: 'git non installato' };
+  if (init.code !== 0) return { ok: false, error: init.stderr.trim().split('\n')[0] ?? 'git init fallito' };
+  const read = async (key: string): Promise<string> => {
+    const r = await runGit(cwd, ['config', key]);
+    return r.missing || r.code !== 0 ? '' : r.stdout.trim();
+  };
+  const email = await read('user.email');
+  const name = await read('user.name');
+  let identity: string | undefined;
+  if (!email || !name) {
+    let user = 'wpdev';
+    try {
+      user = userInfo().username.replace(/[^A-Za-z0-9._-]/g, '') || 'wpdev';
+    } catch {
+      // Keep the default.
+    }
+    const finalName = name || user;
+    const finalEmail = email || `${user}@localhost`;
+    await runGit(cwd, ['config', 'user.name', finalName]);
+    await runGit(cwd, ['config', 'user.email', finalEmail]);
+    identity = `${finalName} <${finalEmail}>`;
+  }
+  return identity ? { ok: true, identity } : { ok: true };
+}
+

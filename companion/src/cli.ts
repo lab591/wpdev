@@ -67,7 +67,8 @@ program
   .option('--writable <path>', 'limita il progetto a questa cartella scrivibile del sito (ripetibile; di default tutte)', collect)
   .option('--force', 'ricrea wpdev.json anche se esiste già')
   .option('-y, --yes', 'non interattivo')
-  .action(async (opts: { site?: string; user?: string; passwordEnv?: string; writable?: string[]; force?: boolean; yes?: boolean }) => {
+  .option('--no-git', 'non creare un repository git locale')
+  .action(async (opts: { site?: string; user?: string; passwordEnv?: string; writable?: string[]; force?: boolean; yes?: boolean; git?: boolean }) => {
     const interactive = !opts.yes && process.stdin.isTTY === true;
     const term = interactive ? terminalAsk() : undefined;
     try {

@@ -139,9 +139,21 @@ progetto lavori su **una parte** di quelle cartelle, indicale in `wpdev.json`
 | `.mcp.json` | server MCP `wpdev` per Claude Code |
 | `CLAUDE.md` | istruzioni per Claude sul sito, in una sezione tra i marcatori `wpdev:start`/`wpdev:end` (se il file esiste già la sezione viene aggiunta in fondo) |
 
-Se il progetto è un repository git, dopo ogni deploy riuscito `wpdev` fa un commit con **solo** i file
-pubblicati (messaggio `wpdev deploy <release>`), così la cronologia locale segue le release del sito; le altre
-modifiche restano come sono. Si disattiva con `"deploy": { "gitCommit": false }` in `wpdev.json`.
+**Tornare indietro con git.** Se la cartella non è ancora un repository git, `wpdev init` chiede se crearlo
+(consigliato; `--no-git` per saltare, con `-y` lo crea). Da lì in poi ogni versione resta recuperabile:
+
+- `wpdev init` fa il primo commit con la configurazione del progetto (mai `.env.local`, che è in `.gitignore`);
+  se git non ha nome ed email, ne imposta di locali per quel solo repository;
+- dopo ogni `wpdev pull` un commit salva la versione del sito appena scaricata;
+- dopo ogni deploy riuscito un commit con **solo** i file pubblicati (messaggio `wpdev deploy <release>`), così
+  la cronologia locale segue le release del sito; le altre modifiche restano come sono;
+- `CLAUDE.md` chiede a Claude di fare un commit dopo ogni modifica completata e prima di quelle rischiose, di
+  tornare indietro con `git checkout <commit> -- <file>` o `git revert` (poi il deploy pubblica la versione
+  ripristinata) e di non riscrivere la storia né fare `push` senza che tu lo chieda.
+
+Per tornare indietro puoi quindi chiedere a Claude "torna alla versione di ieri del footer" oppure usare git
+direttamente. Se crei il repository dopo, esegui `wpdev claude-md` per aggiornare le istruzioni di Claude. I
+commit automatici di `pull` e deploy si disattivano con `"deploy": { "gitCommit": false }` in `wpdev.json`.
 
 ### Anteprima prima della pubblicazione
 
