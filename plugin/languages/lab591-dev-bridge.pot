@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Lab591 Dev Bridge 0.6.0\n"
+"Project-Id-Version: Lab591 Dev Bridge 0.7.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/lab591-dev-bridge\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-24T17:37:27+00:00\n"
+"POT-Creation-Date: 2026-10-11T21:22:55+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: lab591-dev-bridge\n"
@@ -29,240 +29,240 @@ msgstr ""
 msgid "Lab591"
 msgstr ""
 
-#: src/Admin/AdminController.php:127
+#: src/Admin/AdminController.php:129
 msgid "You are not allowed to manage Dev Bridge."
 msgstr ""
 
-#: src/Admin/AdminController.php:130
+#: src/Admin/AdminController.php:132
 msgid "This page has expired: reload it and try again."
 msgstr ""
 
-#: src/Admin/AdminController.php:140
+#: src/Admin/AdminController.php:142
 msgid "This page is locked: reload it and enter the password."
 msgstr ""
 
-#: src/Admin/AdminController.php:174
+#: src/Admin/AdminController.php:176
 msgid "Password changed."
 msgstr ""
 
-#: src/Admin/AdminController.php:174
+#: src/Admin/AdminController.php:176
 msgid "Protection enabled: from now on this page asks for the password."
 msgstr ""
 
-#: src/Admin/AdminController.php:182
+#: src/Admin/AdminController.php:184
 msgid "Protection removed."
 msgstr ""
 
-#: src/Admin/AdminController.php:284
+#: src/Admin/AdminController.php:286
 msgid "Publishing failed the health check and was rolled back: the live site is unchanged, the preview is kept."
 msgstr ""
 
 #. translators: %s: release id.
-#: src/Admin/AdminController.php:286
+#: src/Admin/AdminController.php:288
 #, php-format
 msgid "Preview published (release %s)."
 msgstr ""
 
-#: src/Admin/AdminController.php:290
+#: src/Admin/AdminController.php:292
 msgid "Preview discarded."
 msgstr ""
 
 #. translators: %d: number of authorized users.
-#: src/Admin/AdminController.php:319
+#: src/Admin/AdminController.php:321
 #, php-format
 msgid "%d authorized user"
 msgid_plural "%d authorized users"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Admin/AdminController.php:321
+#: src/Admin/AdminController.php:323
 msgid "No authorized user"
 msgstr ""
 
-#: src/Admin/AdminController.php:321
+#: src/Admin/AdminController.php:323
 msgid "Nobody can connect until you select at least one user in Settings → Access."
 msgstr ""
 
 #. translators: %d: number of writable folders.
-#: src/Admin/AdminController.php:327
+#: src/Admin/AdminController.php:329
 #, php-format
 msgid "%d writable folder"
 msgid_plural "%d writable folders"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Admin/AdminController.php:329
+#: src/Admin/AdminController.php:331
 msgid "No writable folder"
 msgstr ""
 
-#: src/Admin/AdminController.php:329
+#: src/Admin/AdminController.php:331
 msgid "Claude can read the site but not deploy: choose a theme or plugin in Settings → Writable folders."
 msgstr ""
 
-#: src/Admin/AdminController.php:333
+#: src/Admin/AdminController.php:335
 msgid "HTTPS active"
 msgstr ""
 
-#: src/Admin/AdminController.php:335
+#: src/Admin/AdminController.php:337
 msgid "Local environment: HTTP allowed"
 msgstr ""
 
-#: src/Admin/AdminController.php:335
+#: src/Admin/AdminController.php:337
 msgid "On a real site HTTPS is mandatory."
 msgstr ""
 
-#: src/Admin/AdminController.php:337
+#: src/Admin/AdminController.php:339
 msgid "The site is not on HTTPS"
 msgstr ""
 
-#: src/Admin/AdminController.php:337
+#: src/Admin/AdminController.php:339
 msgid "Requests will be rejected until the site uses HTTPS."
 msgstr ""
 
-#: src/Admin/AdminController.php:341
+#: src/Admin/AdminController.php:343
 msgid "Application Passwords available"
 msgstr ""
 
-#: src/Admin/AdminController.php:343
+#: src/Admin/AdminController.php:345
 msgid "Application Passwords are disabled"
 msgstr ""
 
-#: src/Admin/AdminController.php:343
+#: src/Admin/AdminController.php:345
 msgid "They are required to connect: check plugins or code that disable them."
 msgstr ""
 
-#: src/Admin/AdminController.php:348
+#: src/Admin/AdminController.php:350
 msgid "Out-of-band rescue installed"
 msgstr ""
 
-#: src/Admin/AdminController.php:350
+#: src/Admin/AdminController.php:352
 msgid "Out-of-band rescue not installed yet"
 msgstr ""
 
-#: src/Admin/AdminController.php:350
+#: src/Admin/AdminController.php:352
 msgid "It will be installed automatically on the next admin page load."
 msgstr ""
 
-#: src/Admin/AdminController.php:355
+#: src/Admin/AdminController.php:357
 msgid "Out-of-band rescue not installed"
 msgstr ""
 
-#: src/Admin/AdminController.php:356
+#: src/Admin/AdminController.php:358
 msgid "The mu-plugins folder is not directly writable. Copy the file below into wp-content/mu-plugins/ (permissions 0644)."
 msgstr ""
 
-#: src/Admin/AdminController.php:366
+#: src/Admin/AdminController.php:368
 msgid "Private storage inside wp-content"
 msgstr ""
 
-#: src/Admin/AdminController.php:367
+#: src/Admin/AdminController.php:369
 msgid "It has a random name and is protected by .htaccess. Recommended: move it outside the web root in wp-config.php; on Nginx add the rule below."
 msgstr ""
 
-#: src/Admin/AdminController.php:371
+#: src/Admin/AdminController.php:373
 msgid "Private storage outside the web root"
 msgstr ""
 
-#: src/Admin/AdminController.php:376
+#: src/Admin/AdminController.php:378
 msgid "Fast search active, regular expressions included (PCRE2)."
 msgstr ""
 
-#: src/Admin/AdminController.php:376
+#: src/Admin/AdminController.php:378
 msgid "Fast search active for text; regular expressions use the PHP search (no PCRE2)."
 msgstr ""
 
-#: src/Admin/AdminController.php:378
+#: src/Admin/AdminController.php:380
 msgid "ripgrep configured but not executable"
 msgstr ""
 
-#: src/Admin/AdminController.php:378
+#: src/Admin/AdminController.php:380
 msgid "Search keeps working with the PHP engine. Check the path in Settings → Search."
 msgstr ""
 
-#: src/Admin/AdminController.php:380
+#: src/Admin/AdminController.php:382
 msgid "ripgrep not configured"
 msgstr ""
 
-#: src/Admin/AdminController.php:380
+#: src/Admin/AdminController.php:382
 msgid "Optional: search uses the PHP engine."
 msgstr ""
 
-#: src/Admin/AdminController.php:388
+#: src/Admin/AdminController.php:390
 msgid "Database: read access"
 msgstr ""
 
-#: src/Admin/AdminController.php:390
+#: src/Admin/AdminController.php:392
 msgid "Claude can read rows (no writes, secrets redacted, personal data masked)."
 msgstr ""
 
-#: src/Admin/AdminController.php:391
+#: src/Admin/AdminController.php:393
 msgid "Claude can read rows (no writes, secrets redacted). Personal data is NOT masked."
 msgstr ""
 
-#: src/Admin/AdminController.php:394
+#: src/Admin/AdminController.php:396
 msgid "Database: structure only"
 msgstr ""
 
-#: src/Admin/AdminController.php:394
+#: src/Admin/AdminController.php:396
 msgid "Claude sees tables, columns and key names, no stored values."
 msgstr ""
 
-#: src/Admin/AdminController.php:396
+#: src/Admin/AdminController.php:398
 msgid "Database: no access"
 msgstr ""
 
-#: src/Admin/AdminController.php:396
+#: src/Admin/AdminController.php:398
 msgid "Optional: allow reading the structure or the data in Settings → Database."
 msgstr ""
 
 #. translators: %s: cache names, e.g. "WP Rocket, Kinsta".
-#: src/Admin/AdminController.php:405
+#: src/Admin/AdminController.php:407
 #, php-format
 msgid "Page cache active: %s"
 msgstr ""
 
-#: src/Admin/AdminController.php:406
+#: src/Admin/AdminController.php:408
 msgid "After a deploy Claude may see outdated pages. On a development or staging site, disable the cache while you work with Claude; on a live site purge it after each deploy (you can automate it with the devbridge_deployed action, see the README)."
 msgstr ""
 
 #. translators: %s: plugin names, e.g. "Autoptimize".
-#: src/Admin/AdminController.php:413
+#: src/Admin/AdminController.php:415
 #, php-format
 msgid "CSS/JS optimization active: %s"
 msgstr ""
 
-#: src/Admin/AdminController.php:414
+#: src/Admin/AdminController.php:416
 msgid "Combined or minified files may not include the latest changes until the plugin cache is cleared."
 msgstr ""
 
-#: src/Admin/AdminController.php:417
+#: src/Admin/AdminController.php:419
 msgid "No page cache detected"
 msgstr ""
 
-#: src/Admin/AdminController.php:423
+#: src/Admin/AdminController.php:425
 msgid "OPcache cannot be refreshed by the plugin"
 msgstr ""
 
-#: src/Admin/AdminController.php:424
+#: src/Admin/AdminController.php:426
 msgid "opcache.restrict_api prevents invalidating updated PHP files: changes may stay invisible for a while and the health check may test the old code. Allow this site path in opcache.restrict_api or ask the host."
 msgstr ""
 
-#: src/Admin/AdminController.php:440
+#: src/Admin/AdminController.php:442
 msgid "Development mode disabled."
 msgstr ""
 
-#: src/Admin/AdminController.php:445
+#: src/Admin/AdminController.php:447
 msgid "Choose read or write."
 msgstr ""
 
 #. translators: %d: maximum number of hours.
-#: src/Admin/AdminController.php:450
+#: src/Admin/AdminController.php:452
 #, php-format
 msgid "Duration must be between 1 and %d hours."
 msgstr ""
 
 #. translators: %d: hours.
-#: src/Admin/AdminController.php:455
+#: src/Admin/AdminController.php:457
 #, php-format
 msgid "Read and write enabled for %d hour."
 msgid_plural "Read and write enabled for %d hours."
@@ -270,42 +270,66 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: hours.
-#: src/Admin/AdminController.php:457
+#: src/Admin/AdminController.php:459
 #, php-format
 msgid "Read-only access enabled for %d hour."
 msgid_plural "Read-only access enabled for %d hours."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Admin/AdminController.php:482
+#: src/Admin/AdminController.php:484
 msgid "Invalid request: nothing was saved."
 msgstr ""
 
-#: src/Admin/AdminController.php:494
+#: src/Admin/AdminController.php:489
 msgid "Settings saved."
 msgstr ""
 
-#: src/Admin/AdminController.php:494
+#: src/Admin/AdminController.php:489
 #: build/index.js:9
 msgid "Settings saved, some entries were discarded:"
 msgstr ""
 
+#: src/Admin/AdminController.php:549
+msgid "Settings imported."
+msgstr ""
+
+#: src/Admin/AdminController.php:549
+msgid "Settings imported, some entries were discarded:"
+msgstr ""
+
+#. translators: %s: user login.
 #: src/Admin/AdminController.php:578
+#, php-format
+msgid "User \"%s\" does not exist on this site: not added to the allowed users"
+msgstr ""
+
+#: src/Admin/AdminController.php:581
+msgid "Allowed users were not imported: the export comes from another site, choose them again"
+msgstr ""
+
+#. translators: %s: settings key.
+#: src/Admin/AdminController.php:585
+#, php-format
+msgid "Unknown or invalid setting \"%s\" ignored"
+msgstr ""
+
+#: src/Admin/AdminController.php:677
 msgid "This folder cannot be listed."
 msgstr ""
 
 #. translators: %s: folder path.
-#: src/Admin/AdminController.php:607
+#: src/Admin/AdminController.php:706
 #, php-format
 msgid "Folder %s created and made writable. Run \"wpdev pull\" in the local project."
 msgstr ""
 
-#: src/Admin/AdminController.php:632
+#: src/Admin/AdminController.php:731
 msgid "active theme"
 msgstr ""
 
 #. translators: 1: email result, 2: webhook result.
-#: src/Admin/AdminController.php:649
+#: src/Admin/AdminController.php:748
 #, php-format
 msgid "Test sent. Email: %1$s. Webhook: %2$s."
 msgstr ""
@@ -410,21 +434,21 @@ msgid "not allowed (deny list or invalid name)"
 msgstr ""
 
 #. translators: %d: minimum number of characters.
-#: src/Admin/PageLock.php:109
+#: src/Admin/PageLock.php:110
 #, php-format
 msgid "The password must be at least %d characters long."
 msgstr ""
 
-#: src/Admin/PageLock.php:112
+#: src/Admin/PageLock.php:113
 msgid "The two passwords do not match."
 msgstr ""
 
-#: src/Admin/PageLock.php:159
+#: src/Admin/PageLock.php:160
 msgid "The current password is wrong."
 msgstr ""
 
 #. translators: %d: minutes.
-#: src/Admin/PageLock.php:167
+#: src/Admin/PageLock.php:168
 #, php-format
 msgid "Too many wrong passwords: try again in %d minute."
 msgid_plural "Too many wrong passwords: try again in %d minutes."
@@ -489,6 +513,26 @@ msgstr ""
 #: src/Admin/SettingsForm.php:183
 #, php-format
 msgid "Excluded table \"%s\" rejected: use a table name, with * as wildcard (e.g. wp_wc_*)"
+msgstr ""
+
+#: src/Admin/SettingsTransfer.php:55
+msgid "Paste the exported settings first."
+msgstr ""
+
+#: src/Admin/SettingsTransfer.php:58
+msgid "The text is too long to be a Dev Bridge settings export."
+msgstr ""
+
+#: src/Admin/SettingsTransfer.php:62
+msgid "The text is not valid JSON: paste the whole export, from { to }."
+msgstr ""
+
+#: src/Admin/SettingsTransfer.php:68
+msgid "This is not a Dev Bridge settings export."
+msgstr ""
+
+#: src/Admin/SettingsTransfer.php:92
+msgid "No Dev Bridge setting found in the text."
 msgstr ""
 
 #: src/Plugin.php:100
@@ -777,6 +821,46 @@ msgstr ""
 
 #: build/index.js:9
 msgid "Remove protection"
+msgstr ""
+
+#: build/index.js:9
+msgid "Keep, export and import"
+msgstr ""
+
+#: build/index.js:9
+msgid "Keep the settings when the plugin is deleted"
+msgstr ""
+
+#: build/index.js:9
+msgid "Deleting the plugin then keeps these settings and the page password, so a later reinstall starts from them. Releases, backups and the audit log are deleted anyway. Saved with the other settings."
+msgstr ""
+
+#: build/index.js:9
+msgid "Export copies the saved settings as JSON (never the development mode, the page password or the audit log); paste it in another site and import it. Allowed users are matched by login and folders that do not exist there are discarded. Settings missing from the text keep their value."
+msgstr ""
+
+#: build/index.js:9
+msgid "Settings (JSON)"
+msgstr ""
+
+#: build/index.js:9
+msgid "Settings exported and copied to the clipboard."
+msgstr ""
+
+#: build/index.js:9
+msgid "Settings exported: copy the text below."
+msgstr ""
+
+#: build/index.js:9
+msgid "Export"
+msgstr ""
+
+#: build/index.js:9
+msgid "Import"
+msgstr ""
+
+#: build/index.js:9
+msgid "Save or discard your changes before importing."
 msgstr ""
 
 #: build/index.js:9

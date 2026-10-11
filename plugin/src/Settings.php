@@ -60,6 +60,7 @@ final class Settings {
 			'db_access'            => 'off',
 			'db_redact_personal'   => true,
 			'db_excluded_tables'   => [],
+			'keep_on_uninstall'    => false,
 		];
 	}
 

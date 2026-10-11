@@ -255,13 +255,31 @@ Facoltativa, per siti il cui proprietario è amministratore ma non tecnico (`Adm
 
 ### 2.12 WP-CLI
 
-`wp devbridge status | enable --mode=read|write --hours=N | disable | releases | rollback [<id>] | lock [--clear]`
+`wp devbridge status | enable --mode=read|write --hours=N | disable | releases | rollback [<id>] | lock [--clear] | settings export|import <file>`
 
 `lock` (0.7.0) dice se la pagina admin è protetta da password; `--clear` rimuove la password (recupero).
 
 ### 2.13 Disinstallazione
 
 `uninstall.php`: rimuove opzioni, tabella audit, mu-plugin rescue (se ancora presente), storage (chiedendo conferma nella pagina admin prima della disattivazione se ci sono release).
+
+**Conservare le impostazioni** (0.7.1): con `keep_on_uninstall` (default `false`) l'uninstall lascia
+`devbridge_settings` e `devbridge_page_lock`; tutto il resto (modalità, storage, tabella audit, mu-plugin,
+transient, cron) viene rimosso comunque.
+
+### 2.13d Esportazione e importazione delle impostazioni (0.7.1)
+
+`Admin\SettingsTransfer`, azioni admin-ajax `devbridge_export` (GET) e `devbridge_import` (POST), stessi
+controlli delle altre azioni (capability, nonce, protezione della pagina); `wp devbridge settings export|import`.
+
+- Formato: `{format: "lab591-dev-bridge-settings", version, site, exported, allowed_users: [login], settings}`;
+  in importazione è accettato anche il solo oggetto `settings`. Mai modalità, password della pagina, audit.
+- Importazione: JSON ≤ 256 KB, profondità ≤ 8, solo chiavi note e valori del tipo atteso (il resto è scartato e
+  segnalato); poi lo stesso percorso del salvataggio (`SettingsForm`): cartelle, URL di health check, IP ecc.
+  validati sul sito di destinazione. Le chiavi assenti mantengono il valore attuale.
+- Utenti autorizzati: gli ID valgono solo se `site` coincide con questo sito; altrimenti si abbinano i login di
+  `allowed_users` (quelli inesistenti sono segnalati); ID senza login da un sito sconosciuto vengono scartati.
+  Restano soggetti al controllo della capability come nel salvataggio.
 
 ### 2.13c Cache (0.6.0)
 

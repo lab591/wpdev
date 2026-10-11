@@ -1,6 +1,7 @@
 <?php
 /**
  * Uninstall: removes options, audit table, transients, the rescue mu-plugin and the storage (SPEC 2.13).
+ * With "keep settings" on, the settings and the page password stay, for a later reinstall.
  *
  * @package Lab591\DevBridge
  */
@@ -44,13 +45,16 @@ if ( $devbridge_has_storage ) {
 
 ( new Lab591\DevBridge\Audit\AuditLog() )->drop();
 
-foreach ( [
-	Lab591\DevBridge\Settings::OPTION,
+$devbridge_options = [
 	Lab591\DevBridge\Mode::OPTION,
 	Lab591\DevBridge\Storage\Storage::SUFFIX_OPTION,
 	Lab591\DevBridge\Rescue\RescueInstaller::CHECK_OPTION,
-	Lab591\DevBridge\Admin\PageLock::OPTION,
-] as $devbridge_option ) {
+];
+if ( true !== ( new Lab591\DevBridge\Settings() )->get( 'keep_on_uninstall' ) ) {
+	$devbridge_options[] = Lab591\DevBridge\Settings::OPTION;
+	$devbridge_options[] = Lab591\DevBridge\Admin\PageLock::OPTION;
+}
+foreach ( $devbridge_options as $devbridge_option ) {
 	Lab591\DevBridge\Support\Options::delete( $devbridge_option );
 	delete_option( $devbridge_option ); // Leftovers of a single-site install converted to multisite.
 }

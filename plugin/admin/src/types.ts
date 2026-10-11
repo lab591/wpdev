@@ -89,6 +89,7 @@ export interface Settings {
 	db_access: 'off' | 'schema' | 'read';
 	db_redact_personal: boolean;
 	db_excluded_tables: string[];
+	keep_on_uninstall: boolean;
 	limits: Limits;
 }
 

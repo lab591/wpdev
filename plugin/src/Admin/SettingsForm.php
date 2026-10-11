@@ -187,6 +187,10 @@ final class SettingsForm {
 		}
 		$out['db_excluded_tables'] = array_values( array_unique( $out['db_excluded_tables'] ) );
 
+		if ( array_key_exists( 'keep_on_uninstall', $input ) ) {
+			$out['keep_on_uninstall'] = ! empty( $input['keep_on_uninstall'] );
+		}
+
 		$out['retention_releases']   = self::intIn( $input['retention_releases'] ?? null, 1, 100, (int) $out['retention_releases'] );
 		$out['audit_retention_days'] = self::intIn( $input['audit_retention_days'] ?? null, 1, 3650, (int) $out['audit_retention_days'] );
 		$out['max_read_hours']       = self::intIn( $input['max_read_hours'] ?? null, 1, Mode::HARD_MAX_HOURS[ Mode::READ ], (int) $out['max_read_hours'] );

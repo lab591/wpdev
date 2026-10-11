@@ -53,6 +53,8 @@ final class AdminController {
 		'devbridge_notify'   => [ 'notifyTest', 'POST' ],
 		'devbridge_preview'  => [ 'previewAction', 'POST' ],
 		'devbridge_lock'     => [ 'lockAction', 'POST' ],
+		'devbridge_export'   => [ 'export', 'GET' ],
+		'devbridge_import'   => [ 'import', 'POST' ],
 	];
 
 	public function __construct( private readonly Plugin $plugin ) {
@@ -481,18 +483,115 @@ final class AdminController {
 		if ( ! is_array( $data['settings'] ?? null ) || [] === $data['settings'] ) {
 			wp_send_json_error( [ 'message' => __( 'Invalid request: nothing was saved.', 'lab591-dev-bridge' ) ], 400 );
 		}
-		// Fields missing from the request keep their current value (never cleared by omission).
-		$input = array_merge( $this->uiSettings(), array_intersect_key( $data['settings'], Settings::defaults() ) );
+		$errors = $this->apply( $data['settings'] );
+		return [
+			'errors'  => $errors,
+			'message' => [] === $errors ? __( 'Settings saved.', 'lab591-dev-bridge' ) : __( 'Settings saved, some entries were discarded:', 'lab591-dev-bridge' ),
+		] + $this->settings();
+	}
+
+	/**
+	 * Validates and saves settings (form, import, WP-CLI). Fields missing from `$input` keep their
+	 * current value (never cleared by omission).
+	 *
+	 * @param array<string, mixed> $input
+	 * @return string[] Messages about discarded entries.
+	 */
+	public function apply( array $input ): array {
+		$input = array_merge( $this->uiSettings(), array_intersect_key( $input, Settings::defaults() ) );
 		$form  = $this->form();
 		$clean = $form->sanitize( $input, $this->plugin->settings()->all() );
 
 		$clean['allowed_user_ids'] = array_values( array_filter( $clean['allowed_user_ids'], static fn ( int $id ): bool => user_can( $id, Options::capability() ) ) );
 		$this->plugin->settings()->save( $clean );
 		$this->plugin->reset();
+		return $form->errors();
+	}
+
+	/**
+	 * Settings export (JSON document shown in the page, or written by WP-CLI).
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function export(): array {
+		return [ 'export' => $this->exportDocument() ];
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	public function exportDocument(): array {
+		$settings = $this->uiSettings();
+		$logins   = [];
+		foreach ( (array) $settings['allowed_user_ids'] as $id ) {
+			$user = get_user_by( 'id', (int) $id );
+			if ( $user ) {
+				$logins[] = (string) $user->user_login;
+			}
+		}
+		return SettingsTransfer::export( $settings, $logins, \Lab591\DevBridge\VERSION, $this->siteId(), time() );
+	}
+
+	/**
+	 * Imports an export pasted in the page.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function import(): array {
+		$data = $this->payload();
+		try {
+			$errors = $this->importJson( (string) ( $data['json'] ?? '' ) );
+		} catch ( \InvalidArgumentException $e ) {
+			wp_send_json_error( [ 'message' => $e->getMessage() ], 400 );
+		}
 		return [
-			'errors'  => $form->errors(),
-			'message' => [] === $form->errors() ? __( 'Settings saved.', 'lab591-dev-bridge' ) : __( 'Settings saved, some entries were discarded:', 'lab591-dev-bridge' ),
+			'errors'  => $errors,
+			'message' => [] === $errors ? __( 'Settings imported.', 'lab591-dev-bridge' ) : __( 'Settings imported, some entries were discarded:', 'lab591-dev-bridge' ),
 		] + $this->settings();
+	}
+
+	/**
+	 * Validates and saves an export; settings it does not contain keep their value.
+	 *
+	 * @return string[] Messages about discarded entries.
+	 * @throws \InvalidArgumentException When the text is not a settings export.
+	 */
+	public function importJson( string $json ): array {
+		$import = SettingsTransfer::parse( $json );
+		$input  = $import['settings'];
+		$notes  = [];
+		$users  = SettingsTransfer::resolveUsers(
+			$import,
+			$this->siteId(),
+			static function ( string $login ): int {
+				$user = get_user_by( 'login', $login );
+				return $user ? (int) $user->ID : 0;
+			}
+		);
+		if ( null === $users['ids'] ) {
+			unset( $input['allowed_user_ids'] );
+		} else {
+			$input['allowed_user_ids'] = $users['ids'];
+		}
+		foreach ( $users['missing'] as $login ) {
+			/* translators: %s: user login. */
+			$notes[] = sprintf( __( 'User "%s" does not exist on this site: not added to the allowed users', 'lab591-dev-bridge' ), $login );
+		}
+		if ( null !== $users['ids'] && [] === $users['ids'] && null === $import['users'] && [] !== (array) ( $import['settings']['allowed_user_ids'] ?? [] ) ) {
+			$notes[] = __( 'Allowed users were not imported: the export comes from another site, choose them again', 'lab591-dev-bridge' );
+		}
+		foreach ( $import['ignored'] as $key ) {
+			/* translators: %s: settings key. */
+			$notes[] = sprintf( __( 'Unknown or invalid setting "%s" ignored', 'lab591-dev-bridge' ), $key );
+		}
+		return array_merge( $notes, $this->apply( $input ) );
+	}
+
+	/**
+	 * Address identifying this installation in exports (the network for a network-wide install).
+	 */
+	private function siteId(): string {
+		return Options::network() ? network_home_url() : home_url();
 	}
 
 	public function form(): SettingsForm {

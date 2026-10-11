@@ -1,6 +1,6 @@
 <?php
 /**
- * WP-CLI: `wp devbridge status|enable|disable|releases|rollback|lock` (SPEC 2.12).
+ * WP-CLI: `wp devbridge status|enable|disable|releases|rollback|lock|settings` (SPEC 2.12).
  *
  * @package Lab591\DevBridge
  */
@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Lab591\DevBridge\Cli;
 
+use Lab591\DevBridge\Admin\AdminController;
 use Lab591\DevBridge\Deploy\ReleaseStore;
 use Lab591\DevBridge\Mode;
 use Lab591\DevBridge\Plugin;
@@ -160,5 +161,55 @@ final class Command {
 	public function disable( array $args, array $assoc_args ): void {
 		$this->plugin->mode()->disable();
 		\WP_CLI::success( 'Development mode disabled.' );
+	}
+
+	/**
+	 * Exports or imports the settings as JSON (the same format as the admin page).
+	 *
+	 * ## OPTIONS
+	 *
+	 * <action>
+	 * : export (prints the JSON) or import.
+	 * ---
+	 * options:
+	 *   - export
+	 *   - import
+	 * ---
+	 *
+	 * [<file>]
+	 * : For import: JSON file to read, or - for standard input.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp devbridge settings export > devbridge.json
+	 *     wp devbridge settings import devbridge.json
+	 *
+	 * @param string[]             $args       Positional arguments.
+	 * @param array<string, mixed> $assoc_args Named arguments.
+	 */
+	public function settings( array $args, array $assoc_args ): void {
+		$admin = new AdminController( $this->plugin );
+		if ( 'export' === ( $args[0] ?? '' ) ) {
+			\WP_CLI::line( (string) wp_json_encode( $admin->exportDocument(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) );
+			return;
+		}
+		$file = (string) ( $args[1] ?? '' );
+		if ( '' === $file ) {
+			\WP_CLI::error( 'Give the JSON file to import (or - for standard input).' );
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local file chosen by the server operator.
+		$json = '-' === $file ? (string) stream_get_contents( STDIN ) : ( is_file( $file ) ? (string) file_get_contents( $file ) : '' );
+		if ( '' === $json ) {
+			\WP_CLI::error( 'File not found or empty.' );
+		}
+		try {
+			$errors = $admin->importJson( $json );
+		} catch ( \InvalidArgumentException $e ) {
+			\WP_CLI::error( $e->getMessage() );
+		}
+		foreach ( $errors as $error ) {
+			\WP_CLI::warning( $error );
+		}
+		\WP_CLI::success( 'Settings imported.' );
 	}
 }

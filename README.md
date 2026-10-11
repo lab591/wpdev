@@ -76,6 +76,8 @@ wp devbridge status
 wp devbridge releases
 wp devbridge rollback [<id>] [--force]
 wp devbridge lock [--clear]                    # password della pagina: stato o rimozione
+wp devbridge settings export > devbridge.json  # impostazioni in JSON
+wp devbridge settings import devbridge.json    # (o - per leggere dallo standard input)
 ```
 
 Nessun endpoint REST può cambiare modalità, impostazioni o cartelle.
@@ -95,6 +97,22 @@ rivelano qualcosa. Tutte le azioni (modalità, impostazioni, cartelle, anteprima
   (`wp devbridge lock` dice se è attiva).
 - Evita modifiche per errore, non è una barriera contro un amministratore che vuole fare danni: può comunque
   disattivare i plugin.
+
+### Conservare, esportare e importare le impostazioni
+
+In *Impostazioni → Conserva, esporta e importa*:
+
+- **Conserva le impostazioni quando il plugin viene eliminato**: se attiva, eliminando il plugin restano le
+  impostazioni e la password della pagina, così puoi toglierlo quando non serve e reinstallarlo senza
+  riconfigurare nulla. Release, backup, registro di audit e mu-plugin vengono comunque rimossi e la modalità
+  sviluppo riparte da *off*. Di default è disattivata: eliminare il plugin cancella tutto.
+- **Esporta** mette nel riquadro (e negli appunti) le impostazioni salvate in JSON; **Importa** applica il JSON
+  incollato. L'esportazione non contiene mai la modalità sviluppo, la password della pagina o l'audit. In
+  importazione ogni valore passa dagli stessi controlli del salvataggio manuale: le cartelle che sul sito non
+  esistono e gli URL di altri domini vengono scartati e segnalati, le impostazioni assenti dal testo restano
+  come sono. Gli utenti autorizzati vengono abbinati per **nome utente** quando il JSON viene da un altro sito
+  (gli ID cambiano da sito a sito). Lo stesso da WP-CLI con `wp devbridge settings export|import`.
+- Il JSON contiene anche l'eventuale URL del webhook delle notifiche: trattalo come un dato riservato.
 
 ---
 

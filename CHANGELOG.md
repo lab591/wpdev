@@ -4,6 +4,11 @@ Tutte le versioni del plugin **Lab591 Dev Bridge** e del companion **wpdev**.
 
 ## Non ancora rilasciato
 
+- **Conservare le impostazioni** quando il plugin viene eliminato (opzione, disattivata di default): reinstallandolo
+  si riparte dalla configurazione precedente, password della pagina compresa.
+- **Esportazione e importazione delle impostazioni** in JSON dalla pagina (*Conserva, esporta e importa*) o con
+  `wp devbridge settings export|import`; gli utenti autorizzati si abbinano per nome utente tra siti diversi.
+
 - **Repository git locale**: `wpdev init` propone di crearlo se manca (`--no-git` per saltare) e fa il primo
   commit; `wpdev pull` salva in un commit la versione del sito; `CLAUDE.md` chiede a Claude di fare commit dopo
   ogni modifica e spiega come tornare indietro, senza riscrivere la storia né fare push.

@@ -16,6 +16,7 @@ import { boot, errorMessage, get, post } from './api';
 import { NumberField, Section, Segmented } from './components';
 import FolderTree from './FolderTree';
 import PageLockSection from './PageLockSection';
+import TransferSection from './TransferSection';
 import { formatBytes } from './format';
 import type { Settings, SettingsData } from './types';
 
@@ -76,6 +77,7 @@ export default function SettingsTab( {
 	const [ loadError, setLoadError ] = useState( '' );
 	const [ saving, setSaving ] = useState( false );
 	const [ errors, setErrors ] = useState< string[] >( [] );
+	const [ errorsTitle, setErrorsTitle ] = useState( '' );
 	const [ treeKey, setTreeKey ] = useState( 0 );
 
 	const load = ( result: SettingsData ) => {
@@ -126,23 +128,31 @@ export default function SettingsTab( {
 		setDraft( { ...draft, [ key ]: value } );
 	const muChanged = draft.allow_mu_plugins !== data.settings.allow_mu_plugins;
 
+	const saved = ( result: SettingsData, refreshTree: boolean ) => {
+		load( result );
+		setErrors( result.errors ?? [] );
+		setErrorsTitle( result.message ?? '' );
+		if ( ! result.errors?.length && result.message ) {
+			notify( result.message );
+		}
+		if ( refreshTree ) {
+			setTreeKey( treeKey + 1 );
+		}
+		onSaved();
+	};
+
 	const save = async () => {
 		setSaving( true );
 		setErrors( [] );
 		try {
-			const result = await post< SettingsData >( 'devbridge_save', {
-				settings: draft,
-			} );
-			load( result );
-			setErrors( result.errors ?? [] );
-			if ( ! result.errors?.length && result.message ) {
-				notify( result.message );
-			}
-			if ( muChanged ) {
-				setTreeKey( treeKey + 1 );
-			}
-			onSaved();
+			saved(
+				await post< SettingsData >( 'devbridge_save', {
+					settings: draft,
+				} ),
+				muChanged
+			);
 		} catch ( e ) {
+			setErrorsTitle( '' );
 			setErrors( [ errorMessage( e ) ] );
 		} finally {
 			setSaving( false );
@@ -202,10 +212,11 @@ export default function SettingsTab( {
 			{ errors.length > 0 && (
 				<Notice status="warning" onRemove={ () => setErrors( [] ) }>
 					<p>
-						{ __(
-							'Settings saved, some entries were discarded:',
-							'lab591-dev-bridge'
-						) }
+						{ errorsTitle ||
+							__(
+								'Settings saved, some entries were discarded:',
+								'lab591-dev-bridge'
+							) }
 					</p>
 					<ul className="devbridge-error-list">
 						{ errors.map( ( e ) => (
@@ -607,6 +618,14 @@ export default function SettingsTab( {
 				enabled={ pageLock }
 				onChange={ onPageLock }
 				notify={ notify }
+			/>
+
+			<TransferSection
+				keep={ draft.keep_on_uninstall }
+				onKeep={ ( on ) => set( 'keep_on_uninstall', on ) }
+				dirty={ dirty }
+				notify={ notify }
+				onImported={ ( result ) => saved( result, true ) }
 			/>
 
 			<div className={ `devbridge-savebar${ dirty ? ' is-dirty' : '' }` }>

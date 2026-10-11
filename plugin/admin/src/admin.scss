@@ -736,3 +736,12 @@ $info: #3858e9;
 	align-items: center;
 	gap: 12px;
 }
+
+.devbridge-transfer {
+	margin-top: 16px;
+
+	textarea {
+		font-family: Consolas, Monaco, monospace;
+		font-size: 12px;
+	}
+}

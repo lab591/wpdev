@@ -239,6 +239,26 @@ await scenario( 'mode off: deploys are refused', async () => {
 	wp( 'wp devbridge enable --mode=write --hours=1 --user=admin' );
 } );
 
+await scenario( 'uninstall: settings kept only when asked (import from WP-CLI)', async () => {
+	const fixture = 'wp eval-file wp-content/e2e-fixtures/keep-settings.php';
+	// --skip-delete: the plugin folder is the repository (wp-env mapping).
+	const uninstall = () => wp( 'wp plugin deactivate lab591-dev-bridge && wp plugin uninstall lab591-dev-bridge --skip-delete' );
+	try {
+		wp( `${ fixture } keep` );
+		expect( wp( `${ fixture } state` ).includes( 'SETTINGS=kept retention=7 keep=yes' ), 'import did not apply' );
+		uninstall();
+		const kept = wp( `${ fixture } state` );
+		expect( kept.includes( 'SETTINGS=kept retention=7 keep=yes' ) && kept.includes( 'MODE=none' ), 'settings not kept (or mode left behind)', kept );
+
+		wp( 'wp plugin activate lab591-dev-bridge' );
+		wp( `${ fixture } forget` );
+		uninstall();
+		expect( wp( `${ fixture } state` ).includes( 'SETTINGS=none' ), 'settings left behind without "keep"' );
+	} finally {
+		wp( 'wp plugin activate lab591-dev-bridge && wp eval-file wp-content/e2e-fixtures/setup.php' );
+	}
+} );
+
 rmSync( project, { recursive: true, force: true } );
 console.log( failures ? `\n${ failures } scenario(s) failed` : '\nall scenarios passed' );
 process.exit( failures );

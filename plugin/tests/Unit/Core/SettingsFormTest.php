@@ -139,4 +139,14 @@ final class SettingsFormTest extends TestCase {
 		$this->assertSame( 'off', $form->sanitize( [ 'db_access' => 'write' ], $defaults )['db_access'], 'No write level exists' );
 		$this->assertTrue( $form->sanitize( [], $defaults )['db_redact_personal'], 'Missing field keeps the current value' );
 	}
+
+	public function test_keep_on_uninstall(): void {
+		$form     = $this->form();
+		$defaults = Settings::defaults();
+		$this->assertFalse( $defaults['keep_on_uninstall'], 'Deleting the plugin removes everything by default' );
+		$kept = $form->sanitize( [ 'keep_on_uninstall' => true ], $defaults );
+		$this->assertTrue( $kept['keep_on_uninstall'] );
+		$this->assertTrue( $form->sanitize( [], $kept )['keep_on_uninstall'], 'Missing field keeps the current value' );
+		$this->assertFalse( $form->sanitize( [ 'keep_on_uninstall' => false ], $kept )['keep_on_uninstall'] );
+	}
 }
