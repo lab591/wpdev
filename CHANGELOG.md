@@ -2,7 +2,7 @@
 
 Tutte le versioni del plugin **Lab591 Dev Bridge** e del companion **wpdev**.
 
-## Non ancora rilasciato
+## 0.7.1
 
 - **Conservare le impostazioni** quando il plugin viene eliminato (opzione, disattivata di default): reinstallandolo
   si riparte dalla configurazione precedente, password della pagina compresa.
